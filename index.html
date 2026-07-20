@@ -167,12 +167,17 @@
                 }
 
                 if (patrocinadores.length > 0) {
-                    listaPatrocinadores.innerHTML = patrocinadores.map(p => `
-                        <div class="flex flex-col items-center gap-1.5 max-w-[7rem]">
-                            ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}" class="h-14 object-contain">` : ''}
-                            <span class="text-xs text-[var(--ink-soft)] text-center leading-tight">${escapeHTML(p.nome)}</span>
-                        </div>
-                    `).join('');
+                    listaPatrocinadores.innerHTML = patrocinadores.map(p => {
+                        const nomeHtml = p.url_rede_social
+                            ? `<a href="${escapeHTML(p.url_rede_social)}" target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--ink-soft)] text-center leading-tight underline underline-offset-2 hover:text-[var(--ink)]">${escapeHTML(p.nome)}</a>`
+                            : `<span class="text-xs text-[var(--ink-soft)] text-center leading-tight">${escapeHTML(p.nome)}</span>`;
+                        return `
+                            <div class="flex flex-col items-center gap-1.5 max-w-[7rem]">
+                                ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}" class="h-14 object-contain">` : ''}
+                                ${nomeHtml}
+                            </div>
+                        `;
+                    }).join('');
                     blocoPatrocinadores.classList.remove('hidden');
                 }
 
@@ -197,7 +202,7 @@
                     .select(`
                         id, descricao, data, regulamento_pdf_url,
                         concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
-                        concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, ativo ) )
+                        concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
                     `)
                     .eq('ativo', true);
 

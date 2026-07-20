@@ -78,6 +78,7 @@ let concursosCache = [];
 const patrocinadorForm = document.getElementById('patrocinador-form');
 const patrocinadorIdInput = document.getElementById('patrocinador-id');
 const patrocinadorNomeInput = document.getElementById('patrocinador-nome');
+const patrocinadorUrlInput = document.getElementById('patrocinador-url');
 const patrocinadorLogotipoArquivoInput = document.getElementById('patrocinador-logotipo-arquivo');
 const patrocinadorLogotipoAtualDiv = document.getElementById('patrocinador-logotipo-atual');
 const patrocinadorLogotipoPreview = document.getElementById('patrocinador-logotipo-preview');
@@ -101,19 +102,41 @@ const premiacoesContainer = document.getElementById('premiacoes-container');
 let premiacoesCache = [];
 
 // 1. Monitorar estado da autenticação (Mantém logado mesmo se atualizar a página)
+//
+// Ter uma sessão válida do Supabase Auth NÃO é suficiente pra abrir o
+// painel: qualquer visitante que faz login com o Google em votacao.html
+// (só pra votar) também gera uma sessão válida no mesmo domínio. Por isso,
+// toda sessão passa antes por is_admin() (função no banco, ver
+// sql/014_admins_e_rls.sql) — só quem está na tabela "admins" entra.
 supabase.auth.onAuthStateChange((event, session) => {
     if (session) {
-        // Usuário logado com sucesso!
-        loginSection.classList.add('hidden');
-        adminPanel.classList.remove('hidden');
-        userDisplay.textContent = `Admin: ${session.user.email}`;
-        switchView('dashboard');
+        validarAcessoAdmin(session);
     } else {
-        // Usuário não logado
         loginSection.classList.remove('hidden');
         adminPanel.classList.add('hidden');
     }
 });
+
+async function validarAcessoAdmin(session) {
+    const { data: souAdmin, error } = await supabase.rpc('is_admin');
+
+    if (error || !souAdmin) {
+        // Sessão existe no Supabase Auth, mas não pertence a um admin
+        // cadastrado (ex: conta Google usada em votacao.html) — barra o
+        // acesso e desloga, em vez de deixar uma sessão "meio logada".
+        await supabase.auth.signOut();
+        loginSection.classList.remove('hidden');
+        adminPanel.classList.add('hidden');
+        loginError.textContent = 'Esta conta não tem permissão de acesso ao painel de curadoria.';
+        loginError.classList.remove('hidden');
+        return;
+    }
+
+    loginSection.classList.add('hidden');
+    adminPanel.classList.remove('hidden');
+    userDisplay.textContent = `Admin: ${session.user.email}`;
+    switchView('dashboard');
+}
 
 // 1b. Troca de tela (Dashboard / Concursos / Moderação de fotos)
 function switchView(viewName) {
@@ -729,7 +752,10 @@ async function carregarPatrocinadores() {
                     : `<div class="h-10 w-10 flex items-center justify-center border-2 border-[var(--ink)] rounded-lg bg-white text-lg">🤝</div>`}
                 <div>
                     <p class="font-semibold text-[var(--ink)]">${escapeHTML(patrocinador.nome)}</p>
-                    <span class="stamp ${patrocinador.ativo ? 'stamp-fern' : 'stamp-amber'}">${patrocinador.ativo ? 'Ativo' : 'Inativo'}</span>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="stamp ${patrocinador.ativo ? 'stamp-fern' : 'stamp-amber'}">${patrocinador.ativo ? 'Ativo' : 'Inativo'}</span>
+                        ${patrocinador.url_rede_social ? `<a href="${escapeHTML(patrocinador.url_rede_social)}" target="_blank" rel="noopener noreferrer" class="text-sm underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">🔗 Link</a>` : ''}
+                    </div>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -758,6 +784,7 @@ window.editarPatrocinador = function(id) {
 
     patrocinadorIdInput.value = patrocinador.id;
     patrocinadorNomeInput.value = patrocinador.nome;
+    patrocinadorUrlInput.value = patrocinador.url_rede_social || '';
     patrocinadorAtivoInput.checked = patrocinador.ativo;
     patrocinadorLogotipoArquivoInput.value = '';
     patrocinadorLogotipoRemoverInput.checked = false;
@@ -796,6 +823,7 @@ if (patrocinadorForm) {
 
         const payload = {
             nome: patrocinadorNomeInput.value.trim(),
+            url_rede_social: patrocinadorUrlInput.value.trim() || null,
             ativo: patrocinadorAtivoInput.checked,
         };
 

@@ -51,6 +51,142 @@
             animation: confete-cair var(--duracao) linear var(--atraso) forwards;
             will-change: transform, opacity;
         }
+
+        /* Foto do card: indica que é clicável e dá um leve zoom no hover,
+           sem interferir no efeito de "levantar" já aplicado ao card. */
+        .foto-card-imagem {
+            cursor: zoom-in;
+        }
+        .foto-card-imagem img {
+            transition: transform 0.3s ease;
+        }
+        .foto-card-imagem:hover img {
+            transform: scale(1.06);
+        }
+        .foto-card-lupa {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            color: rgba(255, 255, 255, 0.55);
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+        .foto-card-imagem:hover .foto-card-lupa {
+            opacity: 1;
+        }
+        .foto-card-compartilhar-inline {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            color: var(--ink-soft);
+            cursor: pointer;
+            border-radius: 999px;
+            transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+        }
+        .foto-card-compartilhar-inline:hover {
+            color: var(--ink);
+            background: var(--bone-2);
+            transform: scale(1.1);
+        }
+
+        @keyframes toast-entra-sai {
+            0% { opacity: 0; transform: translate(-50%, 8px); }
+            10%, 85% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, 8px); }
+        }
+        .toast-compartilhar {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translate(-50%, 0);
+            background: var(--ink);
+            color: var(--bone);
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 10001;
+            animation: toast-entra-sai 2.2s ease forwards;
+            pointer-events: none;
+        }
+
+        @keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modal-conteudo-in {
+            from { opacity: 0; transform: scale(0.92) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-foto {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-foto.hidden { display: none; }
+        .modal-foto-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(22, 32, 26, 0.78);
+            backdrop-filter: blur(2px);
+            animation: modal-backdrop-in 0.2s ease-out;
+        }
+        .modal-foto-conteudo {
+            position: relative;
+            width: max-content;
+            max-width: min(92vw, 40rem);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: modal-conteudo-in 0.25s cubic-bezier(.2, .8, .2, 1);
+        }
+        .modal-foto-imagem-wrap {
+            background: var(--bone-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .modal-foto-imagem-wrap img {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: min(92vw, 40rem);
+            max-height: 60vh;
+            object-fit: contain;
+        }
+        .modal-foto-fechar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            background: var(--bone);
+            border: 2px solid var(--ink);
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--ink);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .modal-foto-fechar:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0 var(--ink);
+        }
     </style>
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
@@ -146,6 +282,24 @@
         </div>
     </main>
 
+    <!-- Modal de visualização ampliada da foto -->
+    <div id="modal-foto" class="modal-foto hidden" role="dialog" aria-modal="true" aria-label="Foto ampliada">
+        <div id="modal-foto-backdrop" class="modal-foto-backdrop"></div>
+        <div class="modal-foto-conteudo ticket">
+            <button id="modal-foto-fechar" type="button" class="modal-foto-fechar" aria-label="Fechar">✕</button>
+            <div class="modal-foto-imagem-wrap">
+                <img id="modal-foto-img" src="" alt="Foto ampliada do concurso">
+            </div>
+            <div class="p-4 md:p-5 text-center">
+                <span id="modal-foto-selo" class="stamp mb-2 hidden"></span>
+                <h3 id="modal-foto-nome" class="font-display text-lg text-[var(--ink)]"></h3>
+                <p id="modal-foto-data" class="text-xs text-[var(--ink-soft)] mt-1"></p>
+                <p id="modal-foto-votos" class="text-sm text-[var(--ink-soft)] font-medium mt-1"></p>
+                <button id="modal-foto-votar" type="button" class="btn btn-block mt-3 text-sm !py-2 hidden"></button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Configuração do Supabase e helper escapeHTML() vêm de supabase-client.js
 
@@ -167,6 +321,149 @@
         const listaPremiacoes = document.getElementById('lista-premiacoes');
         const blocoPatrocinadores = document.getElementById('bloco-patrocinadores');
         const listaPatrocinadores = document.getElementById('lista-patrocinadores');
+        const modalFoto = document.getElementById('modal-foto');
+        const modalFotoBackdrop = document.getElementById('modal-foto-backdrop');
+        const modalFotoFechar = document.getElementById('modal-foto-fechar');
+        const modalFotoImg = document.getElementById('modal-foto-img');
+        const modalFotoSelo = document.getElementById('modal-foto-selo');
+        const modalFotoNome = document.getElementById('modal-foto-nome');
+        const modalFotoData = document.getElementById('modal-foto-data');
+        const modalFotoVotos = document.getElementById('modal-foto-votos');
+        const modalFotoVotarBtn = document.getElementById('modal-foto-votar');
+
+        // Guarda os dados das fotos atualmente exibidas (com selo e data já
+        // formatados) pra alimentar a modal de visualização ampliada sem
+        // precisar buscar tudo de novo no banco.
+        let fotosExibidasCache = [];
+
+        // Id da foto atualmente aberta na modal (null quando fechada) e se o
+        // concurso está encerrado — usados pelo botão de voto da modal, que
+        // some quando o concurso já foi encerrado (mesma regra dos cards).
+        let modalFotoIdAtual = null;
+        let concursoEncerrado = false;
+
+        function abrirModalFoto(fotoId) {
+            const foto = fotosExibidasCache.find(f => f.id === fotoId);
+            if (!foto) return;
+
+            modalFotoIdAtual = fotoId;
+
+            modalFotoImg.src = foto.url_foto;
+            modalFotoImg.alt = `Foto de ${foto.nome_participante}`;
+            modalFotoNome.textContent = foto.nome_participante;
+            modalFotoData.textContent = `📅 ${foto.dataFormatada}`;
+            modalFotoVotos.textContent = `${foto.votos} voto${foto.votos === 1 ? '' : 's'}`;
+
+            if (foto.selo) {
+                modalFotoSelo.textContent = `${foto.selo.medalha} ${foto.selo.texto}`;
+                modalFotoSelo.className = `stamp mb-2 ${foto.selo.classe}`;
+            } else {
+                modalFotoSelo.classList.add('hidden');
+            }
+
+            configurarBotaoVotoModal(fotoId);
+
+            modalFoto.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharModalFoto() {
+            modalFoto.classList.add('hidden');
+            modalFotoImg.src = '';
+            modalFotoIdAtual = null;
+            document.body.style.overflow = '';
+        }
+
+        // Deixa o botão "Votar" da modal no mesmo estado do botão do card
+        // (logado/já votou/pode votar) — chamado ao abrir a modal e sempre
+        // que o estado do usuário muda (login, voto computado, etc.).
+        function configurarBotaoVotoModal(fotoId) {
+            if (concursoEncerrado) {
+                modalFotoVotarBtn.classList.add('hidden');
+                return;
+            }
+
+            modalFotoVotarBtn.classList.remove('hidden');
+            const jaVotou = meusVotosRealizados.includes(fotoId);
+
+            if (!usuarioAtual) {
+                modalFotoVotarBtn.className = 'btn btn-ghost btn-block mt-3 text-sm !py-2';
+                modalFotoVotarBtn.textContent = '🔒 Entrar para votar';
+                modalFotoVotarBtn.disabled = false;
+                modalFotoVotarBtn.onclick = () => entrarComGooglePopup(fotoId);
+            } else if (jaVotou) {
+                modalFotoVotarBtn.className = 'btn btn-ghost btn-block mt-3 text-sm !py-2';
+                modalFotoVotarBtn.textContent = '❤️ Votado';
+                modalFotoVotarBtn.disabled = true;
+                modalFotoVotarBtn.onclick = null;
+            } else {
+                modalFotoVotarBtn.className = 'btn btn-ember btn-block mt-3 text-sm !py-2';
+                modalFotoVotarBtn.textContent = '❤️ Votar';
+                modalFotoVotarBtn.disabled = false;
+                modalFotoVotarBtn.onclick = () => computarVoto(fotoId);
+            }
+        }
+
+        modalFotoFechar.addEventListener('click', fecharModalFoto);
+        modalFotoBackdrop.addEventListener('click', fecharModalFoto);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modalFoto.classList.contains('hidden')) fecharModalFoto();
+        });
+
+        // Pequeno aviso flutuante, usado quando o link é copiado (fallback
+        // de navegadores sem suporte a navigator.share).
+        function mostrarToast(mensagem) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-compartilhar';
+            toast.textContent = mensagem;
+            document.body.appendChild(toast);
+            toast.addEventListener('animationend', () => toast.remove());
+        }
+
+        // Monta um link direto pra essa foto (?foto=<id>) e abre o menu
+        // nativo de compartilhamento do aparelho; se o navegador não
+        // suportar (a maioria dos desktops), copia o link pra área de
+        // transferência como alternativa.
+        async function compartilharFoto(fotoId, event) {
+            event.stopPropagation();
+
+            const foto = fotosExibidasCache.find(f => f.id === fotoId);
+            const url = `${window.location.origin}${window.location.pathname}?foto=${fotoId}`;
+            const texto = foto
+                ? `Vote na foto de ${foto.nome_participante} no concurso do Belinzoni Dino Parque!`
+                : 'Vote nesta foto do concurso do Belinzoni Dino Parque!';
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: 'Concurso Belinzoni Dino Parque', text: texto, url });
+                } catch (err) {
+                    // Usuário cancelou o compartilhamento nativo — não é um erro real.
+                }
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(url);
+                mostrarToast('🔗 Link copiado!');
+            } catch (err) {
+                mostrarToast('Não foi possível copiar o link.');
+            }
+        }
+
+        // Se a página foi aberta a partir de um link compartilhado
+        // (?foto=<id>), abre a modal dessa foto automaticamente assim que
+        // ela aparecer na lista carregada. Só faz isso uma vez, pra não
+        // reabrir a modal sozinha a cada clique em "Atualizar".
+        let modalAutoAbertaPeloLink = false;
+        function tentarAbrirFotoPelaUrl() {
+            if (modalAutoAbertaPeloLink) return;
+            const fotoId = new URLSearchParams(window.location.search).get('foto');
+            if (!fotoId) return;
+            if (!fotosExibidasCache.some(f => f.id === fotoId)) return;
+
+            modalAutoAbertaPeloLink = true;
+            abrirModalFoto(fotoId);
+        }
 
         // Exibe/oculta o link do regulamento no rodapé conforme o concurso
         // ativo tem (ou não) um PDF cadastrado na curadoria.
@@ -205,12 +502,17 @@
             }
 
             if (patrocinadores.length > 0) {
-                listaPatrocinadores.innerHTML = patrocinadores.map(p => `
-                    <div class="flex flex-col items-center gap-1.5 max-w-[7rem]">
-                        ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}" class="h-14 object-contain">` : ''}
-                        <span class="text-xs text-[var(--ink-soft)] text-center leading-tight">${escapeHTML(p.nome)}</span>
-                    </div>
-                `).join('');
+                listaPatrocinadores.innerHTML = patrocinadores.map(p => {
+                    const nomeHtml = p.url_rede_social
+                        ? `<a href="${escapeHTML(p.url_rede_social)}" target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--ink-soft)] text-center leading-tight underline underline-offset-2 hover:text-[var(--ink)]">${escapeHTML(p.nome)}</a>`
+                        : `<span class="text-xs text-[var(--ink-soft)] text-center leading-tight">${escapeHTML(p.nome)}</span>`;
+                    return `
+                        <div class="flex flex-col items-center gap-1.5 max-w-[7rem]">
+                            ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}" class="h-14 object-contain">` : ''}
+                            ${nomeHtml}
+                        </div>
+                    `;
+                }).join('');
                 blocoPatrocinadores.classList.remove('hidden');
             }
 
@@ -281,6 +583,84 @@
             });
         });
 
+        const NOME_POPUP_LOGIN = 'arusuperguia-login';
+
+        // Login com o Google numa popup, em vez de navegar a aba atual —
+        // usado pelo botão "Votar" da modal, pra alguém que abriu a foto por
+        // um link compartilhado consiga logar e votar sem perder a modal
+        // aberta nem a foto que estava vendo.
+        async function entrarComGooglePopup(fotoIdParaVotar) {
+            // Abre a popup de forma síncrona (antes de qualquer await), senão
+            // a maioria dos navegadores bloqueia por não parecer resposta
+            // direta a um clique do usuário.
+            const popup = window.open('', NOME_POPUP_LOGIN, 'width=480,height=640');
+            if (!popup) {
+                alert('Não foi possível abrir a janela de login. Verifique se o navegador está bloqueando pop-ups.');
+                return;
+            }
+
+            const redirectUrl = fotoIdParaVotar
+                ? `${window.location.origin}${window.location.pathname}?foto=${fotoIdParaVotar}`
+                : window.location.href;
+
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: redirectUrl,
+                    skipBrowserRedirect: true, // não navega esta aba — só a popup
+                },
+            });
+
+            if (error || !data || !data.url) {
+                popup.close();
+                alert('Não foi possível iniciar o login com o Google.');
+                return;
+            }
+
+            popup.location.href = data.url;
+
+            // Não dá pra saber quando o login terminou de dentro da popup
+            // (páginas de domínios diferentes durante o fluxo do Google não
+            // são acessíveis por JS), então checamos periodicamente se ela
+            // já fechou — o que acontece sozinho assim que a sessão aparece
+            // (ver detecção de popup mais abaixo).
+            const intervaloChecagem = setInterval(async () => {
+                if (!popup.closed) return;
+                clearInterval(intervaloChecagem);
+
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return; // usuário fechou a popup sem concluir o login
+
+                usuarioAtual = session.user;
+                userNameSpan.textContent = `Olá, ${usuarioAtual.user_metadata.full_name || 'Visitante'}`;
+                userInfoBar.classList.remove('hidden');
+                btnLoginGoogle.classList.add('hidden');
+                await carregarMeusVotos();
+
+                // O clique em "Entrar para votar" já expressa a intenção de
+                // votar nesta foto — completa o voto automaticamente assim
+                // que o login termina, em vez de exigir um segundo clique.
+                if (fotoIdParaVotar && !meusVotosRealizados.includes(fotoIdParaVotar)) {
+                    await computarVoto(fotoIdParaVotar);
+                } else if (fotoIdParaVotar) {
+                    configurarBotaoVotoModal(fotoIdParaVotar);
+                }
+
+                // Atualiza o grid por trás da modal também, sem fechá-la.
+                carregarFotosAprovadas();
+            }, 500);
+        }
+
+        // Se esta janela é a popup de login acima (identificada pelo nome),
+        // ela só existe pra fazer o Google OAuth — assim que a sessão for
+        // criada aqui dentro, fecha sozinha. Quem trata o resultado é a aba
+        // que a abriu (ver intervaloChecagem acima).
+        if (window.opener && window.name === NOME_POPUP_LOGIN) {
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (session) window.close();
+            });
+        }
+
         // Evento de Logout
         btnLogout.addEventListener('click', async () => {
             await supabase.auth.signOut();
@@ -322,7 +702,7 @@
                 .select(`
                     id, descricao, data, regulamento_pdf_url, qtd_vencedores,
                     concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
-                    concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, ativo ) )
+                    concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
                 `)
                 .eq('ativo', true);
 
@@ -346,6 +726,7 @@
             try {
                 const concursoAtivo = await buscarConcursoAtivo();
                 const encerrado = concursoEstaEncerrado(concursoAtivo.data);
+                concursoEncerrado = encerrado;
                 const qtdVencedores = concursoAtivo.qtd_vencedores || 3;
 
                 atualizarLinkRegulamento(concursoAtivo.regulamento_pdf_url);
@@ -379,6 +760,7 @@
                 }
 
                 if (fotosExibidas.length === 0) {
+                    fotosExibidasCache = [];
                     gridFotos.innerHTML = `
                         <div class="col-span-2 md:col-span-3 text-center ticket-sm p-6">
                             <p class="text-lg font-medium text-[var(--ink)]">🦕 ${encerrado ? 'Este concurso encerrou sem nenhuma foto aprovada.' : 'Nenhuma foto aprovada para votação no momento.'}</p>
@@ -388,11 +770,22 @@
                     return;
                 }
 
+                fotosExibidasCache = [];
+
                 gridFotos.innerHTML = fotosExibidas.map((foto, indice) => {
                     const jaVotou = meusVotosRealizados.includes(foto.id);
                     const selo = selosPosicao(indice, foto.votos, qtdVencedores);
                     const dataEnvio = new Date(foto.criado_em).toLocaleString('pt-BR', {
                         day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
+
+                    fotosExibidasCache.push({
+                        id: foto.id,
+                        url_foto: foto.url_foto,
+                        nome_participante: foto.nome_participante,
+                        votos: foto.votos,
+                        dataFormatada: dataEnvio,
+                        selo,
                     });
 
                     let botaoHtml = '';
@@ -426,14 +819,27 @@
 
                     return `
                         <div class="ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
-                            <div class="relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" ${selo ? `style="box-shadow: inset 0 0 0 4px ${selo.cor};"` : ''}>
+                            <div class="foto-card-imagem relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" ${selo ? `style="box-shadow: inset 0 0 0 4px ${selo.cor};"` : ''} onclick="abrirModalFoto('${foto.id}')" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHTML(foto.nome_participante)}" onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===this){event.preventDefault();abrirModalFoto('${foto.id}');}">
                                 <img src="${escapeHTML(foto.url_foto)}" alt="Foto do Concurso" class="object-cover w-full h-full">
+                                <span class="foto-card-lupa" aria-hidden="true">🔍</span>
                             </div>
                             <div class="p-3 flex flex-col justify-between flex-1">
                                 <div class="mb-2">
                                     ${selo ? `<span class="stamp ${selo.classe} mb-1.5">${selo.medalha} ${selo.texto}</span>` : ''}
                                     <h3 class="font-semibold text-[var(--ink)] text-sm sm:text-base truncate">${escapeHTML(foto.nome_participante)}</h3>
-                                    <p class="text-xs text-[var(--ink-soft)] mt-0.5">📅 ${dataEnvio}</p>
+                                    <div class="flex items-center justify-between gap-2 mt-0.5">
+                                        <p class="text-xs text-[var(--ink-soft)]">📅 ${dataEnvio}</p>
+                                        ${!encerrado ? `
+                                            <button type="button" class="foto-card-compartilhar-inline" onclick="compartilharFoto('${foto.id}', event)" aria-label="Compartilhar foto de ${escapeHTML(foto.nome_participante)}" title="Compartilhar">
+                                                <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <circle cx="18" cy="5" r="3"></circle>
+                                                    <circle cx="6" cy="12" r="3"></circle>
+                                                    <circle cx="18" cy="19" r="3"></circle>
+                                                    <line x1="8.6" y1="10.6" x2="15.4" y2="6.4"></line>
+                                                    <line x1="8.6" y1="13.4" x2="15.4" y2="17.6"></line>
+                                                </svg>
+                                            </button>` : ''}
+                                    </div>
                                     <p class="text-xs text-[var(--ink-soft)] font-medium mt-0.5">
                                         <span id="contador-${foto.id}">${foto.votos}</span> votos
                                     </p>
@@ -444,6 +850,18 @@
                 }).join('');
 
                 exibirPremiacoesEPatrocinadores(encerrado ? concursoAtivo : null);
+                tentarAbrirFotoPelaUrl();
+
+                // Se a modal já estava aberta (ex: reabriu sozinha via link,
+                // ou o usuário clicou "Atualizar" com ela aberta), sincroniza
+                // o botão de voto e a contagem com os dados recém-carregados.
+                if (modalFotoIdAtual) {
+                    const fotoModalAtual = fotosExibidasCache.find(f => f.id === modalFotoIdAtual);
+                    if (fotoModalAtual) {
+                        modalFotoVotos.textContent = `${fotoModalAtual.votos} voto${fotoModalAtual.votos === 1 ? '' : 's'}`;
+                    }
+                    configurarBotaoVotoModal(modalFotoIdAtual);
+                }
 
             } catch (error) {
                 console.error(error);
@@ -518,14 +936,24 @@
         async function computarVoto(idFoto) {
             if (!usuarioAtual) return;
 
-            const botao = document.getElementById(`btn-voto-${idFoto}`);
+            // A mesma foto pode ter um botão de voto no card do grid e,
+            // simultaneamente, na modal (se ela estiver aberta nessa foto)
+            // — atualiza os dois, quando existirem.
+            const botaoGrid = document.getElementById(`btn-voto-${idFoto}`);
+            const botaoModal = modalFotoIdAtual === idFoto ? modalFotoVotarBtn : null;
             const contador = document.getElementById(`contador-${idFoto}`);
+            const botoes = [botaoGrid, botaoModal].filter(Boolean);
+            if (botoes.length === 0) return;
 
-            explodirCoracoes(botao);
+            explodirCoracoes(botaoModal || botaoGrid);
 
-            botao.disabled = true;
-            botao.className = "btn btn-ghost btn-block text-xs sm:text-sm !py-2";
-            botao.textContent = "Salvando...";
+            botoes.forEach(botao => {
+                botao.disabled = true;
+                botao.className = botao === botaoModal
+                    ? "btn btn-ghost btn-block mt-3 text-sm !py-2"
+                    : "btn btn-ghost btn-block text-xs sm:text-sm !py-2";
+                botao.textContent = "Salvando...";
+            });
 
             try {
                 const { error } = await supabase.rpc('votar_em_foto', { foto_id_input: idFoto });
@@ -539,8 +967,13 @@
                     .select('votos')
                     .eq('id', idFoto)
                     .single();
-                contador.textContent = fotoAtualizada ? fotoAtualizada.votos : (parseInt(contador.textContent, 10) + 1);
-                botao.textContent = "❤️ Votado";
+                const novaContagem = fotoAtualizada ? fotoAtualizada.votos : null;
+
+                if (contador) contador.textContent = novaContagem !== null ? novaContagem : (parseInt(contador.textContent, 10) + 1);
+                if (botaoModal && novaContagem !== null) {
+                    modalFotoVotos.textContent = `${novaContagem} voto${novaContagem === 1 ? '' : 's'}`;
+                }
+                botoes.forEach(botao => { botao.textContent = "❤️ Votado"; });
 
             } catch (error) {
                 console.error(error);
