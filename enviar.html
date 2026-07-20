@@ -105,11 +105,15 @@
                     Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
                 </p>
                 <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
-                    <a href="https://registro.br/busca-dominio/?fqdn=arusuperguia" class="underline underline-offset-2 hover:text-[var(--ink)]" target="_blank" rel="noopener noreferrer">© AruSuperGuia</a>
+                    © AruSuperGuia
                     <span class="divider-dot"></span>
                     <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
                     <span class="divider-dot"></span>
                     <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
+                    <span id="regulamento-link-wrap" style="display: none;">
+                        <span class="divider-dot"></span>
+                        <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">📄 Regulamento do concurso</a>
+                    </span>
                     <span class="divider-dot"></span>
                     <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
                 </div>
@@ -129,6 +133,22 @@
         const btnEnviar = document.getElementById('btn-enviar');
         const btnReiniciar = document.getElementById('btn-reiniciar');
         const erroMensagem = document.getElementById('erro-mensagem');
+        const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
+        const linkRegulamento = document.getElementById('link-regulamento');
+
+        // Exibe o link do regulamento no rodapé, se o concurso ativo tiver
+        // um PDF cadastrado na curadoria.
+        (async () => {
+            const { data } = await supabase
+                .from('concursos')
+                .select('regulamento_pdf_url')
+                .eq('ativo', true);
+
+            if (data && data.length > 0 && data[0].regulamento_pdf_url) {
+                linkRegulamento.href = data[0].regulamento_pdf_url;
+                regulamentoLinkWrap.style.display = 'contents';
+            }
+        })();
 
         // Fotos de iPhone costumam vir em HEIC/HEIF, formato que a maioria
         // dos navegadores não consegue desenhar em <canvas>. Convertemos

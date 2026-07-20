@@ -7,6 +7,28 @@
     <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link rel="stylesheet" href="./styles.css?v=2.0">
+    <style>
+        @keyframes coracao-explodir {
+            0% {
+                transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(var(--scale)) rotate(var(--rot));
+                opacity: 0;
+            }
+        }
+        .coracao-particula {
+            position: fixed;
+            left: var(--x);
+            top: var(--y);
+            pointer-events: none;
+            z-index: 9999;
+            font-size: var(--size);
+            animation: coracao-explodir 0.8s ease-out forwards;
+            will-change: transform, opacity;
+        }
+    </style>
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
 </head>
@@ -67,11 +89,15 @@
                     Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
                 </p>
                 <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
-                    <a href="https://registro.br/busca-dominio/?fqdn=arusuperguia" class="underline underline-offset-2 hover:text-[var(--ink)]" target="_blank" rel="noopener noreferrer">© AruSuperGuia</a>
+                    © AruSuperGuia
                     <span class="divider-dot"></span>
                     <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
                     <span class="divider-dot"></span>
                     <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
+                    <span id="regulamento-link-wrap" style="display: none;">
+                        <span class="divider-dot"></span>
+                        <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">📄 Regulamento do concurso</a>
+                    </span>
                     <span class="divider-dot"></span>
                     <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
                 </div>
@@ -93,6 +119,19 @@
         const areaLogin = document.getElementById('area-login');
         const tituloVotacao = document.getElementById('titulo-votacao');
         const subtituloVotacao = document.getElementById('subtitulo-votacao');
+        const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
+        const linkRegulamento = document.getElementById('link-regulamento');
+
+        // Exibe/oculta o link do regulamento no rodapé conforme o concurso
+        // ativo tem (ou não) um PDF cadastrado na curadoria.
+        function atualizarLinkRegulamento(url) {
+            if (url) {
+                linkRegulamento.href = url;
+                regulamentoLinkWrap.style.display = 'contents';
+            } else {
+                regulamentoLinkWrap.style.display = 'none';
+            }
+        }
 
         let usuarioAtual = null;
         let meusVotosRealizados = [];
@@ -148,11 +187,13 @@
             }
         }
 
-        // Destaque de posição no ranking (só as 3 primeiras fotos, já que a
-        // lista vem ordenada por votos) — mas só faz sentido premiar quem já
-        // recebeu pelo menos 1 voto.
-        function selosPosicao(indice, votos) {
+        // Destaque de posição no ranking (só as N primeiras fotos, onde N é a
+        // quantidade de vencedores definida pelo curador para o concurso —
+        // já que a lista vem ordenada por votos) — mas só faz sentido premiar
+        // quem já recebeu pelo menos 1 voto.
+        function selosPosicao(indice, votos, qtdVencedores) {
             if (!votos || votos <= 0) return null;
+            if (indice >= qtdVencedores) return null;
             if (indice === 0) return { texto: '1º lugar', classe: 'stamp-amber', medalha: '🥇', cor: 'var(--amber)' };
             if (indice === 1) return { texto: '2º lugar', classe: 'stamp-fern', medalha: '🥈', cor: 'var(--fern)' };
             if (indice === 2) return { texto: '3º lugar', classe: 'stamp-ember', medalha: '🥉', cor: 'var(--ember)' };
@@ -165,7 +206,7 @@
         async function buscarConcursoAtivo() {
             const { data, error } = await supabase
                 .from('concursos')
-                .select('id, descricao, data')
+                .select('id, descricao, data, regulamento_pdf_url, qtd_vencedores')
                 .eq('ativo', true);
 
             if (error) throw error;
@@ -188,6 +229,9 @@
             try {
                 const concursoAtivo = await buscarConcursoAtivo();
                 const encerrado = concursoEstaEncerrado(concursoAtivo.data);
+                const qtdVencedores = concursoAtivo.qtd_vencedores || 3;
+
+                atualizarLinkRegulamento(concursoAtivo.regulamento_pdf_url);
 
                 // Concurso encerrado: não faz mais sentido oferecer login/voto
                 areaLogin.classList.toggle('hidden', encerrado);
@@ -202,14 +246,16 @@
                     .select('*')
                     .eq('aprovada', true)
                     .eq('concurso_id', concursoAtivo.id)
-                    .order('votos', { ascending: false });
+                    // Em caso de empate de votos, prioriza quem enviou a foto primeiro
+                    .order('votos', { ascending: false })
+                    .order('criado_em', { ascending: true });
 
                 if (error) throw error;
 
                 registrarUltimaAtualizacao();
 
-                // Com o concurso encerrado, mostra só o pódio (top 3)
-                const fotosExibidas = encerrado ? fotos.slice(0, 3) : fotos;
+                // Com o concurso encerrado, mostra só o pódio (top N vencedores)
+                const fotosExibidas = encerrado ? fotos.slice(0, qtdVencedores) : fotos;
 
                 if (fotosExibidas.length === 0) {
                     gridFotos.innerHTML = `
@@ -227,7 +273,10 @@
 
                 gridFotos.innerHTML = fotosExibidas.map((foto, indice) => {
                     const jaVotou = meusVotosRealizados.includes(foto.id);
-                    const selo = selosPosicao(indice, foto.votos);
+                    const selo = selosPosicao(indice, foto.votos, qtdVencedores);
+                    const dataEnvio = new Date(foto.criado_em).toLocaleString('pt-BR', {
+                        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
 
                     let botaoHtml = '';
                     if (!encerrado) {
@@ -267,6 +316,7 @@
                                 <div class="mb-2">
                                     ${selo ? `<span class="stamp ${selo.classe} mb-1.5">${selo.medalha} ${selo.texto}</span>` : ''}
                                     <h3 class="font-semibold text-[var(--ink)] text-sm sm:text-base truncate">${escapeHTML(foto.nome_participante)}</h3>
+                                    <p class="text-xs text-[var(--ink-soft)] mt-0.5">📅 ${dataEnvio}</p>
                                     <p class="text-xs text-[var(--ink-soft)] font-medium mt-0.5">
                                         <span id="contador-${foto.id}">${foto.votos}</span> votos
                                     </p>
@@ -315,6 +365,36 @@
             }
         });
 
+        // Efeito visual de coração explodindo a partir do botão clicado
+        function explodirCoracoes(botao) {
+            const rect = botao.getBoundingClientRect();
+            const centroX = rect.left + rect.width / 2;
+            const centroY = rect.top + rect.height / 2;
+            const totalParticulas = 14;
+
+            for (let i = 0; i < totalParticulas; i++) {
+                const particula = document.createElement('span');
+                particula.className = 'coracao-particula';
+                particula.textContent = '❤️';
+
+                const angulo = (Math.PI * 2 * i) / totalParticulas + (Math.random() * 0.5 - 0.25);
+                const distancia = 60 + Math.random() * 70;
+                const tx = Math.cos(angulo) * distancia;
+                const ty = Math.sin(angulo) * distancia;
+
+                particula.style.setProperty('--x', `${centroX}px`);
+                particula.style.setProperty('--y', `${centroY}px`);
+                particula.style.setProperty('--tx', `${tx}px`);
+                particula.style.setProperty('--ty', `${ty}px`);
+                particula.style.setProperty('--rot', `${Math.random() * 360 - 180}deg`);
+                particula.style.setProperty('--scale', `${0.8 + Math.random() * 0.8}`);
+                particula.style.setProperty('--size', `${16 + Math.random() * 14}px`);
+
+                document.body.appendChild(particula);
+                particula.addEventListener('animationend', () => particula.remove());
+            }
+        }
+
         // 3. PROCESSO DE GRAVAÇÃO DO VOTO
         // O incremento é feito inteiramente dentro do banco (função votar_em_foto),
         // que insere em votos_realizados E soma +1 em fotos_concurso na mesma
@@ -326,6 +406,8 @@
 
             const botao = document.getElementById(`btn-voto-${idFoto}`);
             const contador = document.getElementById(`contador-${idFoto}`);
+
+            explodirCoracoes(botao);
 
             botao.disabled = true;
             botao.className = "btn btn-ghost btn-block text-xs sm:text-sm !py-2";

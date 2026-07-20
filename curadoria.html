@@ -10,6 +10,11 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
     <script src="./app.js?v=2.0" defer></script>
+    <style>
+        .trofeu-opcao { opacity: 0.55; cursor: pointer; }
+        .trofeu-opcao:hover { opacity: 0.85; }
+        .trofeu-opcao.selecionado { opacity: 1; box-shadow: inset 0 0 0 2px var(--amber); background: var(--amber-light, #FBEBC8); }
+    </style>
 </head>
 <body class="bg-[var(--bone-2)] font-sans min-h-screen" style="--page-bg: var(--bone-2);">
 
@@ -51,8 +56,10 @@
             <aside id="sidebar" class="w-64 shrink-0 bg-[var(--canopy)] text-[var(--bone)] flex flex-col md:sticky md:top-0 md:h-screen">
                 <nav class="p-3 space-y-1">
                     <button data-view="dashboard" class="nav-item active">📊 Dashboard</button>
-                    <button data-view="concursos" class="nav-item">🎟️ Concursos</button>
                     <button data-view="moderacao" class="nav-item">🖼️ Moderação de fotos</button>
+                    <button data-view="concursos" class="nav-item">🎟️ Concursos</button>
+                    <button data-view="patrocinadores" class="nav-item">🤝 Patrocinadores</button>
+                    <button data-view="premiacoes" class="nav-item">🏅 Premiações</button>
                 </nav>
             </aside>
 
@@ -105,6 +112,47 @@
                             <input type="checkbox" id="concurso-encerrado" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
                             <label for="concurso-encerrado" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Encerrado</label>
                         </div>
+                        <div class="md:col-span-5">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-2">Quantidade de vencedores</label>
+                            <input type="hidden" id="concurso-qtd-vencedores" value="3">
+                            <div class="flex flex-wrap gap-3">
+                                <button type="button" data-qtd="1" class="trofeu-opcao ticket-sm px-4 py-2 text-sm font-semibold text-[var(--ink)] flex items-center gap-2 transition">
+                                    <span class="text-lg">🏆</span> Vencedor único
+                                </button>
+                                <button type="button" data-qtd="2" class="trofeu-opcao ticket-sm px-4 py-2 text-sm font-semibold text-[var(--ink)] flex items-center gap-2 transition">
+                                    <span class="text-lg">🏆🏆</span> Primeiro e segundo
+                                </button>
+                                <button type="button" data-qtd="3" class="trofeu-opcao ticket-sm px-4 py-2 text-sm font-semibold text-[var(--ink)] flex items-center gap-2 transition">
+                                    <span class="text-lg">🏆🏆🏆</span> Primeiro, segundo e terceiro
+                                </button>
+                            </div>
+                        </div>
+                        <div class="md:col-span-5">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Regulamento (PDF)</label>
+                            <input type="file" id="concurso-regulamento-arquivo" accept="application/pdf" class="w-full text-sm text-[var(--ink-soft)] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-2 file:border-[var(--ink)] file:text-sm file:font-semibold file:bg-[var(--fern-light)] file:text-[var(--ink)] hover:file:bg-[var(--fern)] hover:file:text-white file:cursor-pointer">
+                            <div id="concurso-regulamento-atual" class="hidden mt-2 text-sm flex items-center gap-3">
+                                <a id="concurso-regulamento-link" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-semibold">📄 Regulamento atual</a>
+                                <label class="flex items-center gap-1.5 text-[var(--ink-soft)] cursor-pointer">
+                                    <input type="checkbox" id="concurso-regulamento-remover" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                                    Remover
+                                </label>
+                            </div>
+                        </div>
+                        <div class="md:col-span-5">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-2">Patrocinadores vinculados</label>
+                            <div id="concurso-patrocinadores-lista" class="flex flex-wrap gap-2">
+                                <p class="text-[var(--ink-soft)] text-sm">Carregando patrocinadores...</p>
+                            </div>
+                        </div>
+                        <div class="md:col-span-5">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-2">
+                                Premiações vinculadas
+                                <span id="concurso-premiacoes-limite-texto" class="text-[var(--ink-soft)] font-normal"></span>
+                            </label>
+                            <div id="concurso-premiacoes-lista" class="flex flex-wrap gap-2">
+                                <p class="text-[var(--ink-soft)] text-sm">Carregando premiações...</p>
+                            </div>
+                        </div>
                         <div class="md:col-span-5 flex gap-3">
                             <button type="submit" id="concurso-submit-btn" class="btn btn-fern text-sm !py-2 !px-4">Cadastrar concurso</button>
                             <button type="button" id="concurso-cancel-btn" class="btn btn-ghost text-sm !py-2 !px-4 hidden">Cancelar edição</button>
@@ -135,6 +183,69 @@
                     <div id="fotos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- As fotos serão injetadas dinamicamente aqui pelo JavaScript -->
                         <p class="text-[var(--ink-soft)] col-span-full text-center">Buscando fotos na nuvem...</p>
+                    </div>
+                </section>
+
+                <!-- VIEW: Patrocinadores (CRUD) -->
+                <section id="view-patrocinadores" class="view hidden">
+                    <h2 class="font-display text-2xl text-[var(--ink)] mb-6">Patrocinadores</h2>
+
+                    <form id="patrocinador-form" class="ticket-sm p-5 mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                        <input type="hidden" id="patrocinador-id">
+                        <div class="md:col-span-2">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Nome</label>
+                            <input type="text" id="patrocinador-nome" required maxlength="100" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Logotipo</label>
+                            <input type="file" id="patrocinador-logotipo-arquivo" accept="image/*" class="w-full text-sm text-[var(--ink-soft)] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-2 file:border-[var(--ink)] file:text-sm file:font-semibold file:bg-[var(--fern-light)] file:text-[var(--ink)] hover:file:bg-[var(--fern)] hover:file:text-white file:cursor-pointer">
+                            <div id="patrocinador-logotipo-atual" class="hidden mt-2 text-sm flex items-center gap-3">
+                                <img id="patrocinador-logotipo-preview" src="" alt="Logotipo atual" class="h-10 w-10 object-contain border-2 border-[var(--ink)] rounded-lg bg-white">
+                                <label class="flex items-center gap-1.5 text-[var(--ink-soft)] cursor-pointer">
+                                    <input type="checkbox" id="patrocinador-logotipo-remover" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                                    Remover
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 pb-2">
+                            <input type="checkbox" id="patrocinador-ativo" checked class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                            <label for="patrocinador-ativo" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Ativo</label>
+                        </div>
+                        <div class="md:col-span-5 flex gap-3">
+                            <button type="submit" id="patrocinador-submit-btn" class="btn btn-fern text-sm !py-2 !px-4">Cadastrar patrocinador</button>
+                            <button type="button" id="patrocinador-cancel-btn" class="btn btn-ghost text-sm !py-2 !px-4 hidden">Cancelar edição</button>
+                        </div>
+                        <p id="patrocinador-error" class="md:col-span-5 text-[var(--ember-dark)] text-sm hidden"></p>
+                    </form>
+
+                    <div id="patrocinadores-container" class="space-y-3">
+                        <p class="text-[var(--ink-soft)] text-center">Buscando patrocinadores...</p>
+                    </div>
+                </section>
+
+                <!-- VIEW: Premiações (CRUD) -->
+                <section id="view-premiacoes" class="view hidden">
+                    <h2 class="font-display text-2xl text-[var(--ink)] mb-6">Premiações</h2>
+
+                    <form id="premiacao-form" class="ticket-sm p-5 mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                        <input type="hidden" id="premiacao-id">
+                        <div class="md:col-span-4">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Descrição</label>
+                            <input type="text" id="premiacao-descricao" required maxlength="100" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                        </div>
+                        <div class="flex items-center gap-2 pb-2">
+                            <input type="checkbox" id="premiacao-ativo" checked class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                            <label for="premiacao-ativo" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Ativo</label>
+                        </div>
+                        <div class="md:col-span-5 flex gap-3">
+                            <button type="submit" id="premiacao-submit-btn" class="btn btn-fern text-sm !py-2 !px-4">Cadastrar premiação</button>
+                            <button type="button" id="premiacao-cancel-btn" class="btn btn-ghost text-sm !py-2 !px-4 hidden">Cancelar edição</button>
+                        </div>
+                        <p id="premiacao-error" class="md:col-span-5 text-[var(--ember-dark)] text-sm hidden"></p>
+                    </form>
+
+                    <div id="premiacoes-container" class="space-y-3">
+                        <p class="text-[var(--ink-soft)] text-center">Buscando premiações...</p>
                     </div>
                 </section>
 

@@ -88,6 +88,20 @@
                 </p>
             </div>
 
+            <div id="separador-premiacoes-patrocinadores" class="hidden ticket-tear"></div>
+
+            <!-- Premiações e patrocinadores do concurso ativo -->
+            <div id="secao-premiacoes-patrocinadores" class="hidden px-6 md:px-10 pb-8">
+                <div id="bloco-premiacoes" class="hidden mb-6">
+                    <p class="eyebrow text-[var(--ember-dark)] mb-3 text-center"><br>🏅 Premiações</p>
+                    <div id="lista-premiacoes" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </div>
+                <div id="bloco-patrocinadores" class="hidden">
+                    <p class="eyebrow text-[var(--fern-dark)] mb-3 text-center">Realização e patrocínio</p>
+                    <div id="lista-patrocinadores" class="flex flex-wrap items-center justify-center gap-4"></div>
+                </div>
+            </div>
+
             <div class="ticket-tear"></div>
 
             <!-- Rodapé -->
@@ -101,6 +115,10 @@
                     <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
                     <span class="divider-dot"></span>
                     <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
+                    <span id="regulamento-link-wrap" style="display: none;">
+                        <span class="divider-dot"></span>
+                        <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">📄 Regulamento do concurso</a>
+                    </span>
                     <span class="divider-dot"></span>
                     <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
                 </div>
@@ -119,6 +137,50 @@
             const contadorTexto = document.getElementById('contador-dias-texto');
             const btnEnviarFoto = document.getElementById('btn-enviar-foto');
             const textoPrazoEncerrado = document.getElementById('texto-prazo-encerrado');
+            const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
+            const linkRegulamento = document.getElementById('link-regulamento');
+            const separadorPremiacoesPatrocinadores = document.getElementById('separador-premiacoes-patrocinadores');
+            const secaoPremiacoesPatrocinadores = document.getElementById('secao-premiacoes-patrocinadores');
+            const blocoPremiacoes = document.getElementById('bloco-premiacoes');
+            const listaPremiacoes = document.getElementById('lista-premiacoes');
+            const blocoPatrocinadores = document.getElementById('bloco-patrocinadores');
+            const listaPatrocinadores = document.getElementById('lista-patrocinadores');
+
+            // Desenha as premiações e os patrocinadores vinculados ao
+            // concurso ativo (só os que estiverem marcados como "Ativo" no
+            // painel de curadoria). A seção inteira some se não houver nada
+            // cadastrado, pra não deixar um espaço vazio na página.
+            function exibirPremiacoesEPatrocinadores(concurso) {
+                const medalhaPorPosicao = { 1: '🥇', 2: '🥈', 3: '🥉' };
+                const premiacoes = (concurso.concursos_premiacoes || [])
+                    .filter(v => v.premiacoes && v.premiacoes.ativo)
+                    .sort((a, b) => a.posicao - b.posicao);
+                const patrocinadores = (concurso.concursos_patrocinadores || [])
+                    .map(v => v.patrocinadores)
+                    .filter(p => p && p.ativo);
+
+                if (premiacoes.length > 0) {
+                    listaPremiacoes.innerHTML = premiacoes.map(v => `
+                        <div class="info-card p-3 text-sm text-[var(--ink)] text-center">${medalhaPorPosicao[v.posicao] || '🏅'} ${escapeHTML(v.premiacoes.descricao)}</div>
+                    `).join('');
+                    blocoPremiacoes.classList.remove('hidden');
+                }
+
+                if (patrocinadores.length > 0) {
+                    listaPatrocinadores.innerHTML = patrocinadores.map(p => `
+                        <div class="flex flex-col items-center gap-1.5 max-w-[7rem]">
+                            ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}" class="h-14 object-contain">` : ''}
+                            <span class="text-xs text-[var(--ink-soft)] text-center leading-tight">${escapeHTML(p.nome)}</span>
+                        </div>
+                    `).join('');
+                    blocoPatrocinadores.classList.remove('hidden');
+                }
+
+                if (premiacoes.length > 0 || patrocinadores.length > 0) {
+                    separadorPremiacoesPatrocinadores.classList.remove('hidden');
+                    secaoPremiacoesPatrocinadores.classList.remove('hidden');
+                }
+            }
 
             // Diferença em dias de calendário (não em horas) entre hoje e a
             // data de encerramento do concurso.
@@ -132,7 +194,11 @@
             try {
                 const { data, error } = await supabase
                     .from('concursos')
-                    .select('id, descricao, data')
+                    .select(`
+                        id, descricao, data, regulamento_pdf_url,
+                        concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
+                        concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, ativo ) )
+                    `)
                     .eq('ativo', true);
 
                 if (error) throw error;
@@ -141,6 +207,13 @@
                     const concurso = data[0];
                     const dataFormatada = new Date(concurso.data + 'T00:00:00').toLocaleDateString('pt-BR');
                     concursoNomeData.textContent = ` ${concurso.descricao} que se encerra em ${dataFormatada}`;
+
+                    if (concurso.regulamento_pdf_url) {
+                        linkRegulamento.href = concurso.regulamento_pdf_url;
+                        regulamentoLinkWrap.style.display = 'contents';
+                    }
+
+                    exibirPremiacoesEPatrocinadores(concurso);
 
                     const dias = calcularDiasRestantes(concurso.data);
                     if (dias > 0) {
