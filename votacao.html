@@ -28,6 +28,29 @@
             animation: coracao-explodir 0.8s ease-out forwards;
             will-change: transform, opacity;
         }
+
+        @keyframes confete-cair {
+            0% {
+                transform: translateY(-10vh) translateX(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(110vh) translateX(var(--deriva)) rotate(var(--giro));
+                opacity: 0.9;
+            }
+        }
+        .confete-particula {
+            position: fixed;
+            top: 0;
+            left: var(--x);
+            width: var(--tamanho);
+            height: calc(var(--tamanho) * 0.4);
+            background: var(--cor);
+            pointer-events: none;
+            z-index: 9999;
+            animation: confete-cair var(--duracao) linear var(--atraso) forwards;
+            will-change: transform, opacity;
+        }
     </style>
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
@@ -81,6 +104,24 @@
                 </div>
             </div>
 
+            <!-- Premiações e patrocinadores (tela de fotos campeãs, concurso encerrado) -->
+            <div id="secao-premiacoes-patrocinadores" class="hidden px-6 md:px-8 pb-6">
+                <div id="bloco-premiacoes" class="hidden mb-6">
+                    <p class="eyebrow text-[var(--ember-dark)] mb-3 text-center">🏅 Premiações</p>
+                    <div id="lista-premiacoes" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </div>
+                <div id="bloco-patrocinadores" class="hidden">
+                    <p class="eyebrow text-[var(--fern-dark)] mb-3 text-center">Realização e patrocínio</p>
+                    <div id="lista-patrocinadores" class="flex flex-wrap items-center justify-center gap-4"></div>
+                </div>
+            </div>
+
+            <div class="text-center px-6 md:px-8 pb-6">
+                <a href="./index.html" class="btn btn-ghost btn-block">
+                    🏠 Página inicial
+                </a>
+            </div>
+
             <div class="ticket-tear"></div>
 
             <!-- Rodapé -->
@@ -121,6 +162,11 @@
         const subtituloVotacao = document.getElementById('subtitulo-votacao');
         const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
         const linkRegulamento = document.getElementById('link-regulamento');
+        const secaoPremiacoesPatrocinadores = document.getElementById('secao-premiacoes-patrocinadores');
+        const blocoPremiacoes = document.getElementById('bloco-premiacoes');
+        const listaPremiacoes = document.getElementById('lista-premiacoes');
+        const blocoPatrocinadores = document.getElementById('bloco-patrocinadores');
+        const listaPatrocinadores = document.getElementById('lista-patrocinadores');
 
         // Exibe/oculta o link do regulamento no rodapé conforme o concurso
         // ativo tem (ou não) um PDF cadastrado na curadoria.
@@ -130,6 +176,73 @@
                 regulamentoLinkWrap.style.display = 'contents';
             } else {
                 regulamentoLinkWrap.style.display = 'none';
+            }
+        }
+
+        // Mesma sessão de premiações/patrocinadores exibida em index.html,
+        // repetida aqui na tela de "Fotos campeãs da temporada" (concurso
+        // encerrado). Passar null esconde tudo de novo (ex: ao atualizar a
+        // página com um concurso diferente, ainda em andamento).
+        function exibirPremiacoesEPatrocinadores(concurso) {
+            blocoPremiacoes.classList.add('hidden');
+            blocoPatrocinadores.classList.add('hidden');
+            secaoPremiacoesPatrocinadores.classList.add('hidden');
+            if (!concurso) return;
+
+            const medalhaPorPosicao = { 1: '🥇', 2: '🥈', 3: '🥉' };
+            const premiacoes = (concurso.concursos_premiacoes || [])
+                .filter(v => v.premiacoes && v.premiacoes.ativo)
+                .sort((a, b) => a.posicao - b.posicao);
+            const patrocinadores = (concurso.concursos_patrocinadores || [])
+                .map(v => v.patrocinadores)
+                .filter(p => p && p.ativo);
+
+            if (premiacoes.length > 0) {
+                listaPremiacoes.innerHTML = premiacoes.map(v => `
+                    <div class="info-card p-3 text-sm text-[var(--ink)] text-center">${medalhaPorPosicao[v.posicao] || '🏅'} ${escapeHTML(v.premiacoes.descricao)}</div>
+                `).join('');
+                blocoPremiacoes.classList.remove('hidden');
+            }
+
+            if (patrocinadores.length > 0) {
+                listaPatrocinadores.innerHTML = patrocinadores.map(p => `
+                    <div class="flex flex-col items-center gap-1.5 max-w-[7rem]">
+                        ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}" class="h-14 object-contain">` : ''}
+                        <span class="text-xs text-[var(--ink-soft)] text-center leading-tight">${escapeHTML(p.nome)}</span>
+                    </div>
+                `).join('');
+                blocoPatrocinadores.classList.remove('hidden');
+            }
+
+            if (premiacoes.length > 0 || patrocinadores.length > 0) {
+                secaoPremiacoesPatrocinadores.classList.remove('hidden');
+            }
+        }
+
+        // Chuva de confetes para celebrar a tela de "Fotos campeãs da
+        // temporada" (concurso encerrado). Dispara uma vez só por
+        // carregamento da página, pra não repetir a cada clique em
+        // "Atualizar".
+        let confeteJaExibido = false;
+        const CORES_CONFETE = ['var(--amber)', 'var(--fern)', 'var(--ember)', 'var(--canopy)', '#fff'];
+        function iniciarChuvaDeConfete() {
+            if (confeteJaExibido) return;
+            confeteJaExibido = true;
+
+            const totalPecas = 120;
+            for (let i = 0; i < totalPecas; i++) {
+                const confete = document.createElement('span');
+                confete.className = 'confete-particula';
+                confete.style.setProperty('--x', `${Math.random() * 100}vw`);
+                confete.style.setProperty('--tamanho', `${6 + Math.random() * 8}px`);
+                confete.style.setProperty('--cor', CORES_CONFETE[Math.floor(Math.random() * CORES_CONFETE.length)]);
+                confete.style.setProperty('--duracao', `${3 + Math.random() * 2.5}s`);
+                confete.style.setProperty('--atraso', `${Math.random() * 2.5}s`);
+                confete.style.setProperty('--deriva', `${Math.random() * 160 - 80}px`);
+                confete.style.setProperty('--giro', `${Math.random() * 720 - 360}deg`);
+
+                document.body.appendChild(confete);
+                confete.addEventListener('animationend', () => confete.remove());
             }
         }
 
@@ -206,7 +319,11 @@
         async function buscarConcursoAtivo() {
             const { data, error } = await supabase
                 .from('concursos')
-                .select('id, descricao, data, regulamento_pdf_url, qtd_vencedores')
+                .select(`
+                    id, descricao, data, regulamento_pdf_url, qtd_vencedores,
+                    concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
+                    concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, ativo ) )
+                `)
                 .eq('ativo', true);
 
             if (error) throw error;
@@ -257,17 +374,17 @@
                 // Com o concurso encerrado, mostra só o pódio (top N vencedores)
                 const fotosExibidas = encerrado ? fotos.slice(0, qtdVencedores) : fotos;
 
+                if (encerrado && fotosExibidas.length > 0) {
+                    iniciarChuvaDeConfete();
+                }
+
                 if (fotosExibidas.length === 0) {
                     gridFotos.innerHTML = `
                         <div class="col-span-2 md:col-span-3 text-center ticket-sm p-6">
                             <p class="text-lg font-medium text-[var(--ink)]">🦕 ${encerrado ? 'Este concurso encerrou sem nenhuma foto aprovada.' : 'Nenhuma foto aprovada para votação no momento.'}</p>
-                            <div class="mt-4">
-                                <a href="./index.html" class="btn btn-ghost btn-block">
-                                    🏠 Página inicial
-                                </a>
-                            </div>
                         </div>
                     `;
+                    exibirPremiacoesEPatrocinadores(null);
                     return;
                 }
 
@@ -324,18 +441,15 @@
                             </div>
                         </div>
                     `;
-                }).join('') + `
-                    <div class="col-span-2 md:col-span-3 text-center mt-2">
-                        <a href="./index.html" class="btn btn-ghost btn-block">
-                            🏠 Página inicial
-                        </a>
-                    </div>
-                `;
+                }).join('');
+
+                exibirPremiacoesEPatrocinadores(encerrado ? concursoAtivo : null);
 
             } catch (error) {
                 console.error(error);
                 const msg = error && error.message ? error.message : 'Erro ao carregar a lista de votação.';
                 gridFotos.innerHTML = `<p class="text-[var(--ember-dark)] text-center col-span-2 md:col-span-3 font-semibold">${escapeHTML(msg)}</p>`;
+                exibirPremiacoesEPatrocinadores(null);
             }
         }
 
