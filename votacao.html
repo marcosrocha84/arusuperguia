@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votação - Concurso Dino Parque</title>
+    <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="./supabase-client.js?v=1.0"></script>
+</head>
+<body class="bg-canopy min-h-screen flex flex-col justify-between items-center p-4">
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="w-full max-w-5xl relative z-10 my-auto py-6">
+        <div class="ticket">
+
+            <!-- Cabeçalho da Votação -->
+            <div class="text-center p-6 md:p-8">
+                <p class="eyebrow text-[var(--ember-dark)]">Arena de Cliques</p>
+                <h1 id="titulo-votacao" class="font-display text-3xl md:text-4xl text-[var(--ink)] mt-1">🦖 Escolha a melhor foto!</h1>
+                <p id="subtitulo-votacao" class="text-sm md:text-base text-[var(--ink-soft)] mt-2 max-w-md mx-auto">
+                    Vote nas suas fotos favoritas do Belinzoni Dino Parque. Entre com sua conta Google para validar seu voto.
+                </p>
+            </div>
+
+            <!-- Área de Controle de Usuário (Login / Logout) -->
+            <div id="area-login" class="flex justify-center pb-6 px-6">
+                <!-- Botão de Login (Visível se deslogado) -->
+                <button id="btn-login-google" class="hidden btn btn-ghost">
+                    <img src="https://img.icons8.com/color/1200/google-logo.jpg" alt="Google" class="w-5 h-5">
+                    <span>Entrar com o Google para votar</span>
+                </button>
+
+                <!-- Barra do Usuário (Visível se logado) -->
+                <div id="user-info-bar" class="hidden ticket-sm px-4 py-2 flex items-center gap-4">
+                    <span id="user-name" class="text-sm font-medium text-[var(--ink)]"></span>
+                    <button id="btn-logout" class="text-xs bg-[var(--amber)] hover:bg-[var(--amber-dark)] text-black font-bold px-3 py-1.5 rounded-lg border-2 border-[var(--ink)] transition">
+                        Sair
+                    </button>
+                </div>
+            </div>
+
+            <div class="ticket-tear"></div>
+
+            <!-- Barra de atualização -->
+            <div class="flex items-center justify-center gap-3 pt-6 px-6 text-sm text-[var(--ink-soft)]">
+                <button id="btn-atualizar" class="btn btn-ghost !py-1.5 !px-3 text-sm">
+                    🔄 Atualizar
+                </button>
+                <span>Última atualização: <span id="ultima-atualizacao" class="font-medium text-[var(--ink)]">—</span></span>
+            </div>
+
+            <!-- Mosaico de Fotos -->
+            <div id="grid-fotos" class="grid grid-cols-2 md:grid-cols-3 gap-4 p-6 md:p-8">
+                <div class="col-span-2 md:col-span-3 text-center text-[var(--ink-soft)] py-12">
+                    <span class="text-lg font-semibold">⏳ Carregando sistema de votação...</span>
+                </div>
+            </div>
+
+            <div class="ticket-tear"></div>
+
+            <!-- Rodapé -->
+            <footer class="text-center p-6 md:p-10 pt-8 text-[var(--ink-soft)]">
+                <p class="text-sm font-semibold">
+                    Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
+                </p>
+                <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
+                    <a href="https://registro.br/busca-dominio/?fqdn=arusuperguia" class="underline underline-offset-2 hover:text-[var(--ink)]" target="_blank" rel="noopener noreferrer">© AruSuperGuia</a>
+                    <span class="divider-dot"></span>
+                    <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
+                    <span class="divider-dot"></span>
+                    <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
+                    <span class="divider-dot"></span>
+                    <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
+                </div>
+            </footer>
+        </div>
+    </main>
+
+    <script>
+        // Configuração do Supabase e helper escapeHTML() vêm de supabase-client.js
+
+        // Elementos da Interface
+        const gridFotos = document.getElementById('grid-fotos');
+        const btnLoginGoogle = document.getElementById('btn-login-google');
+        const userInfoBar = document.getElementById('user-info-bar');
+        const userNameSpan = document.getElementById('user-name');
+        const btnLogout = document.getElementById('btn-logout');
+        const btnAtualizar = document.getElementById('btn-atualizar');
+        const ultimaAtualizacaoSpan = document.getElementById('ultima-atualizacao');
+        const areaLogin = document.getElementById('area-login');
+        const tituloVotacao = document.getElementById('titulo-votacao');
+        const subtituloVotacao = document.getElementById('subtitulo-votacao');
+
+        let usuarioAtual = null;
+        let meusVotosRealizados = [];
+
+        // 1. GERENCIAMENTO DE SESSÃO DO USUÁRIO
+        async function checarSessao() {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
+                usuarioAtual = session.user;
+                userNameSpan.textContent = `Olá, ${usuarioAtual.user_metadata.full_name || 'Visitante'}`;
+                userInfoBar.classList.remove('hidden');
+                btnLoginGoogle.classList.add('hidden');
+
+                // Puxa do banco os IDs das fotos que o usuário já votou
+                await carregarMeusVotos();
+            } else {
+                usuarioAtual = null;
+                userInfoBar.classList.add('hidden');
+                btnLoginGoogle.classList.remove('hidden');
+            }
+
+            // Renderiza o grid de fotos após definir o estado do usuário
+            await carregarFotosAprovadas();
+        }
+
+        // Evento de Login
+        btnLoginGoogle.addEventListener('click', async () => {
+            await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.href
+                }
+            });
+        });
+
+        // Evento de Logout
+        btnLogout.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.reload();
+        });
+
+        // Carrega o histórico de votos do usuário logado
+        async function carregarMeusVotos() {
+            if (!usuarioAtual) return;
+            const { data } = await supabase
+                .from('votos_realizados')
+                .select('foto_id')
+                .eq('user_id', usuarioAtual.id);
+
+            if (data) {
+                meusVotosRealizados = data.map(v => v.foto_id);
+            }
+        }
+
+        // Destaque de posição no ranking (só as 3 primeiras fotos, já que a
+        // lista vem ordenada por votos) — mas só faz sentido premiar quem já
+        // recebeu pelo menos 1 voto.
+        function selosPosicao(indice, votos) {
+            if (!votos || votos <= 0) return null;
+            if (indice === 0) return { texto: '1º lugar', classe: 'stamp-amber', medalha: '🥇', cor: 'var(--amber)' };
+            if (indice === 1) return { texto: '2º lugar', classe: 'stamp-fern', medalha: '🥈', cor: 'var(--fern)' };
+            if (indice === 2) return { texto: '3º lugar', classe: 'stamp-ember', medalha: '🥉', cor: 'var(--ember)' };
+            return null;
+        }
+
+        // Descobre o concurso ativo no momento (só pode existir 1 por vez —
+        // ver painel de curadoria > Concursos). É por esse ID que a votação
+        // é filtrada, para não misturar fotos de concursos antigos.
+        async function buscarConcursoAtivo() {
+            const { data, error } = await supabase
+                .from('concursos')
+                .select('id, descricao, data')
+                .eq('ativo', true);
+
+            if (error) throw error;
+            if (!data || data.length === 0) throw new Error('Nenhum concurso ativo no momento.');
+            if (data.length > 1) throw new Error('Configuração inválida: existe mais de um concurso ativo simultaneamente. Contate o suporte.');
+            return data[0];
+        }
+
+        // Compara a data de encerramento do concurso (campo "data") com hoje,
+        // por dia de calendário — mesma lógica usada em index.html.
+        function concursoEstaEncerrado(dataStr) {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const dataFim = new Date(dataStr + 'T00:00:00');
+            return dataFim < hoje;
+        }
+
+        // 2. BUSCA E RENDERIZAÇÃO DAS FOTOS APROVADAS
+        async function carregarFotosAprovadas() {
+            try {
+                const concursoAtivo = await buscarConcursoAtivo();
+                const encerrado = concursoEstaEncerrado(concursoAtivo.data);
+
+                // Concurso encerrado: não faz mais sentido oferecer login/voto
+                areaLogin.classList.toggle('hidden', encerrado);
+                if (encerrado) {
+                    const dataFormatada = new Date(concursoAtivo.data + 'T00:00:00').toLocaleDateString('pt-BR');
+                    tituloVotacao.textContent = '🏆 Fotos campeãs da temporada!';
+                    subtituloVotacao.textContent = `O concurso "${concursoAtivo.descricao}" foi encerrado em ${dataFormatada}. Confira abaixo as fotos mais votadas.`;
+                }
+
+                const { data: fotos, error } = await supabase
+                    .from('fotos_concurso')
+                    .select('*')
+                    .eq('aprovada', true)
+                    .eq('concurso_id', concursoAtivo.id)
+                    .order('votos', { ascending: false });
+
+                if (error) throw error;
+
+                registrarUltimaAtualizacao();
+
+                // Com o concurso encerrado, mostra só o pódio (top 3)
+                const fotosExibidas = encerrado ? fotos.slice(0, 3) : fotos;
+
+                if (fotosExibidas.length === 0) {
+                    gridFotos.innerHTML = `
+                        <div class="col-span-2 md:col-span-3 text-center ticket-sm p-6">
+                            <p class="text-lg font-medium text-[var(--ink)]">🦕 ${encerrado ? 'Este concurso encerrou sem nenhuma foto aprovada.' : 'Nenhuma foto aprovada para votação no momento.'}</p>
+                            <div class="mt-4">
+                                <a href="./index.html" class="btn btn-ghost btn-block">
+                                    🏠 Página inicial
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                gridFotos.innerHTML = fotosExibidas.map((foto, indice) => {
+                    const jaVotou = meusVotosRealizados.includes(foto.id);
+                    const selo = selosPosicao(indice, foto.votos);
+
+                    let botaoHtml = '';
+                    if (!encerrado) {
+                        let botaoClasse = "";
+                        let botaoTexto = "";
+                        let botaoAtributos = "";
+
+                        if (!usuarioAtual) {
+                            botaoClasse = "btn-ghost";
+                            botaoTexto = "🔒 Logar para votar";
+                            botaoAtributos = `onclick="focarLogin()"`;
+                        } else if (jaVotou) {
+                            botaoClasse = "btn-ghost";
+                            botaoTexto = "❤️ Votado";
+                            botaoAtributos = "disabled";
+                        } else {
+                            botaoClasse = "btn-ember";
+                            botaoTexto = "❤️ Votar";
+                            // Não passamos mais a contagem atual — o incremento é feito
+                            // de forma atômica no banco via RPC, nunca a partir de um
+                            // valor vindo do cliente (ver função votar_em_foto no SQL).
+                            botaoAtributos = `onclick="computarVoto('${foto.id}')"`;
+                        }
+
+                        botaoHtml = `
+                                <button id="btn-voto-${foto.id}" ${botaoAtributos} class="btn ${botaoClasse} btn-block text-xs sm:text-sm !py-2">
+                                    ${botaoTexto}
+                                </button>`;
+                    }
+
+                    return `
+                        <div class="ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
+                            <div class="relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" ${selo ? `style="box-shadow: inset 0 0 0 4px ${selo.cor};"` : ''}>
+                                <img src="${escapeHTML(foto.url_foto)}" alt="Foto do Concurso" class="object-cover w-full h-full">
+                            </div>
+                            <div class="p-3 flex flex-col justify-between flex-1">
+                                <div class="mb-2">
+                                    ${selo ? `<span class="stamp ${selo.classe} mb-1.5">${selo.medalha} ${selo.texto}</span>` : ''}
+                                    <h3 class="font-semibold text-[var(--ink)] text-sm sm:text-base truncate">${escapeHTML(foto.nome_participante)}</h3>
+                                    <p class="text-xs text-[var(--ink-soft)] font-medium mt-0.5">
+                                        <span id="contador-${foto.id}">${foto.votos}</span> votos
+                                    </p>
+                                </div>${botaoHtml}
+                            </div>
+                        </div>
+                    `;
+                }).join('') + `
+                    <div class="col-span-2 md:col-span-3 text-center mt-2">
+                        <a href="./index.html" class="btn btn-ghost btn-block">
+                            🏠 Página inicial
+                        </a>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error(error);
+                const msg = error && error.message ? error.message : 'Erro ao carregar a lista de votação.';
+                gridFotos.innerHTML = `<p class="text-[var(--ember-dark)] text-center col-span-2 md:col-span-3 font-semibold">${escapeHTML(msg)}</p>`;
+            }
+        }
+
+        // Guia visual caso tentem votar deslogados
+        function focarLogin() {
+            btnLoginGoogle.scrollIntoView({ behavior: 'smooth' });
+            btnLoginGoogle.style.boxShadow = '0 0 0 4px var(--amber), 4px 4px 0 var(--ink)';
+            setTimeout(() => { btnLoginGoogle.style.boxShadow = ''; }, 1500);
+        }
+
+        // Mostra a hora local do último carregamento bem-sucedido da lista
+        function registrarUltimaAtualizacao() {
+            const agora = new Date();
+            ultimaAtualizacaoSpan.textContent = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        // Botão "Atualizar": recarrega sessão (login pode ter mudado em
+        // outra aba) e a lista de fotos/votos, sem recarregar a página inteira
+        btnAtualizar.addEventListener('click', async () => {
+            btnAtualizar.disabled = true;
+            btnAtualizar.textContent = '🔄 Atualizando...';
+            try {
+                await checarSessao();
+            } finally {
+                btnAtualizar.disabled = false;
+                btnAtualizar.textContent = '🔄 Atualizar';
+            }
+        });
+
+        // 3. PROCESSO DE GRAVAÇÃO DO VOTO
+        // O incremento é feito inteiramente dentro do banco (função votar_em_foto),
+        // que insere em votos_realizados E soma +1 em fotos_concurso na mesma
+        // transação. Isso impede: (a) voto duplicado, via constraint única em
+        // votos_realizados, e (b) manipulação do contador pelo cliente, já que
+        // o valor nunca é calculado no navegador.
+        async function computarVoto(idFoto) {
+            if (!usuarioAtual) return;
+
+            const botao = document.getElementById(`btn-voto-${idFoto}`);
+            const contador = document.getElementById(`contador-${idFoto}`);
+
+            botao.disabled = true;
+            botao.className = "btn btn-ghost btn-block text-xs sm:text-sm !py-2";
+            botao.textContent = "Salvando...";
+
+            try {
+                const { error } = await supabase.rpc('votar_em_foto', { foto_id_input: idFoto });
+
+                if (error) throw error;
+
+                // Sucesso na UI local (busca o valor real atualizado no banco)
+                meusVotosRealizados.push(idFoto);
+                const { data: fotoAtualizada } = await supabase
+                    .from('fotos_concurso')
+                    .select('votos')
+                    .eq('id', idFoto)
+                    .single();
+                contador.textContent = fotoAtualizada ? fotoAtualizada.votos : (parseInt(contador.textContent, 10) + 1);
+                botao.textContent = "❤️ Votado";
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao computar o voto. Você já deve ter votado nesta foto ou houve uma falha de conexão.");
+                checarSessao(); // Reseta os botões para o estado seguro
+            }
+        }
+
+        // Dispara o ciclo de vida inicial da página
+        checarSessao();
+    </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+/* ============================================================
+   AruSuperGuia — Sistema visual "Ticket de Expedição"
+   Tema: guia de campo / bilhete de entrada de parque, remetendo
+   a fósseis, âmbar e camadas de sedimento — não ao dinossauro
+   de desenho animado genérico.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root {
+    --canopy: #152A20;
+    --canopy-2: #0F1F17;
+    --fern: #3C8156;
+    --fern-dark: #2B6142;
+    --fern-light: #79AC8E;
+    --amber: #E3A335;
+    --amber-dark: #B9791C;
+    --ember: #C1452C;
+    --ember-dark: #9B3320;
+    --bone: #F5EFDE;
+    --bone-2: #EBE1C7;
+    --ink: #16201A;
+    --ink-soft: #54615A;
+    --page-bg: var(--canopy);
+}
+
+body {
+    font-family: 'Work Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color: var(--ink);
+}
+
+h1, h2, h3, .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* ---------- Fundo "dossel da floresta" ---------- */
+.bg-canopy {
+    background-color: var(--canopy);
+    background-image:
+        radial-gradient(circle at 15% 15%, rgba(227, 163, 53, 0.10), transparent 42%),
+        radial-gradient(circle at 85% 75%, rgba(60, 129, 86, 0.22), transparent 48%),
+        repeating-linear-gradient(180deg, rgba(245, 239, 222, 0.025) 0px, rgba(245, 239, 222, 0.025) 1px, transparent 1px, transparent 34px),
+        linear-gradient(180deg, var(--canopy) 0%, var(--canopy-2) 100%);
+}
+
+/* ---------- Cartão "bilhete de expedição" ---------- */
+.ticket {
+    position: relative;
+    background: var(--bone);
+    border: 2px solid var(--ink);
+    border-radius: 22px;
+    box-shadow: 0 14px 34px -14px rgba(15, 31, 23, 0.55);
+}
+
+.ticket-tear {
+    position: relative;
+    height: 2px;
+    margin: 0;
+    background-image: repeating-linear-gradient(90deg, var(--ink) 0 10px, transparent 0 16px);
+}
+.ticket-tear::before,
+.ticket-tear::after {
+    content: "";
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    background: var(--notch-bg, var(--page-bg));
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+}
+.ticket-tear::before { left: -13px; }
+.ticket-tear::after { right: -13px; }
+
+/* Cartões pequenos (grade de votação / curadoria) dispensam recorte lateral,
+   mas mantêm a borda grossa + sombra dura da identidade visual */
+.ticket-sm {
+    background: var(--bone);
+    border: 2px solid var(--ink);
+    border-radius: 16px;
+    box-shadow: 0 8px 0 -2px rgba(22, 32, 26, 0.08);
+}
+
+/* Cartão informativo (não clicável) — usa borda tracejada e nenhuma
+   sombra dura para não ser confundido com os botões de ação */
+.info-card {
+    background: var(--bone-2);
+    border: 1.5px dashed var(--ink-soft);
+    border-radius: 16px;
+}
+
+/* ---------- Botões com sombra dura (assinatura visual) ---------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 600;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+    box-shadow: 4px 4px 0 var(--ink);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+}
+.btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+.btn:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--ink); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 var(--ink); }
+.btn:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+.btn-fern { background: var(--fern); color: var(--bone); }
+.btn-fern:hover { background: var(--fern-dark); }
+.btn-ember { background: var(--ember); color: var(--bone); }
+.btn-ember:hover { background: var(--ember-dark); }
+.btn-amber { background: var(--amber); color: var(--ink); }
+.btn-ghost { background: var(--bone); color: var(--ink); }
+.btn-block { width: 100%; }
+
+/* ---------- Selo de status (carimbo) ---------- */
+.stamp {
+    display: inline-flex;
+    align-items: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.6rem;
+    border: 2px solid currentColor;
+    border-radius: 7px;
+    transform: rotate(-2.5deg);
+    position: relative;
+}
+.stamp::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px dashed currentColor;
+    border-radius: 4px;
+    opacity: 0.55;
+}
+.stamp-fern { color: var(--fern-dark); }
+.stamp-amber { color: var(--amber-dark); }
+.stamp-ember { color: var(--ember-dark); }
+
+/* ---------- Menu lateral do painel de curadoria ---------- */
+.nav-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.65rem 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: transparent;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.nav-item:hover { background: var(--canopy-2); color: #fff; }
+.nav-item.active { background: var(--fern); color: #fff; }
+
+/* ---------- Utilidades ---------- */
+.divider-dot {
+    width: 4px; height: 4px; border-radius: 999px; background: currentColor; opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* O Tailwind é carregado antes deste arquivo, então uma classe utilitária
+   nossa com a mesma especificidade (ex: .btn) pode vencer .hidden na
+   cascata e manter um elemento visível mesmo com "hidden" aplicado.
+   Isso garante que .hidden sempre vence, independente da ordem de carga. */
+.hidden { display: none !important; }

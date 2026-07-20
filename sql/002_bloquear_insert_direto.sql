@@ -1,0 +1,19 @@
+-- Execute depois de fazer o deploy da Edge Function "enviar-foto".
+--
+-- Hoje (antes deste script) o enviar.html insere direto na tabela
+-- fotos_concurso usando a chave anônima — isso significa que dá pra pular
+-- o Turnstile inteiro via DevTools/curl e inserir fotos sem passar por
+-- nenhum captcha. A partir de agora, o único caminho para inserir uma foto
+-- é a Edge Function "enviar-foto", que roda com a Service Role Key (que
+-- ignora RLS) e só grava depois de validar o captcha com a Cloudflare.
+--
+-- Rode primeiro para ver as policies que já existem na tabela:
+--   select * from pg_policies where tablename = 'fotos_concurso';
+--
+-- Depois, remova/ajuste qualquer policy que hoje permita
+-- "insert" para o role anon/authenticated na tabela fotos_concurso.
+-- Exemplo (troque "nome_da_policy_atual" pelo nome real que aparecer acima):
+--   drop policy if exists "nome_da_policy_atual" on fotos_concurso;
+--
+-- Não é necessário criar uma policy nova de INSERT: a Edge Function usa a
+-- Service Role Key, que ignora RLS por padrão.

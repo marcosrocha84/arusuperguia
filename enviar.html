@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enviar Foto - Concurso Dino Parque</title>
+    <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="./supabase-client.js?v=1.0"></script>
+
+    <!-- 1. Script do CAPTCHA Cloudflare Turnstile -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+    <!-- Conversor HEIC → JPEG (fotos de iPhone não abrem em <canvas> sem isso) -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+</head>
+<body class="bg-canopy min-h-screen flex flex-col justify-between items-center p-4">
+
+    <!-- Div centralizadora -->
+    <div class="flex-1 flex items-center justify-center w-full relative z-10 py-8">
+
+        <!-- CONTAINER PRINCIPAL -->
+        <div class="ticket w-full max-w-md">
+
+            <div class="p-6 md:p-8 text-center">
+                <p class="eyebrow text-[var(--fern-dark)]">Arena de Envios</p>
+                <h2 class="font-display text-2xl md:text-3xl text-[var(--ink)] mt-1">🦖 Participe do Concurso!</h2>
+                <p class="text-[var(--ink-soft)] text-sm mt-2">Envie sua melhor foto no Belinzoni Dino Parque para concorrer a prêmios.</p>
+            </div>
+
+            <div class="ticket-tear"></div>
+
+            <!-- ÁREA DO FORMULÁRIO -->
+            <div id="form-container" class="p-6 md:p-8 pt-6">
+                <form id="upload-form" class="space-y-4">
+                    <div>
+                        <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Seu nome completo</label>
+                        <input type="text" id="participante-nome" required class="w-full px-4 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)] bg-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Escolha ou tire a foto</label>
+                        <input type="file" id="foto-arquivo" accept="image/*" required class="w-full text-sm text-[var(--ink-soft)] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-2 file:border-[var(--ink)] file:text-sm file:font-semibold file:bg-[var(--fern-light)] file:text-[var(--ink)] hover:file:bg-[var(--fern)] hover:file:text-white file:cursor-pointer">
+                    </div>
+
+                    <!-- Preview da Imagem -->
+                    <div id="preview-container" class="hidden mt-2 border-2 border-[var(--ink)] rounded-lg overflow-hidden h-48 bg-[var(--bone-2)] flex items-center justify-center">
+                        <img id="image-preview" src="" class="object-cover w-full h-full">
+                    </div>
+
+                    <!-- Check-box de Direito de Imagem -->
+                    <div class="flex items-start space-x-2 ticket-sm p-3">
+                        <input type="checkbox" id="autoriza-imagem" required class="mt-1 h-4 w-4 text-[var(--fern-dark)] focus:ring-[var(--amber)] border-[var(--ink)] rounded cursor-pointer">
+                        <label for="autoriza-imagem" class="text-xs text-[var(--ink-soft)] leading-tight cursor-pointer">
+                            Declaro que sou o autor desta foto e <b>autorizo o uso e exibição da minha imagem</b> para fins de votação pública deste concurso.
+                        </label>
+                    </div>
+
+                    <!-- 2. O Elemento Visual/Invisível do CAPTCHA -->
+                    <div class="cf-turnstile flex justify-center py-1" data-sitekey="0x4AAAAAAD4IVPmWUrALlMER"></div>
+
+                    <button type="submit" id="btn-enviar" class="btn btn-fern btn-block">
+                        Enviar foto para curadoria
+                    </button>
+
+                    <div class="text-center pt-1">
+                        <a href="./index.html" class="btn btn-ghost btn-block">
+                            🏠 Página inicial
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TELA DE SUCESSO -->
+            <div id="sucesso-container" class="hidden text-center py-8 px-6 md:px-8">
+                <div class="text-5xl mb-4">🦕🎉</div>
+                <span class="stamp stamp-fern">Inscrição confirmada</span>
+                <p class="text-[var(--ink-soft)] text-sm mt-4 mb-6">
+                    Sua foto foi enviada com sucesso para os nossos jurados. Fique de olho na área de votação!
+                </p>                
+                
+                <div class="grid grid-cols-1 sm:grid-cols-1 gap-3">
+                    <button id="btn-reiniciar" class="btn btn-amber btn-block mt-3">
+                        🔄 Enviar uma nova foto
+                    </button>
+                    <a href="./votacao.html" class="btn btn-ember btn-block">
+                        ❤️ Ir para a votação
+                    </a>
+                    <a href="./index.html" class="btn btn-ghost btn-block">
+                        🏠 Página inicial
+                    </a>
+                </div>
+            </div>
+
+            <!-- Mensagem de erro simples -->
+            <p id="erro-mensagem" class="text-[var(--ember-dark)] text-sm text-center font-semibold px-6 pb-6 hidden"></p>
+
+            <div class="ticket-tear"></div>
+
+            <!-- Rodapé -->
+            <footer class="text-center p-6 md:p-10 pt-8 text-[var(--ink-soft)]">
+                <p class="text-sm font-semibold">
+                    Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
+                </p>
+                <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
+                    <a href="https://registro.br/busca-dominio/?fqdn=arusuperguia" class="underline underline-offset-2 hover:text-[var(--ink)]" target="_blank" rel="noopener noreferrer">© AruSuperGuia</a>
+                    <span class="divider-dot"></span>
+                    <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
+                    <span class="divider-dot"></span>
+                    <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
+                    <span class="divider-dot"></span>
+                    <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Supabase vem de supabase-client.js
+
+        const formContainer = document.getElementById('form-container');
+        const sucessoContainer = document.getElementById('sucesso-container');
+        const uploadForm = document.getElementById('upload-form');
+        const fileInput = document.getElementById('foto-arquivo');
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const btnEnviar = document.getElementById('btn-enviar');
+        const btnReiniciar = document.getElementById('btn-reiniciar');
+        const erroMensagem = document.getElementById('erro-mensagem');
+
+        // Fotos de iPhone costumam vir em HEIC/HEIF, formato que a maioria
+        // dos navegadores não consegue desenhar em <canvas>. Convertemos
+        // para JPEG antes de qualquer outro processamento.
+        async function normalizarParaJpeg(file) {
+            const pareceHeic = file.type === 'image/heic' || file.type === 'image/heif'
+                || /\.hei[cf]$/i.test(file.name || '');
+            if (!pareceHeic) return file;
+
+            try {
+                const convertido = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+                return Array.isArray(convertido) ? convertido[0] : convertido;
+            } catch (e) {
+                throw new Error('Não conseguimos processar essa foto (formato HEIC do iPhone). Tente novamente ou, nos Ajustes do iPhone, mude Câmera > Formatos para "Mais compatível" antes de tirar a foto.');
+            }
+        }
+
+        // Lê o valor do EXIF Orientation (tag 0x0112) de dentro do bloco APP1,
+        // antes de removermos esse bloco. A câmera do celular grava a foto
+        // sempre "deitada" no sensor e usa essa tag pra dizer "gire X graus
+        // pra exibir em pé" — é assim que a galeria do próprio celular mostra
+        // certo. Precisamos capturar esse valor ANTES de descartar o EXIF em
+        // removerMetadadosExif(), senão perdemos a informação de rotação
+        // junto com o GPS.
+        function lerOrientacaoExif(bytes) {
+            if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) return 1;
+
+            let offset = 2;
+            while (offset < bytes.length - 1) {
+                if (bytes[offset] !== 0xFF) break;
+                const marcador = bytes[offset + 1];
+
+                if (marcador === 0xDA) break; // dados de imagem: não há mais o que procurar
+
+                if (marcador === 0x01 || (marcador >= 0xD0 && marcador <= 0xD9)) {
+                    offset += 2;
+                    continue;
+                }
+
+                const tamanhoSegmento = (bytes[offset + 2] << 8) | bytes[offset + 3];
+
+                if (marcador === 0xE1) {
+                    const inicioApp1 = offset + 4;
+                    const ehExif = bytes[inicioApp1] === 0x45 && bytes[inicioApp1 + 1] === 0x78
+                        && bytes[inicioApp1 + 2] === 0x69 && bytes[inicioApp1 + 3] === 0x66; // "Exif"
+                    if (!ehExif) return 1;
+
+                    try {
+                        const tiffInicio = inicioApp1 + 6; // pula "Exif\0\0"
+                        const littleEndian = bytes[tiffInicio] === 0x49; // "II" = little-endian
+                        const view = new DataView(bytes.buffer, bytes.byteOffset + tiffInicio, tamanhoSegmento - 8);
+                        const offsetIfd0 = view.getUint32(4, littleEndian);
+                        const numEntradas = view.getUint16(offsetIfd0, littleEndian);
+
+                        for (let i = 0; i < numEntradas; i++) {
+                            const entradaOffset = offsetIfd0 + 2 + (i * 12);
+                            if (view.getUint16(entradaOffset, littleEndian) === 0x0112) {
+                                return view.getUint16(entradaOffset + 8, littleEndian);
+                            }
+                        }
+                    } catch (e) {
+                        return 1; // bloco Exif malformado: assume orientação normal
+                    }
+                    return 1;
+                }
+
+                offset += 2 + tamanhoSegmento;
+            }
+
+            return 1;
+        }
+
+        // Remove o bloco EXIF (APP1) do JPEG antes de qualquer decodificação.
+        // Dois motivos: (1) alguns celulares gravam metadados de geolocalização
+        // de forma muito grande ou fora do padrão, e isso trava o decodificador
+        // mais rígido usado por createImageBitmap em alguns navegadores mobile;
+        // (2) privacidade — a localização exata de quem enviou a foto nunca
+        // deve ser processada nem chegar ao arquivo final. A compressão via
+        // <canvas> mais adiante já removeria os metadados de qualquer forma,
+        // mas fazemos isso antes, logo na entrada, pra nem correr o risco de
+        // ler um bloco EXIF malformado.
+        //
+        // Retorna { blob, orientacao } — a orientação é lida antes do bloco
+        // ser descartado, pra podermos reaplicar a rotação manualmente no
+        // canvas (ver aplicarOrientacaoExif em comprimirImagem).
+        async function removerMetadadosExif(file) {
+            if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') return { blob: file, orientacao: 1 };
+
+            try {
+                const bytes = new Uint8Array(await file.arrayBuffer());
+                if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) return { blob: file, orientacao: 1 }; // não parece um JPEG válido
+
+                const orientacao = lerOrientacaoExif(bytes);
+
+                const partes = [bytes.subarray(0, 2)]; // SOI
+                let offset = 2;
+
+                while (offset < bytes.length - 1) {
+                    if (bytes[offset] !== 0xFF) break; // estrutura inesperada: aborta e usa o arquivo original
+
+                    const marcador = bytes[offset + 1];
+
+                    // Início dos dados de imagem (SOS): copia o restante do
+                    // arquivo de uma vez e encerra a varredura de segmentos.
+                    if (marcador === 0xDA) {
+                        partes.push(bytes.subarray(offset));
+                        offset = bytes.length;
+                        break;
+                    }
+
+                    // Marcadores "standalone", sem campo de tamanho.
+                    if (marcador === 0x01 || (marcador >= 0xD0 && marcador <= 0xD9)) {
+                        partes.push(bytes.subarray(offset, offset + 2));
+                        offset += 2;
+                        continue;
+                    }
+
+                    const tamanhoSegmento = (bytes[offset + 2] << 8) | bytes[offset + 3];
+
+                    // APP1 é onde o bloco Exif (com GPS) normalmente fica.
+                    // Pulamos o segmento inteiro em vez de copiá-lo.
+                    if (marcador === 0xE1) {
+                        offset += 2 + tamanhoSegmento;
+                        continue;
+                    }
+
+                    partes.push(bytes.subarray(offset, offset + 2 + tamanhoSegmento));
+                    offset += 2 + tamanhoSegmento;
+                }
+
+                return { blob: new Blob(partes, { type: 'image/jpeg' }), orientacao };
+            } catch (e) {
+                // Qualquer falha inesperada ao ler os bytes: segue com o
+                // arquivo original em vez de travar o envio por causa disso.
+                console.error('Falha ao remover EXIF, prosseguindo com o arquivo original:', e);
+                return { blob: file, orientacao: 1 };
+            }
+        }
+
+        // Redimensiona/comprime a foto no navegador antes do upload.
+        // Fotos de celular costumam vir com vários MB — isso reduz o peso
+        // no Storage e acelera bastante o carregamento da tela de votação,
+        // que mostra várias fotos ao mesmo tempo.
+        //
+        // Tentamos createImageBitmap() primeiro (decodifica direto do
+        // arquivo, sem precisar de uma string base64 gigante como o
+        // FileReader antigo exigia). Só que o decoder do createImageBitmap
+        // em alguns navegadores mobile (Safari em especial) é mais rígido e
+        // rejeita certas fotos de câmera (perfil de cor incomum, EXIF fora
+        // do padrão etc.) mesmo quando o navegador conseguiria abrir a
+        // mesma imagem numa tag <img> normal. Por isso, se createImageBitmap
+        // falhar, caímos pro caminho via <img> + Object URL antes de desistir.
+        //
+        // "orientacao" é o valor (1-8) lido do EXIF antes de ele ser removido
+        // (ver lerOrientacaoExif). Como nem createImageBitmap nem <canvas>
+        // aplicam essa rotação sozinhos quando não há mais EXIF, reaplicamos
+        // manualmente — senão fotos em pé saem deitadas (ou vice-versa) no
+        // arquivo final.
+        function comprimirImagem(file, maxLargura = 1600, qualidade = 0.8, orientacao = 1) {
+            // Matriz de transformação equivalente a cada valor do EXIF
+            // Orientation. Referência: https://exiftool.org/TagNames/EXIF.html
+            function aplicarOrientacaoExif(ctx, largura, altura) {
+                switch (orientacao) {
+                    case 2: ctx.transform(-1, 0, 0, 1, largura, 0); break;
+                    case 3: ctx.transform(-1, 0, 0, -1, largura, altura); break;
+                    case 4: ctx.transform(1, 0, 0, -1, 0, altura); break;
+                    case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+                    case 6: ctx.transform(0, 1, -1, 0, altura, 0); break;
+                    case 7: ctx.transform(0, -1, -1, 0, altura, largura); break;
+                    case 8: ctx.transform(0, -1, 1, 0, 0, largura); break;
+                    default: break; // 1 (ou valor desconhecido): sem alteração
+                }
+            }
+
+            function desenharEComprimir(fonte, largura, altura, resolve, reject) {
+                // Orientações 5-8 giram a imagem em 90°/270°: largura e
+                // altura finais trocam de lugar.
+                const rotacionado90 = orientacao >= 5 && orientacao <= 8;
+                const larguraFinal = rotacionado90 ? altura : largura;
+                const alturaFinal = rotacionado90 ? largura : altura;
+                const escala = Math.min(1, maxLargura / larguraFinal);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = larguraFinal * escala;
+                canvas.height = alturaFinal * escala;
+                const ctx = canvas.getContext('2d');
+
+                // A ordem importa: escala primeiro (afeta tudo que vier
+                // depois), rotação/espelhamento em seguida, e só então
+                // desenhamos a imagem nas dimensões originais (não nas
+                // finais) — o transform acima já dá conta de mapear pro
+                // tamanho/orientação certos.
+                ctx.scale(escala, escala);
+                aplicarOrientacaoExif(ctx, largura, altura);
+                ctx.drawImage(fonte, 0, 0, largura, altura);
+
+                canvas.toBlob(
+                    (blob) => blob ? resolve(blob) : reject(new Error('Falha ao comprimir a imagem. Tente outra foto.')),
+                    'image/jpeg',
+                    qualidade
+                );
+            }
+
+            function comprimirViaImgTag(resolve, reject) {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    desenharEComprimir(img, img.naturalWidth, img.naturalHeight, resolve, reject);
+                    URL.revokeObjectURL(url);
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Não foi possível abrir essa imagem. Tente outra foto ou outro formato (JPG/PNG).'));
+                };
+                img.src = url;
+            }
+
+            return new Promise((resolve, reject) => {
+                if (window.createImageBitmap) {
+                    createImageBitmap(file)
+                        .then((bitmap) => desenharEComprimir(bitmap, bitmap.width, bitmap.height, resolve, reject))
+                        .catch(() => comprimirViaImgTag(resolve, reject));
+                    return;
+                }
+
+                comprimirViaImgTag(resolve, reject);
+            });
+        }
+
+        let previewUrlAtual = null;
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                if (previewUrlAtual) URL.revokeObjectURL(previewUrlAtual);
+                previewUrlAtual = URL.createObjectURL(file);
+                imagePreview.setAttribute('src', previewUrlAtual);
+                previewContainer.classList.remove('hidden');
+            }
+        });
+
+        btnReiniciar.addEventListener('click', () => {
+            uploadForm.reset();
+            previewContainer.classList.add('hidden');
+            erroMensagem.classList.add('hidden');
+            sucessoContainer.classList.add('hidden');
+            formContainer.classList.remove('hidden');
+
+            // Força o reset do CAPTCHA para o próximo envio
+            if (typeof turnstile !== "undefined") turnstile.reset();
+        });
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            erroMensagem.classList.add('hidden');
+
+            // 3. Validação do Token do CAPTCHA
+            // Captura o token gerado automaticamente pelo Turnstile no formulário
+            const captchaResponse = document.querySelector('[name="cf-turnstile-response"]').value;
+
+            if (!captchaResponse) {
+                erroMensagem.textContent = "Por favor, aguarde a verificação de segurança (CAPTCHA).";
+                erroMensagem.classList.remove('hidden');
+                return;
+            }
+
+            btnEnviar.disabled = true;
+            btnEnviar.textContent = "Aguarde, enviando...";
+
+            const nome = document.getElementById('participante-nome').value;
+            const fileOriginal = fileInput.files[0];
+            const nomeArquivoUnico = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.jpg`;
+
+            try {
+                // Converte HEIC/HEIF (iPhone) para JPEG antes de processar
+                const fileNormalizado = await normalizarParaJpeg(fileOriginal);
+                // Remove metadados EXIF (geolocalização inclusa) antes de decodificar,
+                // mas guarda a orientação pra reaplicar manualmente na compressão
+                const { blob: fileSemExif, orientacao } = await removerMetadadosExif(fileNormalizado);
+                // Comprime a imagem antes de enviar (reduz peso e tempo de upload)
+                const fileComprimido = await comprimirImagem(fileSemExif, 1600, 0.8, orientacao);
+
+                // Upload para o Storage
+                const { data: storageData, error: storageError } = await supabase.storage
+                    .from('arusuperguia-fotos')
+                    .upload(nomeArquivoUnico, fileComprimido, { contentType: 'image/jpeg' });
+
+                if (storageError) throw storageError;
+
+                // Captura URL
+                const { data: urlData } = supabase.storage
+                    .from('arusuperguia-fotos')
+                    .getPublicUrl(nomeArquivoUnico);
+
+                const urlPublicaDaFoto = urlData.publicUrl;
+
+                // Salva na Tabela através da Edge Function, que valida o
+                // token do CAPTCHA no servidor antes de gravar (o insert
+                // direto na tabela pela chave anônima fica bloqueado — ver
+                // sql/002_bloquear_insert_direto.sql).
+                const respostaFn = await fetch(`${SUPABASE_URL}/functions/v1/enviar-foto`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    },
+                    body: JSON.stringify({
+                        nome: nome,
+                        url_foto: urlPublicaDaFoto,
+                        captchaToken: captchaResponse,
+                    }),
+                });
+
+                const resultadoFn = await respostaFn.json();
+                if (!respostaFn.ok) throw new Error(resultadoFn.error || 'Erro ao registrar a foto.');
+
+                formContainer.classList.add('hidden');
+                sucessoContainer.classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                erroMensagem.textContent = "Erro ao enviar: " + (error && error.message ? error.message : "algo deu errado. Tente novamente.");
+                erroMensagem.classList.remove('hidden');
+                if (typeof turnstile !== "undefined") turnstile.reset();
+            } finally {
+                btnEnviar.disabled = false;
+                btnEnviar.textContent = "Enviar foto para curadoria";
+            }
+        });
+    </script>
+</body>
+</html>

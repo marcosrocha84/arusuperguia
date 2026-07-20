@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curadoria - AruSuperGuia</title>
+    <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="./supabase-client.js?v=1.0"></script>
+    <script src="./app.js?v=2.0" defer></script>
+</head>
+<body class="bg-[var(--bone-2)] font-sans min-h-screen" style="--page-bg: var(--bone-2);">
+
+    <!-- 1. TELA DE LOGIN (Visível por padrão) -->
+    <div id="login-section" class="flex items-center justify-center min-h-screen p-4">
+        <div class="ticket w-full max-w-md">
+            <div class="p-8">
+                <p class="eyebrow text-[var(--fern-dark)] text-center">Acesso restrito</p>
+                <h2 class="font-display text-2xl text-center text-[var(--ink)] mt-1 mb-6">AruSuperGuia · Curadoria</h2>
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label class="block text-[var(--ink)] text-sm font-semibold mb-1">E-mail</label>
+                        <input type="email" id="login-email" required class="w-full px-4 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                    </div>
+                    <div>
+                        <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Senha</label>
+                        <input type="password" id="login-password" required class="w-full px-4 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                    </div>
+                    <button type="submit" class="btn btn-fern btn-block">Entrar</button>
+                    <p id="login-error" class="text-[var(--ember-dark)] text-sm text-center hidden mt-2"></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. PAINEL DE CONTROLE (Oculto por padrão) -->
+    <div id="admin-panel" class="hidden min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-[var(--canopy)] text-[var(--bone)] px-4 md:px-6 py-4 flex justify-between items-center shadow-md relative z-10">
+            <h1 class="font-display text-lg md:text-xl">Painel de Curadoria</h1>
+            <div class="flex items-center space-x-4">
+                <span id="user-display" class="eyebrow bg-[var(--canopy-2)] px-3 py-1.5 rounded-lg hidden sm:inline-block">Admin: carregar...</span>
+                <button id="btn-logout" class="btn btn-ember !py-1.5 !px-3 text-sm">Sair</button>
+            </div>
+        </header>
+
+        <div class="flex-1 flex items-stretch">
+            <!-- Menu lateral fixo -->
+            <aside id="sidebar" class="w-64 shrink-0 bg-[var(--canopy)] text-[var(--bone)] flex flex-col md:sticky md:top-0 md:h-screen">
+                <nav class="p-3 space-y-1">
+                    <button data-view="dashboard" class="nav-item active">📊 Dashboard</button>
+                    <button data-view="concursos" class="nav-item">🎟️ Concursos</button>
+                    <button data-view="moderacao" class="nav-item">🖼️ Moderação de fotos</button>
+                </nav>
+            </aside>
+
+            <!-- Área de Conteúdo -->
+            <main class="flex-1 p-6 max-w-7xl mx-auto w-full">
+
+                <!-- VIEW: Dashboard -->
+                <section id="view-dashboard" class="view">
+                    <div class="flex items-center justify-between mb-6 gap-4">
+                        <h2 class="font-display text-2xl text-[var(--ink)]">Dashboard</h2>
+                        <button id="btn-atualizar-dashboard" class="btn btn-ghost !py-1.5 !px-3 text-sm">
+                            🔄 Atualizar
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="ticket-sm p-5">
+                            <p class="eyebrow text-[var(--fern-dark)] mb-2">Total de fotos</p>
+                            <p id="metric-total" class="font-display text-3xl text-[var(--ink)]">–</p>
+                        </div>
+                        <div class="ticket-sm p-5">
+                            <p class="eyebrow text-[var(--fern-dark)] mb-2">Aprovadas</p>
+                            <p id="metric-aprovadas" class="font-display text-3xl text-[var(--ink)]">–</p>
+                        </div>
+                        <div class="ticket-sm p-5">
+                            <p class="eyebrow text-[var(--ember-dark)] mb-2">Pendentes</p>
+                            <p id="metric-pendentes" class="font-display text-3xl text-[var(--ink)]">–</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: Concursos (CRUD) -->
+                <section id="view-concursos" class="view hidden">
+                    <h2 class="font-display text-2xl text-[var(--ink)] mb-6">Concursos culturais</h2>
+
+                    <form id="concurso-form" class="ticket-sm p-5 mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                        <input type="hidden" id="concurso-id">
+                        <div class="md:col-span-2">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Descrição</label>
+                            <input type="text" id="concurso-descricao" required maxlength="160" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                        </div>
+                        <div>
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Data</label>
+                            <input type="date" id="concurso-data" required class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                        </div>
+                        <div class="flex items-center gap-2 pb-2">
+                            <input type="checkbox" id="concurso-ativo" checked class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                            <label for="concurso-ativo" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Ativo</label>
+                        </div>
+                        <div class="flex items-center gap-2 pb-2">
+                            <input type="checkbox" id="concurso-encerrado" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                            <label for="concurso-encerrado" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Encerrado</label>
+                        </div>
+                        <div class="md:col-span-5 flex gap-3">
+                            <button type="submit" id="concurso-submit-btn" class="btn btn-fern text-sm !py-2 !px-4">Cadastrar concurso</button>
+                            <button type="button" id="concurso-cancel-btn" class="btn btn-ghost text-sm !py-2 !px-4 hidden">Cancelar edição</button>
+                        </div>
+                        <p id="concurso-error" class="md:col-span-5 text-[var(--ember-dark)] text-sm hidden"></p>
+                    </form>
+
+                    <div id="concursos-container" class="space-y-3">
+                        <p class="text-[var(--ink-soft)] text-center">Buscando concursos...</p>
+                    </div>
+                </section>
+
+                <!-- VIEW: Moderação de fotos -->
+                <section id="view-moderacao" class="view hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+                        <h2 class="font-display text-2xl text-[var(--ink)]">Fotos aguardando moderação</h2>
+                        <div class="flex items-center space-x-3">
+                            <label for="status-filter" class="text-[var(--ink)] font-medium text-sm">Mostrar:</label>
+                            <select id="status-filter" class="border-2 border-[var(--ink)] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                <option value="Todas">Todas</option>
+                                <option value="Aprovadas">Aprovadas</option>
+                                <option value="Pendentes">Pendentes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Grid de Fotos -->
+                    <div id="fotos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- As fotos serão injetadas dinamicamente aqui pelo JavaScript -->
+                        <p class="text-[var(--ink-soft)] col-span-full text-center">Buscando fotos na nuvem...</p>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+</body>
+</html>
