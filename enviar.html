@@ -281,15 +281,47 @@
             return 1;
         }
 
-        // Remove o bloco EXIF (APP1) do JPEG antes de qualquer decodificação.
-        // Dois motivos: (1) alguns celulares gravam metadados de geolocalização
-        // de forma muito grande ou fora do padrão, e isso trava o decodificador
-        // mais rígido usado por createImageBitmap em alguns navegadores mobile;
-        // (2) privacidade — a localização exata de quem enviou a foto nunca
-        // deve ser processada nem chegar ao arquivo final. A compressão via
-        // <canvas> mais adiante já removeria os metadados de qualquer forma,
-        // mas fazemos isso antes, logo na entrada, pra nem correr o risco de
-        // ler um bloco EXIF malformado.
+        // Localiza o fim real dos dados de imagem (o marcador EOI, 0xFFD9) a
+        // partir do início do SOS. Precisa varrer byte a byte em vez de só
+        // pular pro fim do arquivo porque fotos "Foto em Movimento" (Samsung)
+        // e Motion Photo (Pixel) gravam um vídeo curto colado logo depois do
+        // JPEG, dentro do mesmo arquivo .jpg — sem cortar exatamente no EOI,
+        // esse vídeo anexado vai junto no arquivo final e trava a
+        // decodificação em vários navegadores mobile.
+        //
+        // Dentro dos dados comprimidos (entropy-coded), 0xFF seguido de 0x00
+        // é só um byte de escape (não é marcador de verdade), e 0xFFD0-D7 são
+        // marcadores de reinício válidos no meio do scan — ambos os casos são
+        // ignorados até achar um marcador real, que deve ser o EOI.
+        function encontrarFimDaImagemJpeg(bytes, offsetSOS) {
+            const tamanhoCabecalhoSOS = (bytes[offsetSOS + 2] << 8) | bytes[offsetSOS + 3];
+            let i = offsetSOS + 2 + tamanhoCabecalhoSOS;
+
+            while (i < bytes.length - 1) {
+                if (bytes[i] === 0xFF) {
+                    const proximo = bytes[i + 1];
+                    if (proximo !== 0x00 && !(proximo >= 0xD0 && proximo <= 0xD7)) {
+                        return proximo === 0xD9 ? i + 2 : i; // inclui o EOI, se for ele
+                    }
+                }
+                i++;
+            }
+            return bytes.length; // não achou EOI: mantém o restante do arquivo como estava
+        }
+
+        // Remove o bloco EXIF (APP1) e qualquer coisa anexada depois do fim
+        // real da imagem (ver encontrarFimDaImagemJpeg) do JPEG antes de
+        // qualquer decodificação. Três motivos: (1) alguns celulares gravam
+        // metadados de geolocalização de forma muito grande ou fora do
+        // padrão, e isso trava o decodificador mais rígido usado por
+        // createImageBitmap em alguns navegadores mobile; (2) privacidade —
+        // a localização exata de quem enviou a foto nunca deve ser
+        // processada nem chegar ao arquivo final; (3) fotos em "Modo
+        // Movimento" (Samsung/Pixel) têm um vídeo anexado depois do JPEG que
+        // também trava a decodificação em alguns navegadores. A compressão
+        // via <canvas> mais adiante já removeria os metadados de qualquer
+        // forma, mas fazemos isso antes, logo na entrada, pra nem correr o
+        // risco de ler um bloco malformado.
         //
         // Retorna { blob, orientacao } — a orientação é lida antes do bloco
         // ser descartado, pra podermos reaplicar a rotação manualmente no
@@ -313,15 +345,37 @@
                     // marcador — isso é válido pelo padrão JPEG. Pulamos esse
                     // preenchimento em vez de tratar como estrutura inválida,
                     // senão acabávamos abortando a varredura à toa nessas fotos.
-                    if (bytes[offset] !== 0xFF) break; // estrutura realmente inesperada: aborta e usa o arquivo original
+                    if (bytes[offset] !== 0xFF) {
+                        // Alguns fabricantes (Samsung entre eles) usam
+                        // marcadores/segmentos fora do que esse parser simples
+                        // reconhece, o que pode fazer a gente calcular um
+                        // tamanho de segmento errado e "pular" o marcador
+                        // seguinte. Em vez de desistir na hora, procura o
+                        // próximo marcador válido logo à frente e retoma a
+                        // varredura dali — só desiste de verdade se não achar
+                        // nada num intervalo razoável.
+                        const limiteResync = Math.min(offset + 4096, bytes.length - 1);
+                        let reencontrado = -1;
+                        for (let j = offset; j < limiteResync; j++) {
+                            if (bytes[j] === 0xFF && bytes[j + 1] >= 0xC0 && bytes[j + 1] <= 0xFE && bytes[j + 1] !== 0xFF) {
+                                reencontrado = j;
+                                break;
+                            }
+                        }
+                        if (reencontrado === -1) break; // estrutura realmente inesperada: aborta e usa o arquivo original
+                        offset = reencontrado;
+                    }
                     while (bytes[offset + 1] === 0xFF) offset++;
 
                     const marcador = bytes[offset + 1];
 
-                    // Início dos dados de imagem (SOS): copia o restante do
-                    // arquivo de uma vez e encerra a varredura de segmentos.
+                    // Início dos dados de imagem (SOS): copia só até o fim
+                    // real da imagem (EOI), descartando qualquer coisa colada
+                    // depois (vídeo de "Foto em Movimento", por exemplo) —
+                    // ver encontrarFimDaImagemJpeg.
                     if (marcador === 0xDA) {
-                        partes.push(bytes.subarray(offset));
+                        const fimReal = encontrarFimDaImagemJpeg(bytes, offset);
+                        partes.push(bytes.subarray(offset, fimReal));
                         offset = bytes.length;
                         chegouAoFimDaImagem = true;
                         break;
