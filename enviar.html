@@ -270,9 +270,16 @@
 
                 const partes = [bytes.subarray(0, 2)]; // SOI
                 let offset = 2;
+                let chegouAoFimDaImagem = false;
 
                 while (offset < bytes.length - 1) {
-                    if (bytes[offset] !== 0xFF) break; // estrutura inesperada: aborta e usa o arquivo original
+                    // Alguns encoders (comuns em certos apps de câmera Android)
+                    // inserem bytes de preenchimento (0xFF extra) antes de um
+                    // marcador — isso é válido pelo padrão JPEG. Pulamos esse
+                    // preenchimento em vez de tratar como estrutura inválida,
+                    // senão acabávamos abortando a varredura à toa nessas fotos.
+                    if (bytes[offset] !== 0xFF) break; // estrutura realmente inesperada: aborta e usa o arquivo original
+                    while (bytes[offset + 1] === 0xFF) offset++;
 
                     const marcador = bytes[offset + 1];
 
@@ -281,6 +288,7 @@
                     if (marcador === 0xDA) {
                         partes.push(bytes.subarray(offset));
                         offset = bytes.length;
+                        chegouAoFimDaImagem = true;
                         break;
                     }
 
@@ -303,6 +311,13 @@
                     partes.push(bytes.subarray(offset, offset + 2 + tamanhoSegmento));
                     offset += 2 + tamanhoSegmento;
                 }
+
+                // Se a varredura não chegou ao marcador SOS (estrutura fora do
+                // esperado), "partes" não tem os dados de imagem — devolver
+                // esse blob incompleto geraria um JPEG corrompido, ilegível
+                // por qualquer decodificador. Nesse caso, é mais seguro usar o
+                // arquivo original sem stripping do que arriscar quebrar a foto.
+                if (!chegouAoFimDaImagem) return { blob: file, orientacao };
 
                 return { blob: new Blob(partes, { type: 'image/jpeg' }), orientacao };
             } catch (e) {
