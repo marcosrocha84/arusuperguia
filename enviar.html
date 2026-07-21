@@ -96,6 +96,14 @@
 
             <!-- Mensagem de erro simples -->
             <p id="erro-mensagem" class="text-[var(--ember-dark)] text-sm text-center font-semibold px-6 pb-6 hidden"></p>
+            <!-- DEBUG TEMPORÁRIO: link pra baixar exatamente o arquivo que o
+                 navegador recebeu, pra diagnosticar falhas de decodificação
+                 sem depender de cópias feitas por outro caminho (USB, etc.),
+                 que podem não ser idênticas ao que chega no <input file>.
+                 Remover depois de descobrir o problema. -->
+            <p id="erro-download-wrap" class="text-center px-6 pb-6 hidden">
+                <a id="erro-download-link" href="#" download class="underline underline-offset-2 text-[var(--ink)] text-sm font-semibold">📥 Baixar arquivo original (para diagnóstico)</a>
+            </p>
 
             <div class="ticket-tear"></div>
 
@@ -133,6 +141,8 @@
         const btnEnviar = document.getElementById('btn-enviar');
         const btnReiniciar = document.getElementById('btn-reiniciar');
         const erroMensagem = document.getElementById('erro-mensagem');
+        const erroDownloadWrap = document.getElementById('erro-download-wrap');
+        const erroDownloadLink = document.getElementById('erro-download-link');
         const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
         const linkRegulamento = document.getElementById('link-regulamento');
 
@@ -539,6 +549,7 @@
             uploadForm.reset();
             previewContainer.classList.add('hidden');
             erroMensagem.classList.add('hidden');
+            erroDownloadWrap.classList.add('hidden');
             sucessoContainer.classList.add('hidden');
             formContainer.classList.remove('hidden');
 
@@ -549,6 +560,7 @@
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             erroMensagem.classList.add('hidden');
+            erroDownloadWrap.classList.add('hidden');
 
             // 3. Validação do Token do CAPTCHA
             // Captura o token gerado automaticamente pelo Turnstile no formulário
@@ -717,6 +729,18 @@
                 console.error(error);
                 erroMensagem.textContent = "Erro ao enviar: " + (error && error.message ? error.message : "algo deu errado. Tente novamente.");
                 erroMensagem.classList.remove('hidden');
+
+                // DEBUG TEMPORÁRIO: disponibiliza o arquivo exatamente como
+                // o navegador recebeu (antes de qualquer processamento
+                // nosso), pra descartar diferenças entre o que é copiado via
+                // USB/e-mail e o que realmente chega no <input type="file">.
+                if (fileOriginal) {
+                    const urlDownloadDebug = URL.createObjectURL(fileOriginal);
+                    erroDownloadLink.href = urlDownloadDebug;
+                    erroDownloadLink.download = fileOriginal.name || 'foto-diagnostico.jpg';
+                    erroDownloadWrap.classList.remove('hidden');
+                }
+
                 if (typeof turnstile !== "undefined") turnstile.reset();
             } finally {
                 btnEnviar.disabled = false;
