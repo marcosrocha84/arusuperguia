@@ -150,6 +150,24 @@
             }
         })();
 
+        // Faz uma Promise "desistir" depois de "ms" milissegundos, rejeitando
+        // com uma mensagem amigável. Sem isso, qualquer etapa que trave no
+        // celular (conversão HEIC pesada, decodificação de foto gigante,
+        // rede instável no evento) deixa o usuário com o botão "Aguarde..."
+        // parado pra sempre, sem saber se travou ou se ainda está indo.
+        //
+        // Não cancela de fato o trabalho em andamento (a Promise original
+        // continua rodando em segundo plano até terminar ou falhar sozinha),
+        // mas libera a UI e mostra um erro claro pro usuário poder tentar de
+        // novo em vez de ficar esperando indefinidamente.
+        function comTimeout(promise, ms, mensagemErro) {
+            let timer;
+            const timeout = new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(mensagemErro)), ms);
+            });
+            return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+        }
+
         // Fotos de iPhone costumam vir em HEIC/HEIF, formato que a maioria
         // dos navegadores não consegue desenhar em <canvas>. Convertemos
         // para JPEG antes de qualquer outro processamento.
@@ -159,7 +177,14 @@
             if (!pareceHeic) return file;
 
             try {
-                const convertido = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+                // heic2any pode demorar bastante (10s+) em fotos grandes e,
+                // em alguns celulares mais fracos, simplesmente travar sem
+                // nunca resolver nem rejeitar — daí o timeout.
+                const convertido = await comTimeout(
+                    heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 }),
+                    30000,
+                    'A conversão da foto demorou demais.'
+                );
                 return Array.isArray(convertido) ? convertido[0] : convertido;
             } catch (e) {
                 throw new Error('Não conseguimos processar essa foto (formato HEIC do iPhone). Tente novamente ou, nos Ajustes do iPhone, mude Câmera > Formatos para "Mais compatível" antes de tirar a foto.');
@@ -443,7 +468,7 @@
                 // (cheia e thumbnail) a partir da mesma fonte em memória.
                 let fonteDecodificada;
                 try {
-                    fonteDecodificada = await decodificarFonte(fileSemExif);
+                    fonteDecodificada = await comTimeout(decodificarFonte(fileSemExif), 15000, 'A leitura da imagem demorou demais.');
                 } catch (erroDecodificacao) {
                     // Alguns navegadores embutidos (o "in-app browser" do
                     // Instagram/WhatsApp/Facebook, por exemplo) entregam fotos
@@ -455,12 +480,16 @@
 
                     btnEnviar.textContent = "Convertendo formato da foto...";
                     try {
-                        const convertido = await heic2any({ blob: fileOriginal, toType: 'image/jpeg', quality: 0.85 });
+                        const convertido = await comTimeout(
+                            heic2any({ blob: fileOriginal, toType: 'image/jpeg', quality: 0.85 }),
+                            30000,
+                            'A conversão da foto demorou demais.'
+                        );
                         const fileConvertido = Array.isArray(convertido) ? convertido[0] : convertido;
                         const semExif = await removerMetadadosExif(fileConvertido);
                         fileSemExif = semExif.blob;
                         orientacao = semExif.orientacao;
-                        fonteDecodificada = await decodificarFonte(fileSemExif);
+                        fonteDecodificada = await comTimeout(decodificarFonte(fileSemExif), 15000, 'A leitura da imagem demorou demais.');
                     } catch (erroFallback) {
                         throw erroDecodificacao; // mensagem original é mais clara pro usuário
                     }
@@ -474,22 +503,30 @@
                 // dezenas de imagens em tamanho cheio de uma vez e estourar o
                 // egress do Supabase durante o concurso.
                 const { fonte, largura, altura } = fonteDecodificada;
-                const fileComprimido = await comprimirAPartirDaFonte(fonte, largura, altura, 1600, 0.8, orientacao);
-                const fileThumb = await comprimirAPartirDaFonte(fonte, largura, altura, 300, 0.65, orientacao);
+                const mensagemTimeoutCompressao = 'A compressão da imagem demorou demais. Tente uma foto menor.';
+                const fileComprimido = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 1600, 0.8, orientacao), 15000, mensagemTimeoutCompressao);
+                const fileThumb = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 300, 0.65, orientacao), 15000, mensagemTimeoutCompressao);
                 if (typeof fonte.close === 'function') fonte.close(); // libera a memória do ImageBitmap assim que possível
 
-                // Upload para o Storage (versão cheia + thumbnail)
+                // Upload para o Storage (versão cheia + thumbnail). Timeout
+                // mais alto aqui porque depende da rede do celular, que num
+                // evento lotado pode ficar bem lenta sem cair de vez.
+                const mensagemTimeoutRede = 'A conexão está muito lenta ou caiu. Verifique sua internet e tente novamente.';
                 btnEnviar.textContent = "Enviando foto...";
-                const { data: storageData, error: storageError } = await supabase.storage
-                    .from('arusuperguia-fotos')
-                    .upload(nomeArquivoUnico, fileComprimido, { contentType: 'image/jpeg' });
+                const { data: storageData, error: storageError } = await comTimeout(
+                    supabase.storage.from('arusuperguia-fotos').upload(nomeArquivoUnico, fileComprimido, { contentType: 'image/jpeg' }),
+                    30000,
+                    mensagemTimeoutRede
+                );
 
                 if (storageError) throw storageError;
 
                 btnEnviar.textContent = "Enviando miniatura...";
-                const { data: storageThumbData, error: storageThumbError } = await supabase.storage
-                    .from('arusuperguia-fotos')
-                    .upload(nomeArquivoThumb, fileThumb, { contentType: 'image/jpeg' });
+                const { data: storageThumbData, error: storageThumbError } = await comTimeout(
+                    supabase.storage.from('arusuperguia-fotos').upload(nomeArquivoThumb, fileThumb, { contentType: 'image/jpeg' }),
+                    30000,
+                    mensagemTimeoutRede
+                );
 
                 if (storageThumbError) throw storageThumbError;
 
@@ -510,19 +547,30 @@
                 // direto na tabela pela chave anônima fica bloqueado — ver
                 // sql/002_bloquear_insert_direto.sql).
                 btnEnviar.textContent = "Finalizando envio...";
-                const respostaFn = await fetch(`${SUPABASE_URL}/functions/v1/enviar-foto`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    },
-                    body: JSON.stringify({
-                        nome: nome,
-                        url_foto: urlPublicaDaFoto,
-                        url_thumb: urlPublicaDoThumb,
-                        captchaToken: captchaResponse,
-                    }),
-                });
+                const controladorFn = new AbortController();
+                const timerFn = setTimeout(() => controladorFn.abort(), 30000);
+                let respostaFn;
+                try {
+                    respostaFn = await fetch(`${SUPABASE_URL}/functions/v1/enviar-foto`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        },
+                        body: JSON.stringify({
+                            nome: nome,
+                            url_foto: urlPublicaDaFoto,
+                            url_thumb: urlPublicaDoThumb,
+                            captchaToken: captchaResponse,
+                        }),
+                        signal: controladorFn.signal,
+                    });
+                } catch (erroFetch) {
+                    if (erroFetch.name === 'AbortError') throw new Error(mensagemTimeoutRede);
+                    throw erroFetch;
+                } finally {
+                    clearTimeout(timerFn);
+                }
 
                 const resultadoFn = await respostaFn.json();
                 if (!respostaFn.ok) throw new Error(resultadoFn.error || 'Erro ao registrar a foto.');
