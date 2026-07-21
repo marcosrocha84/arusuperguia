@@ -182,6 +182,27 @@
             btnEnviar.textContent = etapas.join('.');
         }
 
+        // Confere a assinatura de bytes do arquivo (a caixa "ftyp" do
+        // formato ISOBMFF, usada por HEIC/HEIF) pra saber se ele é HEIC de
+        // verdade, sem depender do MIME type nem da extensão do nome (que
+        // podem vir vazios/errados em alguns navegadores in-app). Usado só
+        // no caminho de fallback (ver decodificarFonte mais abaixo) — sem
+        // essa checagem, arquivos que falham na decodificação por outro
+        // motivo qualquer acabavam entrando no heic2any à toa e gastando até
+        // 30s pra, só então, mostrar o erro real.
+        async function pareceBytesHeic(file) {
+            try {
+                const cabecalho = new Uint8Array(await file.slice(4, 12).arrayBuffer());
+                if (cabecalho.length < 8) return false;
+                const texto = String.fromCharCode(...cabecalho);
+                if (!texto.startsWith('ftyp')) return false;
+                const marca = texto.slice(4, 8);
+                return ['heic', 'heix', 'heim', 'heis', 'hevc', 'hevx', 'mif1', 'msf1'].includes(marca);
+            } catch (e) {
+                return false;
+            }
+        }
+
         // Fotos de iPhone costumam vir em HEIC/HEIF, formato que a maioria
         // dos navegadores não consegue desenhar em <canvas>. Convertemos
         // para JPEG antes de qualquer outro processamento.
@@ -517,6 +538,15 @@
                     if (fileNormalizado !== fileOriginal) {
                         erroDecodificacao.message += ' ' + infoDebug + ' (já tinha passado pela conversão HEIC)';
                         throw erroDecodificacao; // já era HEIC e mesmo assim falhou
+                    }
+
+                    // Só vale a pena tentar heic2any se o arquivo realmente
+                    // tiver a assinatura de bytes de um HEIC/HEIF — senão é
+                    // só perda de até 30s escondendo o erro real por trás de
+                    // uma tentativa de conversão que nunca ia funcionar.
+                    if (!(await pareceBytesHeic(fileOriginal))) {
+                        erroDecodificacao.message += ' ' + infoDebug + ' (não parece HEIC pelos bytes; fallback não tentado)';
+                        throw erroDecodificacao;
                     }
 
                     try {
