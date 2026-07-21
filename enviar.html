@@ -610,7 +610,19 @@
                     // mensagem de erro (sem popup) pra identificar por que a
                     // decodificação está falhando nesse celular. Remover
                     // depois de descobrir o problema.
-                    const infoDebug = `[debug: tipoOriginal=${fileOriginal.type || '(vazio)'} nomeOriginal=${fileOriginal.name} tamanhoOriginal=${Math.round(fileOriginal.size / 1024)}KB tipoSemExif=${fileSemExif.type} tamanhoSemExif=${Math.round(fileSemExif.size / 1024)}KB usouExifOriginal=${fileSemExif === fileNormalizado}]`;
+                    //
+                    // "bytesLidos" confere se o navegador realmente conseguiu
+                    // ler o arquivo inteiro (existe um bug conhecido em
+                    // alguns Android onde a leitura de arquivos grandes vindos
+                    // de certos seletores de mídia vem truncada/incompleta) —
+                    // se for diferente de "tamanhoOriginal", achamos a causa.
+                    let bytesLidos = '(falhou ao ler)';
+                    try {
+                        bytesLidos = (await fileOriginal.arrayBuffer()).byteLength;
+                    } catch (e) {
+                        bytesLidos = `(erro: ${e.name}: ${e.message})`;
+                    }
+                    const infoDebug = `[debug: tipoOriginal=${fileOriginal.type || '(vazio)'} nomeOriginal=${fileOriginal.name} tamanhoOriginal=${fileOriginal.size} tamanhoSemExif=${fileSemExif.size} usouExifOriginal=${fileSemExif === fileNormalizado} bytesLidos=${bytesLidos}]`;
 
                     if (fileNormalizado !== fileOriginal) {
                         erroDecodificacao.message += ' ' + infoDebug + ' (já tinha passado pela conversão HEIC)';
