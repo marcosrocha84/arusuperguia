@@ -120,6 +120,17 @@
             pointer-events: none;
         }
 
+        @keyframes premio-pop {
+            0% { opacity: 0; transform: scale(0.3) rotate(-15deg); }
+            60% { opacity: 1; transform: scale(1.15) rotate(8deg); }
+            80% { transform: scale(0.95) rotate(-4deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+        .premio-caixa {
+            display: inline-block;
+            animation: premio-pop 0.6s cubic-bezier(.26, 1.5, .5, 1) both;
+        }
+
         @keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes modal-conteudo-in {
             from { opacity: 0; transform: scale(0.92) translateY(10px); }
@@ -252,18 +263,14 @@
             </div>
 
             <!-- Mosaico de Fotos -->
-            <div id="grid-fotos" class="grid grid-cols-2 md:grid-cols-3 gap-4 p-6 md:p-8">
+            <div id="grid-fotos" class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 md:p-8">
                 <div class="col-span-2 md:col-span-3 text-center text-[var(--ink-soft)] py-12">
                     <span class="text-lg font-semibold">⏳ Carregando sistema de votação...</span>
                 </div>
             </div>
 
-            <!-- Premiações e patrocinadores (tela de fotos campeãs, concurso encerrado) -->
+            <!-- Patrocinadores (tela de fotos campeãs, concurso encerrado) -->
             <div id="secao-premiacoes-patrocinadores" class="hidden px-6 md:px-8 pb-6">
-                <div id="bloco-premiacoes" class="hidden mb-6">
-                    <p class="eyebrow text-[var(--ember-dark)] mb-3 text-center">🏅 Premiações</p>
-                    <div id="lista-premiacoes" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-                </div>
                 <div id="bloco-patrocinadores" class="hidden">
                     <p class="eyebrow text-[var(--fern-dark)] mb-3 text-center">Realização e patrocínio</p>
                     <div id="lista-patrocinadores" class="flex flex-wrap items-center justify-center gap-4"></div>
@@ -293,6 +300,8 @@
                         <span class="divider-dot"></span>
                         <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">📄 Regulamento do concurso</a>
                     </span>
+                    <span class="divider-dot"></span>
+                    <a href="./historico.html" class="underline underline-offset-2 hover:text-[var(--ink)]">📜 Histórico de concursos</a>
                     <span class="divider-dot"></span>
                     <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
                 </div>
@@ -336,8 +345,6 @@
         const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
         const linkRegulamento = document.getElementById('link-regulamento');
         const secaoPremiacoesPatrocinadores = document.getElementById('secao-premiacoes-patrocinadores');
-        const blocoPremiacoes = document.getElementById('bloco-premiacoes');
-        const listaPremiacoes = document.getElementById('lista-premiacoes');
         const blocoPatrocinadores = document.getElementById('bloco-patrocinadores');
         const listaPatrocinadores = document.getElementById('lista-patrocinadores');
         const modalFoto = document.getElementById('modal-foto');
@@ -512,30 +519,21 @@
             }
         }
 
-        // Mesma sessão de premiações/patrocinadores exibida em index.html,
-        // repetida aqui na tela de "Fotos campeãs da temporada" (concurso
-        // encerrado). Passar null esconde tudo de novo (ex: ao atualizar a
-        // página com um concurso diferente, ainda em andamento).
+        // Seção de patrocinadores exibida aqui na tela de "Fotos campeãs da
+        // temporada" (concurso encerrado). As premiações não entram mais
+        // aqui — cada foto vencedora já mostra sua premiação no próprio card
+        // (ver premiacaoPorPosicao em carregarFotosAprovadas), então repetir
+        // a lista embaixo ficava redundante. Passar null esconde tudo de
+        // novo (ex: ao atualizar a página com um concurso diferente, ainda
+        // em andamento).
         function exibirPremiacoesEPatrocinadores(concurso) {
-            blocoPremiacoes.classList.add('hidden');
             blocoPatrocinadores.classList.add('hidden');
             secaoPremiacoesPatrocinadores.classList.add('hidden');
             if (!concurso) return;
 
-            const medalhaPorPosicao = { 1: '🥇', 2: '🥈', 3: '🥉' };
-            const premiacoes = (concurso.concursos_premiacoes || [])
-                .filter(v => v.premiacoes && v.premiacoes.ativo)
-                .sort((a, b) => a.posicao - b.posicao);
             const patrocinadores = (concurso.concursos_patrocinadores || [])
                 .map(v => v.patrocinadores)
                 .filter(p => p && p.ativo);
-
-            if (premiacoes.length > 0) {
-                listaPremiacoes.innerHTML = premiacoes.map(v => `
-                    <div class="info-card p-3 text-sm text-[var(--ink)] text-center">${medalhaPorPosicao[v.posicao] || '🏅'} ${escapeHTML(v.premiacoes.descricao)}</div>
-                `).join('');
-                blocoPremiacoes.classList.remove('hidden');
-            }
 
             if (patrocinadores.length > 0) {
                 listaPatrocinadores.innerHTML = patrocinadores.map(p => {
@@ -550,9 +548,6 @@
                     `;
                 }).join('');
                 blocoPatrocinadores.classList.remove('hidden');
-            }
-
-            if (premiacoes.length > 0 || patrocinadores.length > 0) {
                 secaoPremiacoesPatrocinadores.classList.remove('hidden');
             }
         }
@@ -808,6 +803,15 @@
 
                 fotosExibidasCache = [];
 
+                // Premiação de cada posição (1º/2º/3º lugar), pra mostrar
+                // dentro do card de cada foto vencedora na tela de "Fotos
+                // campeãs" — deixa explícito o que cada vencedor ganhou, sem
+                // precisar rolar até a seção de premiações mais abaixo.
+                const premiacaoPorPosicao = {};
+                (concursoAtivo.concursos_premiacoes || [])
+                    .filter(v => v.premiacoes && v.premiacoes.ativo)
+                    .forEach(v => { premiacaoPorPosicao[v.posicao] = v.premiacoes.descricao; });
+
                 gridFotos.innerHTML = fotosExibidas.map((foto, indice) => {
                     const jaVotou = meusVotosRealizados.includes(foto.id);
                     const selo = selosPosicao(indice, foto.votos, qtdVencedores);
@@ -879,6 +883,9 @@
                                     <p class="text-xs text-[var(--ink-soft)] font-medium mt-0.5">
                                         <span id="contador-${foto.id}">${foto.votos}</span> votos
                                     </p>
+                                    ${encerrado && selo && premiacaoPorPosicao[indice + 1] ? `
+                                        <p class="text-xs text-[var(--ember-dark)] font-semibold mt-1"><span class="premio-caixa">🎁</span> ${escapeHTML(premiacaoPorPosicao[indice + 1])}</p>
+                                    ` : ''}
                                 </div>${botaoHtml}
                             </div>
                         </div>

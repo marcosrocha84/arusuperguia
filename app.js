@@ -41,6 +41,12 @@ const userDisplay = document.getElementById('user-display');
 const btnLogout = document.getElementById('btn-logout');
 const fotosContainer = document.getElementById('fotos-container');
 const statusFilter = document.getElementById('status-filter');
+const moderacaoConcursoFilter = document.getElementById('moderacao-concurso-filter');
+const contadorFotosModeracao = document.getElementById('contador-fotos-moderacao');
+// Só define o concurso ativo como seleção padrão do filtro na primeira vez
+// que a tela de moderação é aberta — depois disso, respeita o que o
+// moderador escolheu, mesmo trocando de tela e voltando.
+let filtroConcursoModeracaoInicializado = false;
 
 // Navegação entre telas do painel (menu lateral fixo)
 const navItems = document.querySelectorAll('.nav-item');
@@ -51,6 +57,7 @@ const metricTotal = document.getElementById('metric-total');
 const metricAprovadas = document.getElementById('metric-aprovadas');
 const metricPendentes = document.getElementById('metric-pendentes');
 const btnAtualizarDashboard = document.getElementById('btn-atualizar-dashboard');
+const metricasPorConcursoContainer = document.getElementById('metricas-por-concurso');
 
 // Concursos (CRUD)
 const concursoForm = document.getElementById('concurso-form');
@@ -72,6 +79,8 @@ const concursosContainer = document.getElementById('concursos-container');
 const concursoPatrocinadoresLista = document.getElementById('concurso-patrocinadores-lista');
 const concursoPremiacoesLista = document.getElementById('concurso-premiacoes-lista');
 const concursoPremiacoesLimiteTexto = document.getElementById('concurso-premiacoes-limite-texto');
+const concursoStatusFilter = document.getElementById('concurso-status-filter');
+const contadorConcursos = document.getElementById('contador-concursos');
 let concursosCache = [];
 
 // Patrocinadores (CRUD)
@@ -88,6 +97,8 @@ const patrocinadorSubmitBtn = document.getElementById('patrocinador-submit-btn')
 const patrocinadorCancelBtn = document.getElementById('patrocinador-cancel-btn');
 const patrocinadorError = document.getElementById('patrocinador-error');
 const patrocinadoresContainer = document.getElementById('patrocinadores-container');
+const patrocinadorStatusFilter = document.getElementById('patrocinador-status-filter');
+const contadorPatrocinadores = document.getElementById('contador-patrocinadores');
 let patrocinadoresCache = [];
 
 // Premiações (CRUD)
@@ -99,6 +110,8 @@ const premiacaoSubmitBtn = document.getElementById('premiacao-submit-btn');
 const premiacaoCancelBtn = document.getElementById('premiacao-cancel-btn');
 const premiacaoError = document.getElementById('premiacao-error');
 const premiacoesContainer = document.getElementById('premiacoes-container');
+const premiacaoStatusFilter = document.getElementById('premiacao-status-filter');
+const contadorPremiacoes = document.getElementById('contador-premiacoes');
 let premiacoesCache = [];
 
 // 1. Monitorar estado da autenticação (Mantém logado mesmo se atualizar a página)
@@ -143,9 +156,13 @@ function switchView(viewName) {
     navItems.forEach(item => item.classList.toggle('active', item.dataset.view === viewName));
     views.forEach(view => view.classList.toggle('hidden', view.id !== `view-${viewName}`));
 
-    if (viewName === 'dashboard') carregarMetricas();
+    if (viewName === 'dashboard') { carregarMetricas(); carregarMetricasPorConcurso(); }
     else if (viewName === 'concursos') { carregarConcursos(); carregarListasVinculo(); }
-    else if (viewName === 'moderacao') carregarFotos(statusFilter ? statusFilter.value : 'Todas');
+    else if (viewName === 'moderacao') {
+        carregarOpcoesConcursoModeracao().then(() => {
+            carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos');
+        });
+    }
     else if (viewName === 'patrocinadores') carregarPatrocinadores();
     else if (viewName === 'premiacoes') carregarPremiacoes();
 }
@@ -182,12 +199,71 @@ btnLogout.addEventListener('click', async () => {
 });
 
 if (statusFilter) {
-    statusFilter.addEventListener('change', () => carregarFotos(statusFilter.value));
+    statusFilter.addEventListener('change', () => carregarFotos(statusFilter.value, moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos'));
+}
+if (moderacaoConcursoFilter) {
+    moderacaoConcursoFilter.addEventListener('change', () => carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter.value));
+}
+
+// Popula o <select> de concursos da tela de moderação. Na primeira vez que
+// a tela é aberta, seleciona automaticamente o concurso ativo (se houver);
+// nas próximas, mantém a escolha atual do moderador (ou cai para "Todos" se
+// o concurso selecionado tiver sido removido nesse meio-tempo).
+async function carregarOpcoesConcursoModeracao() {
+    if (!moderacaoConcursoFilter) return;
+
+    const selecaoAnterior = moderacaoConcursoFilter.value;
+
+    const { data: concursos, error } = await supabase
+        .from('concursos')
+        .select('id, descricao, ativo')
+        .order('criado_em', { ascending: false });
+
+    if (error) {
+        console.error('Erro ao carregar concursos para o filtro de moderação:', error);
+        return;
+    }
+
+    const opcoes = ['<option value="todos">Todos os concursos</option>']
+        .concat((concursos || []).map(c =>
+            `<option value="${c.id}">${escapeHTML(c.descricao)}${c.ativo ? ' (ativo)' : ''}</option>`
+        ));
+    moderacaoConcursoFilter.innerHTML = opcoes.join('');
+
+    if (!filtroConcursoModeracaoInicializado) {
+        filtroConcursoModeracaoInicializado = true;
+        const concursoAtivo = (concursos || []).find(c => c.ativo);
+        moderacaoConcursoFilter.value = concursoAtivo ? concursoAtivo.id : 'todos';
+    } else if ([...moderacaoConcursoFilter.options].some(o => o.value === selecaoAnterior)) {
+        moderacaoConcursoFilter.value = selecaoAnterior;
+    }
+}
+
+// Filtra uma lista já carregada pelo campo "ativo", conforme o valor de um
+// <select> "Todos"/"Ativo"/"Inativo" — usado nas telas de Concursos,
+// Patrocinadores e Premiações. Filtra só a exibição (a lista completa
+// continua em cache, pra editarX(id) sempre achar qualquer item, mesmo os
+// que estão escondidos pelo filtro no momento).
+function filtrarPorAtivo(lista, filtro) {
+    if (filtro === 'Ativo') return lista.filter(item => item.ativo);
+    if (filtro === 'Inativo') return lista.filter(item => !item.ativo);
+    return lista;
+}
+
+if (concursoStatusFilter) {
+    concursoStatusFilter.addEventListener('change', () => renderizarConcursos());
+}
+if (patrocinadorStatusFilter) {
+    patrocinadorStatusFilter.addEventListener('change', () => renderizarPatrocinadores());
+}
+if (premiacaoStatusFilter) {
+    premiacaoStatusFilter.addEventListener('change', () => renderizarPremiacoes());
 }
 
 // 4. Buscar e renderizar as fotos do banco de dados
-async function carregarFotos(filtro = 'Todas') {
+async function carregarFotos(filtro = 'Todas', concursoId = 'todos') {
     fotosContainer.innerHTML = '<p class="text-gray-500 text-center col-span-full">Carregando fotos...</p>';
+    contadorFotosModeracao.textContent = '';
 
     let query = supabase
         .from('fotos_concurso')
@@ -200,12 +276,21 @@ async function carregarFotos(filtro = 'Todas') {
         query = query.eq('aprovada', false);
     }
 
+    if (concursoId && concursoId !== 'todos') {
+        query = query.eq('concurso_id', concursoId);
+    }
+
     const { data: fotos, error } = await query;
 
     if (error) {
         fotosContainer.innerHTML = `<p class="text-[var(--ember-dark)] text-center col-span-full font-semibold">Erro ao carregar dados: ${error.message}</p>`;
         return;
     }
+
+    // Contagem já reflete o filtro aplicado ("Todas"/"Aprovadas"/"Pendentes"),
+    // já que a query acima busca todas as linhas que batem com o filtro, sem
+    // paginação.
+    contadorFotosModeracao.textContent = `(${fotos.length})`;
 
     if (fotos.length === 0) {
         fotosContainer.innerHTML = '<p class="text-gray-500 text-center col-span-full">Nenhuma foto enviada até o momento.</p>';
@@ -251,7 +336,7 @@ window.alterarStatusFoto = async function(id, status) {
     if (error) {
         alert("Erro ao atualizar status: " + error.message);
     } else {
-        carregarFotos(statusFilter ? statusFilter.value : 'Todas');
+        carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos');
     }
 }
 
@@ -266,7 +351,7 @@ window.deletarFoto = async function(id) {
         if (error) {
             alert("Erro ao deletar: " + error.message);
         } else {
-            carregarFotos(statusFilter ? statusFilter.value : 'Todas');
+            carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos');
         }
     }
 }
@@ -292,8 +377,92 @@ async function carregarMetricas() {
     if (btnAtualizarDashboard) btnAtualizarDashboard.disabled = false;
 }
 
+// Mesmas métricas do bloco geral (Total/Aprovadas/Pendentes), mas separadas
+// por concurso — útil pra saber de onde vêm as fotos quando há mais de um
+// concurso cadastrado (ex: temporadas diferentes). Busca os concursos e as
+// fotos (só concurso_id + aprovada, o necessário pra contar) em paralelo e
+// agrupa no navegador, em vez de fazer 3 queries de contagem por concurso.
+async function carregarMetricasPorConcurso() {
+    if (!metricasPorConcursoContainer) return;
+    metricasPorConcursoContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Buscando concursos...</p>';
+
+    const [concursosRes, fotosRes] = await Promise.all([
+        supabase.from('concursos').select('id, descricao, data, ativo').order('criado_em', { ascending: true }),
+        supabase.from('fotos_concurso').select('concurso_id, aprovada'),
+    ]);
+
+    if (concursosRes.error) {
+        metricasPorConcursoContainer.innerHTML = `<p class="text-[var(--ember-dark)] text-center font-semibold">Erro ao carregar concursos: ${escapeHTML(concursosRes.error.message)}</p>`;
+        return;
+    }
+    if (fotosRes.error) {
+        metricasPorConcursoContainer.innerHTML = `<p class="text-[var(--ember-dark)] text-center font-semibold">Erro ao carregar fotos: ${escapeHTML(fotosRes.error.message)}</p>`;
+        return;
+    }
+
+    if (concursosRes.data.length === 0) {
+        metricasPorConcursoContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhum concurso cadastrado até o momento.</p>';
+        return;
+    }
+
+    // Agrupa as fotos por concurso_id, contando total/aprovadas/pendentes.
+    const contagemPorConcurso = {};
+    fotosRes.data.forEach(foto => {
+        const chave = foto.concurso_id || 'sem-concurso';
+        if (!contagemPorConcurso[chave]) contagemPorConcurso[chave] = { total: 0, aprovadas: 0, pendentes: 0 };
+        contagemPorConcurso[chave].total++;
+        if (foto.aprovada) contagemPorConcurso[chave].aprovadas++;
+        else contagemPorConcurso[chave].pendentes++;
+    });
+
+    function blocoMetricas(descricao, dataFormatada, ativo, contagem) {
+        return `
+            <div>
+                <div class="flex items-center gap-2 mb-3">
+                    <h4 class="font-semibold text-[var(--ink)]">${escapeHTML(descricao)}</h4>
+                    ${dataFormatada ? `<span class="text-sm text-[var(--ink-soft)]">📅 ${dataFormatada}</span>` : ''}
+                    ${ativo !== null ? `<span class="stamp ${ativo ? 'stamp-fern' : 'stamp-amber'}">${ativo ? 'Ativo' : 'Inativo'}</span>` : ''}
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="ticket-sm-light p-5">
+                        <p class="eyebrow text-[var(--fern-dark)] mb-2">Total de fotos</p>
+                        <p class="font-display text-3xl text-[var(--ink)]">${contagem.total}</p>
+                    </div>
+                    <div class="ticket-sm-light p-5">
+                        <p class="eyebrow text-[var(--fern-dark)] mb-2">Aprovadas</p>
+                        <p class="font-display text-3xl text-[var(--ink)]">${contagem.aprovadas}</p>
+                    </div>
+                    <div class="ticket-sm-light p-5">
+                        <p class="eyebrow text-[var(--ember-dark)] mb-2">Pendentes</p>
+                        <p class="font-display text-3xl text-[var(--ink)]">${contagem.pendentes}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    const vazio = { total: 0, aprovadas: 0, pendentes: 0 };
+
+    let html = concursosRes.data.map(concurso => {
+        const dataFormatada = new Date(concurso.data + 'T00:00:00').toLocaleDateString('pt-BR');
+        const contagem = contagemPorConcurso[concurso.id] || vazio;
+        return blocoMetricas(concurso.descricao, dataFormatada, concurso.ativo, contagem);
+    }).join('');
+
+    // Fotos sem concurso vinculado (ex: concurso excluído depois do envio) —
+    // só mostra esse bloco extra se realmente existir alguma.
+    if (contagemPorConcurso['sem-concurso']) {
+        html += blocoMetricas('Sem concurso vinculado', null, null, contagemPorConcurso['sem-concurso']);
+    }
+
+    metricasPorConcursoContainer.innerHTML = html;
+}
+
 if (btnAtualizarDashboard) {
-    btnAtualizarDashboard.addEventListener('click', carregarMetricas);
+    btnAtualizarDashboard.addEventListener('click', () => {
+        carregarMetricas();
+        carregarMetricasPorConcurso();
+    });
 }
 
 // 8. Concursos — CRUD básico (cadastro de concursos culturais)
@@ -312,9 +481,26 @@ async function carregarConcursos() {
     }
 
     concursosCache = data;
+    renderizarConcursos();
+}
+
+// Renderiza a partir do cache já carregado, aplicando o filtro Ativo/
+// Inativo/Todos selecionado — não busca no banco de novo, já que a lista
+// completa já está em memória (ver carregarConcursos).
+function renderizarConcursos() {
+    if (!concursosContainer) return;
+
+    const filtro = concursoStatusFilter ? concursoStatusFilter.value : 'Todos';
+    const data = filtrarPorAtivo(concursosCache, filtro);
+    if (contadorConcursos) contadorConcursos.textContent = `(${data.length})`;
+
+    if (concursosCache.length === 0) {
+        concursosContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhum concurso cadastrado até o momento.</p>';
+        return;
+    }
 
     if (data.length === 0) {
-        concursosContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhum concurso cadastrado até o momento.</p>';
+        concursosContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhum concurso encontrado para esse filtro.</p>';
         return;
     }
 
@@ -734,9 +920,25 @@ async function carregarPatrocinadores() {
     }
 
     patrocinadoresCache = data;
+    renderizarPatrocinadores();
+}
+
+// Renderiza a partir do cache já carregado, aplicando o filtro Ativo/
+// Inativo/Todos selecionado — não busca no banco de novo.
+function renderizarPatrocinadores() {
+    if (!patrocinadoresContainer) return;
+
+    const filtro = patrocinadorStatusFilter ? patrocinadorStatusFilter.value : 'Todos';
+    const data = filtrarPorAtivo(patrocinadoresCache, filtro);
+    if (contadorPatrocinadores) contadorPatrocinadores.textContent = `(${data.length})`;
+
+    if (patrocinadoresCache.length === 0) {
+        patrocinadoresContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhum patrocinador cadastrado até o momento.</p>';
+        return;
+    }
 
     if (data.length === 0) {
-        patrocinadoresContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhum patrocinador cadastrado até o momento.</p>';
+        patrocinadoresContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhum patrocinador encontrado para esse filtro.</p>';
         return;
     }
 
@@ -888,9 +1090,25 @@ async function carregarPremiacoes() {
     }
 
     premiacoesCache = data;
+    renderizarPremiacoes();
+}
+
+// Renderiza a partir do cache já carregado, aplicando o filtro Ativo/
+// Inativo/Todos selecionado — não busca no banco de novo.
+function renderizarPremiacoes() {
+    if (!premiacoesContainer) return;
+
+    const filtro = premiacaoStatusFilter ? premiacaoStatusFilter.value : 'Todos';
+    const data = filtrarPorAtivo(premiacoesCache, filtro);
+    if (contadorPremiacoes) contadorPremiacoes.textContent = `(${data.length})`;
+
+    if (premiacoesCache.length === 0) {
+        premiacoesContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhuma premiação cadastrada até o momento.</p>';
+        return;
+    }
 
     if (data.length === 0) {
-        premiacoesContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhuma premiação cadastrada até o momento.</p>';
+        premiacoesContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhuma premiação encontrada para esse filtro.</p>';
         return;
     }
 

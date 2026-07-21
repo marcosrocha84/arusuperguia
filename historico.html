@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico de Concursos - Belinzoni Dino Parque</title>
+    <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <style>
+        /* Foto do card: indica que é clicável e dá um leve zoom no hover,
+           sem interferir no efeito de "levantar" já aplicado ao card. */
+        .foto-card-imagem {
+            cursor: zoom-in;
+        }
+        .foto-card-imagem img {
+            transition: transform 0.3s ease;
+        }
+        .foto-card-imagem:hover img {
+            transform: scale(1.06);
+        }
+        .foto-card-lupa {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            color: rgba(255, 255, 255, 0.55);
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+        .foto-card-imagem:hover .foto-card-lupa {
+            opacity: 1;
+        }
+
+        @keyframes premio-pop {
+            0% { opacity: 0; transform: scale(0.3) rotate(-15deg); }
+            60% { opacity: 1; transform: scale(1.15) rotate(8deg); }
+            80% { transform: scale(0.95) rotate(-4deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+        .premio-caixa {
+            display: inline-block;
+            animation: premio-pop 0.6s cubic-bezier(.26, 1.5, .5, 1) both;
+        }
+
+        @keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modal-conteudo-in {
+            from { opacity: 0; transform: scale(0.92) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-foto {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-foto.hidden { display: none; }
+        .modal-foto-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(22, 32, 26, 0.78);
+            backdrop-filter: blur(2px);
+            animation: modal-backdrop-in 0.2s ease-out;
+        }
+        .modal-foto-conteudo {
+            position: relative;
+            width: max-content;
+            max-width: min(92vw, 40rem);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: modal-conteudo-in 0.25s cubic-bezier(.2, .8, .2, 1);
+        }
+        .modal-foto-imagem-wrap {
+            position: relative;
+            background: var(--bone-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            min-height: 40vh;
+        }
+        .modal-foto-imagem-wrap img {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: min(92vw, 40rem);
+            max-height: 60vh;
+            object-fit: contain;
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+        .modal-foto-imagem-wrap img.carregada {
+            opacity: 1;
+        }
+        @keyframes modal-foto-spinner-girar { to { transform: rotate(360deg); } }
+        .modal-foto-spinner {
+            position: absolute;
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 4px solid var(--bone);
+            border-top-color: var(--ember-dark);
+            border-radius: 999px;
+            animation: modal-foto-spinner-girar 0.7s linear infinite;
+        }
+        .modal-foto-spinner.hidden { display: none; }
+        .modal-foto-fechar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            background: var(--bone);
+            border: 2px solid var(--ink);
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--ink);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .modal-foto-fechar:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0 var(--ink);
+        }
+    </style>
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="./supabase-client.js?v=1.0"></script>
+</head>
+<body class="bg-canopy min-h-screen flex flex-col justify-between items-center p-4">
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="w-full max-w-5xl relative z-10 my-auto py-6">
+        <div class="ticket">
+
+            <!-- Cabeçalho -->
+            <div class="text-center p-6 md:p-8">
+                <p class="eyebrow text-[var(--ember-dark)]">Belinzoni Dino Parque</p>
+                <h1 class="font-display text-3xl md:text-4xl text-[var(--ink)] mt-1">📜 Histórico de concursos</h1>
+                <p class="text-sm md:text-base text-[var(--ink-soft)] mt-2 max-w-md mx-auto">
+                    Relembre as fotos campeãs de cada edição do concurso.
+                </p>
+            </div>
+
+            <div class="ticket-tear"></div>
+
+            <!-- Lista de concursos encerrados -->
+            <div id="lista-concursos-encerrados" class="p-6 md:p-8 space-y-8">
+                <div class="text-center text-[var(--ink-soft)] py-12">
+                    <span class="text-lg font-semibold">⏳ Carregando histórico...</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 md:px-8 pb-6">
+                <a href="./index.html" class="btn btn-ghost btn-block">
+                    🏠 Página inicial
+                </a>
+                <a href="./votacao.html" class="btn btn-ghost btn-block">
+                    ❤️ Ir para a votação atual
+                </a>
+            </div>
+
+            <div class="ticket-tear"></div>
+
+            <!-- Rodapé -->
+            <footer class="text-center p-6 md:p-10 pt-8 text-[var(--ink-soft)]">
+                <p class="text-sm font-semibold">
+                    Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
+                </p>
+                <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
+                    © AruSuperGuia
+                    <span class="divider-dot"></span>
+                    <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
+                    <span class="divider-dot"></span>
+                    <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
+                    <span class="divider-dot"></span>
+                    <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
+                </div>
+            </footer>
+        </div>
+    </main>
+
+    <!-- Modal de visualização ampliada da foto -->
+    <div id="modal-foto" class="modal-foto hidden" role="dialog" aria-modal="true" aria-label="Foto ampliada">
+        <div id="modal-foto-backdrop" class="modal-foto-backdrop"></div>
+        <div class="modal-foto-conteudo ticket">
+            <button id="modal-foto-fechar" type="button" class="modal-foto-fechar" aria-label="Fechar">✕</button>
+            <div class="modal-foto-imagem-wrap">
+                <div id="modal-foto-spinner" class="modal-foto-spinner hidden" aria-hidden="true"></div>
+                <img id="modal-foto-img" src="" alt="Foto ampliada do concurso">
+            </div>
+            <div class="p-4 md:p-5 text-center">
+                <span id="modal-foto-selo" class="stamp mb-2 hidden"></span>
+                <h3 id="modal-foto-nome" class="font-display text-lg text-[var(--ink)]"></h3>
+                <p id="modal-foto-data" class="text-xs text-[var(--ink-soft)] mt-1"></p>
+                <p id="modal-foto-votos" class="text-sm text-[var(--ink-soft)] font-medium mt-1"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Supabase e helper escapeHTML() vêm de supabase-client.js
+
+        const listaConcursosEncerrados = document.getElementById('lista-concursos-encerrados');
+        const modalFoto = document.getElementById('modal-foto');
+        const modalFotoBackdrop = document.getElementById('modal-foto-backdrop');
+        const modalFotoFechar = document.getElementById('modal-foto-fechar');
+        const modalFotoImg = document.getElementById('modal-foto-img');
+        const modalFotoSpinner = document.getElementById('modal-foto-spinner');
+        const modalFotoSelo = document.getElementById('modal-foto-selo');
+        const modalFotoNome = document.getElementById('modal-foto-nome');
+        const modalFotoData = document.getElementById('modal-foto-data');
+        const modalFotoVotos = document.getElementById('modal-foto-votos');
+
+        // Guarda todas as fotos vencedoras já renderizadas (de todos os
+        // concursos encerrados), pra alimentar a modal de visualização
+        // ampliada sem precisar buscar tudo de novo no banco.
+        let fotosExibidasCache = [];
+
+        // A grade usa thumbnails pequenos, então a versão cheia da modal
+        // demora mais — mostramos um spinner enquanto isso pra não parecer
+        // que travou. onerror também esconde o spinner, senão ele fica
+        // girando pra sempre se a URL falhar.
+        modalFotoImg.addEventListener('load', () => {
+            modalFotoSpinner.classList.add('hidden');
+            modalFotoImg.classList.add('carregada');
+        });
+        modalFotoImg.addEventListener('error', () => {
+            modalFotoSpinner.classList.add('hidden');
+        });
+
+        function abrirModalFoto(fotoId) {
+            const foto = fotosExibidasCache.find(f => f.id === fotoId);
+            if (!foto) return;
+
+            modalFotoImg.classList.remove('carregada');
+            modalFotoSpinner.classList.remove('hidden');
+            modalFotoImg.src = foto.url_foto;
+            modalFotoImg.alt = `Foto de ${foto.nome_participante}`;
+            modalFotoNome.textContent = foto.nome_participante;
+            modalFotoData.textContent = `📅 ${foto.dataFormatada}`;
+            modalFotoVotos.textContent = `${foto.votos} voto${foto.votos === 1 ? '' : 's'}`;
+
+            if (foto.selo) {
+                modalFotoSelo.textContent = `${foto.selo.medalha} ${foto.selo.texto}`;
+                modalFotoSelo.className = `stamp mb-2 ${foto.selo.classe}`;
+            } else {
+                modalFotoSelo.classList.add('hidden');
+            }
+
+            modalFoto.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharModalFoto() {
+            modalFoto.classList.add('hidden');
+            modalFotoImg.src = '';
+            modalFotoImg.classList.remove('carregada');
+            modalFotoSpinner.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        modalFotoFechar.addEventListener('click', fecharModalFoto);
+        modalFotoBackdrop.addEventListener('click', fecharModalFoto);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modalFoto.classList.contains('hidden')) fecharModalFoto();
+        });
+
+        // Destaque de posição no ranking (só as N primeiras fotos, onde N é a
+        // quantidade de vencedores definida pelo curador para o concurso) —
+        // mas só faz sentido premiar quem já recebeu pelo menos 1 voto.
+        function selosPosicao(indice, votos, qtdVencedores) {
+            if (!votos || votos <= 0) return null;
+            if (indice >= qtdVencedores) return null;
+            if (indice === 0) return { texto: '1º lugar', classe: 'stamp-amber', medalha: '🥇', cor: 'var(--amber)' };
+            if (indice === 1) return { texto: '2º lugar', classe: 'stamp-fern', medalha: '🥈', cor: 'var(--fern)' };
+            if (indice === 2) return { texto: '3º lugar', classe: 'stamp-ember', medalha: '🥉', cor: 'var(--ember)' };
+            return null;
+        }
+
+        // Busca todos os concursos já encerrados — seja pelo campo manual
+        // "encerrado" (marcado na curadoria) ou porque a data já passou —
+        // ordenados do mais recente pro mais antigo.
+        async function buscarConcursosEncerrados() {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const hojeStr = hoje.toISOString().slice(0, 10);
+
+            const { data, error } = await supabase
+                .from('concursos')
+                .select(`
+                    id, descricao, data, qtd_vencedores, regulamento_pdf_url,
+                    concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
+                    concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
+                `)
+                .or(`encerrado.eq.true,data.lt.${hojeStr}`)
+                .order('data', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        }
+
+        function montarBlocoPatrocinadores(concurso) {
+            const patrocinadores = (concurso.concursos_patrocinadores || [])
+                .map(v => v.patrocinadores)
+                .filter(p => p && p.ativo);
+
+            if (patrocinadores.length === 0) return '';
+
+            const itens = patrocinadores.map(p => {
+                const nomeHtml = p.url_rede_social
+                    ? `<a href="${escapeHTML(p.url_rede_social)}" target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--ink-soft)] text-center leading-tight underline underline-offset-2 hover:text-[var(--ink)]">${escapeHTML(p.nome)}</a>`
+                    : `<span class="text-xs text-[var(--ink-soft)] text-center leading-tight">${escapeHTML(p.nome)}</span>`;
+                return `
+                    <div class="flex flex-col items-center gap-1.5 max-w-[7rem]">
+                        ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}" class="h-14 object-contain">` : ''}
+                        ${nomeHtml}
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="px-4 md:px-6 pb-5">
+                    <p class="eyebrow text-[var(--fern-dark)] mb-3 text-center">Realização e patrocínio</p>
+                    <div class="flex flex-wrap items-center justify-center gap-4">${itens}</div>
+                </div>
+            `;
+        }
+
+        function montarLinkRegulamento(concurso) {
+            if (!concurso.regulamento_pdf_url) return '';
+            return `
+                <div class="px-4 md:px-6 pb-5 text-center">
+                    <a href="${escapeHTML(concurso.regulamento_pdf_url)}" target="_blank" rel="noopener noreferrer" class="text-sm underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">📄 Regulamento deste concurso</a>
+                </div>
+            `;
+        }
+
+        // Monta o card de um concurso encerrado, com o pódio de fotos
+        // vencedoras (mesma lógica de seleção/premiação da tela de votação).
+        function montarBlocoConcurso(concurso, fotosDoConcurso) {
+            const dataFormatada = new Date(concurso.data + 'T00:00:00').toLocaleDateString('pt-BR');
+            const qtdVencedores = concurso.qtd_vencedores || 3;
+            const fotosExibidas = fotosDoConcurso.slice(0, qtdVencedores);
+
+            const premiacaoPorPosicao = {};
+            (concurso.concursos_premiacoes || [])
+                .filter(v => v.premiacoes && v.premiacoes.ativo)
+                .forEach(v => { premiacaoPorPosicao[v.posicao] = v.premiacoes.descricao; });
+
+            let gridHtml;
+            if (fotosExibidas.length === 0) {
+                gridHtml = `
+                    <div class="text-center ticket-sm p-6 mx-4 md:mx-6 mb-5">
+                        <p class="text-[var(--ink)]">🦕 Este concurso encerrou sem nenhuma foto aprovada.</p>
+                    </div>
+                `;
+            } else {
+                gridHtml = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 md:p-6">
+                        ${fotosExibidas.map((foto, indice) => {
+                            const selo = selosPosicao(indice, foto.votos, qtdVencedores);
+                            const dataEnvio = new Date(foto.criado_em).toLocaleString('pt-BR', {
+                                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                            });
+
+                            fotosExibidasCache.push({
+                                id: foto.id,
+                                url_foto: foto.url_foto,
+                                nome_participante: foto.nome_participante,
+                                votos: foto.votos,
+                                dataFormatada: dataEnvio,
+                                selo,
+                            });
+
+                            return `
+                                <div class="ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
+                                    <div class="foto-card-imagem relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" ${selo ? `style="box-shadow: inset 0 0 0 4px ${selo.cor};"` : ''} onclick="abrirModalFoto('${foto.id}')" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHTML(foto.nome_participante)}" onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===this){event.preventDefault();abrirModalFoto('${foto.id}');}">
+                                        <img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto do Concurso" loading="lazy" class="object-cover w-full h-full">
+                                        <span class="foto-card-lupa" aria-hidden="true">🔍</span>
+                                    </div>
+                                    <div class="p-3">
+                                        ${selo ? `<span class="stamp ${selo.classe} mb-1.5">${selo.medalha} ${selo.texto}</span>` : ''}
+                                        <h3 class="font-semibold text-[var(--ink)] text-sm sm:text-base truncate">${escapeHTML(foto.nome_participante)}</h3>
+                                        <p class="text-xs text-[var(--ink-soft)] mt-0.5">📅 ${dataEnvio}</p>
+                                        <p class="text-xs text-[var(--ink-soft)] font-medium mt-0.5">${foto.votos} voto${foto.votos === 1 ? '' : 's'}</p>
+                                        ${selo && premiacaoPorPosicao[indice + 1] ? `
+                                            <p class="text-xs text-[var(--ember-dark)] font-semibold mt-1"><span class="premio-caixa">🎁</span> ${escapeHTML(premiacaoPorPosicao[indice + 1])}</p>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="ticket-sm overflow-hidden">
+                    <div class="p-4 md:p-6 pb-2">
+                        <h2 class="font-display text-xl md:text-2xl text-[var(--ink)]">🏆 ${escapeHTML(concurso.descricao)}</h2>
+                        <p class="text-sm text-[var(--ink-soft)] mt-1">Encerrado em ${dataFormatada}</p>
+                    </div>
+                    ${gridHtml}
+                    ${montarBlocoPatrocinadores(concurso)}
+                    ${montarLinkRegulamento(concurso)}
+                </div>
+            `;
+        }
+
+        async function carregarHistorico() {
+            try {
+                const concursos = await buscarConcursosEncerrados();
+
+                if (concursos.length === 0) {
+                    listaConcursosEncerrados.innerHTML = `
+                        <div class="text-center text-[var(--ink-soft)] py-12">
+                            <span class="text-lg font-semibold">📭 Ainda não há concursos encerrados.</span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const idsConcursos = concursos.map(c => c.id);
+                const { data: fotos, error: erroFotos } = await supabase
+                    .from('fotos_concurso')
+                    .select('*')
+                    .eq('aprovada', true)
+                    .in('concurso_id', idsConcursos)
+                    // Em caso de empate de votos, prioriza quem enviou a foto primeiro
+                    .order('votos', { ascending: false })
+                    .order('criado_em', { ascending: true });
+
+                if (erroFotos) throw erroFotos;
+
+                const fotosPorConcurso = {};
+                (fotos || []).forEach(foto => {
+                    if (!fotosPorConcurso[foto.concurso_id]) fotosPorConcurso[foto.concurso_id] = [];
+                    fotosPorConcurso[foto.concurso_id].push(foto);
+                });
+
+                fotosExibidasCache = [];
+                listaConcursosEncerrados.innerHTML = concursos
+                    .map(concurso => montarBlocoConcurso(concurso, fotosPorConcurso[concurso.id] || []))
+                    .join('');
+
+            } catch (error) {
+                console.error(error);
+                const msg = error && error.message ? error.message : 'Erro ao carregar o histórico de concursos.';
+                listaConcursosEncerrados.innerHTML = `<p class="text-[var(--ember-dark)] text-center font-semibold">${escapeHTML(msg)}</p>`;
+            }
+        }
+
+        carregarHistorico();
+    </script>
+</body>
+</html>

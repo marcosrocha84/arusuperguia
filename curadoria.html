@@ -88,11 +88,26 @@
                             <p id="metric-pendentes" class="font-display text-3xl text-[var(--ink)]">–</p>
                         </div>
                     </div>
+
+                    <h3 class="font-display text-xl text-[var(--ink)] mt-8 mb-4">Fotos por concurso</h3>
+                    <div id="metricas-por-concurso" class="space-y-6">
+                        <p class="text-[var(--ink-soft)] text-center">Buscando concursos...</p>
+                    </div>
                 </section>
 
                 <!-- VIEW: Concursos (CRUD) -->
                 <section id="view-concursos" class="view hidden">
-                    <h2 class="font-display text-2xl text-[var(--ink)] mb-6">Concursos culturais</h2>
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+                        <h2 class="font-display text-2xl text-[var(--ink)]">Concursos culturais <span id="contador-concursos" class="text-base font-normal text-[var(--ink-soft)]"></span></h2>
+                        <div class="flex items-center space-x-3">
+                            <label for="concurso-status-filter" class="text-[var(--ink)] font-medium text-sm">Mostrar:</label>
+                            <select id="concurso-status-filter" class="border-2 border-[var(--ink)] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                <option value="Todos">Todos</option>
+                                <option value="Ativo">Ativo</option>
+                                <option value="Inativo">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
 
                     <form id="concurso-form" class="ticket-sm p-5 mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <input type="hidden" id="concurso-id">
@@ -168,8 +183,12 @@
                 <!-- VIEW: Moderação de fotos -->
                 <section id="view-moderacao" class="view hidden">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-                        <h2 class="font-display text-2xl text-[var(--ink)]">Fotos aguardando moderação</h2>
-                        <div class="flex items-center space-x-3">
+                        <h2 class="font-display text-2xl text-[var(--ink)]">Fotos aguardando moderação <span id="contador-fotos-moderacao" class="text-base font-normal text-[var(--ink-soft)]"></span></h2>
+                        <div class="flex items-center flex-wrap gap-3">
+                            <label for="moderacao-concurso-filter" class="text-[var(--ink)] font-medium text-sm">Concurso:</label>
+                            <select id="moderacao-concurso-filter" class="border-2 border-[var(--ink)] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                <option value="todos">Carregando...</option>
+                            </select>
                             <label for="status-filter" class="text-[var(--ink)] font-medium text-sm">Mostrar:</label>
                             <select id="status-filter" class="border-2 border-[var(--ink)] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
                                 <option value="Todas">Todas</option>
@@ -188,7 +207,17 @@
 
                 <!-- VIEW: Patrocinadores (CRUD) -->
                 <section id="view-patrocinadores" class="view hidden">
-                    <h2 class="font-display text-2xl text-[var(--ink)] mb-6">Patrocinadores</h2>
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+                        <h2 class="font-display text-2xl text-[var(--ink)]">Patrocinadores <span id="contador-patrocinadores" class="text-base font-normal text-[var(--ink-soft)]"></span></h2>
+                        <div class="flex items-center space-x-3">
+                            <label for="patrocinador-status-filter" class="text-[var(--ink)] font-medium text-sm">Mostrar:</label>
+                            <select id="patrocinador-status-filter" class="border-2 border-[var(--ink)] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                <option value="Todos">Todos</option>
+                                <option value="Ativo">Ativo</option>
+                                <option value="Inativo">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
 
                     <form id="patrocinador-form" class="ticket-sm p-5 mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <input type="hidden" id="patrocinador-id">
@@ -229,7 +258,17 @@
 
                 <!-- VIEW: Premiações (CRUD) -->
                 <section id="view-premiacoes" class="view hidden">
-                    <h2 class="font-display text-2xl text-[var(--ink)] mb-6">Premiações</h2>
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+                        <h2 class="font-display text-2xl text-[var(--ink)]">Premiações <span id="contador-premiacoes" class="text-base font-normal text-[var(--ink-soft)]"></span></h2>
+                        <div class="flex items-center space-x-3">
+                            <label for="premiacao-status-filter" class="text-[var(--ink)] font-medium text-sm">Mostrar:</label>
+                            <select id="premiacao-status-filter" class="border-2 border-[var(--ink)] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                <option value="Todos">Todos</option>
+                                <option value="Ativo">Ativo</option>
+                                <option value="Inativo">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
 
                     <form id="premiacao-form" class="ticket-sm p-5 mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <input type="hidden" id="premiacao-id">

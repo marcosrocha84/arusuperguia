@@ -93,6 +93,16 @@ h1, h2, h3, .font-display {
     box-shadow: 0 8px 0 -2px rgba(22, 32, 26, 0.08);
 }
 
+/* Mesmo cartão do .ticket-sm, mas em tom mais claro — usado nos cards de
+   métricas "por concurso" do dashboard, só pra diferenciar visualmente dos
+   cards gerais (que usam .ticket-sm) sem duplicar toda a declaração. */
+.ticket-sm-light {
+    background: #FFFDF8;
+    border: 2px solid var(--ink);
+    border-radius: 16px;
+    box-shadow: 0 8px 0 -2px rgba(22, 32, 26, 0.08);
+}
+
 /* Cartão informativo (não clicável) — usa borda tracejada e nenhuma
    sombra dura para não ser confundido com os botões de ação */
 .info-card {

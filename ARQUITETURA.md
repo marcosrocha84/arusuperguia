@@ -1,0 +1,163 @@
+# Arquitetura
+
+Este documento explica o **porquê** das decisões não-óbvias do projeto — o
+que o código sozinho não deixa claro. Para a lista de páginas e como rodar,
+veja [README.md](README.md); para o histórico de mudanças no schema, veja os
+comentários em [`sql/`](sql/).
+
+## Ciclo de vida de um concurso
+
+```
+[curadoria cria o concurso]
+        │
+        ▼
+  ativo = true  ──► enviar.html grava fotos nesse concurso
+        │              (Edge Function descobre o concurso ativo
+        │               no momento do envio, não no navegador)
+        ▼
+  votacao.html mostra a grade e permite votar
+        │
+        ▼
+  data do concurso já passou OU marcado "encerrado" manualmente
+        │
+        ▼
+  votacao.html vira "fotos campeãs" (só o pódio, sem voto)
+        │
+        ▼
+  historico.html lista esse concurso entre os encerrados, pra sempre
+```
+
+Só pode existir **um concurso `ativo = true` por vez** — reforçado tanto por
+um índice único no banco (`concursos_unico_ativo`, em
+`sql/004_concursos_fotos_fk.sql`) quanto pela Edge Function, que rejeita o
+envio se encontrar zero ou mais de um concurso ativo. Isso existe porque, sem
+essa trava, um erro no painel de curadoria (esquecer de desativar o concurso
+anterior antes de ativar um novo) misturaria fotos de duas edições diferentes
+sob o mesmo "concurso ativo".
+
+### Duas noções distintas de "encerrado"
+
+Existem **dois campos diferentes** que decidem se um concurso já acabou, e
+eles não se comunicam:
+
+1. **`concursos.encerrado`** (boolean, checkbox manual na curadoria) — hoje
+   só é lido/exibido dentro do próprio painel administrativo (selo na lista
+   de concursos). Não é o que decide a experiência do visitante.
+2. **Data calculada** (`concursos.data` comparada com "hoje") — é o que
+   `votacao.html` e `index.html` realmente usam para decidir se mostram o
+   fluxo de votação ou o pódio de encerrado.
+
+`historico.html`, ao buscar concursos encerrados, combina os dois com um
+`OR` (`encerrado = true OU data < hoje`) — assim um concurso marcado
+manualmente como encerrado *antes* da data prevista (ex: encerramento
+antecipado) também aparece no histórico, mesmo que a data ainda não tenha
+chegado.
+
+## RLS (Row Level Security) — quem pode ler o quê
+
+Toda tabela sensível tem RLS habilitado; o padrão do projeto é:
+
+- **Tabelas administrativas** (`concursos`, `patrocinadores`, `premiacoes` e
+  as tabelas de vínculo N:N) só podem ser lidas/gravadas por usuários
+  autenticados que passam em `is_admin()` — uma função `security definer`
+  que consulta a tabela `public.admins` (ver `sql/014_admins_e_rls.sql`).
+  Isso existe porque, antes dessa migração, qualquer usuário logado via
+  Google só para votar também conseguia ler/gravar essas tabelas direto pela
+  API, mesmo sem acessar `curadoria.html` — o front-end escondia o painel,
+  mas o banco não impedia nada.
+- **Leitura pública (`anon`)** é liberada seletivamente onde o site precisa
+  mostrar algo a um visitante sem login: `concursos` (todas as linhas, não só
+  as ativas — necessário para `historico.html`), `fotos_concurso` (só
+  `aprovada = true`), `patrocinadores`/`premiacoes` (só `ativo = true`), e os
+  vínculos N:N (sempre, já que o filtro por "ativo" acontece no registro
+  vinculado, não no vínculo em si).
+- **Escrita em `fotos_concurso`** não tem policy de INSERT nenhuma para
+  `anon`/`authenticated` — o único caminho é a Edge Function `enviar-foto`,
+  que usa a Service Role Key (ignora RLS) só depois de validar o CAPTCHA.
+- **`votar_em_foto`** é uma função `security definer` (não uma policy) que
+  insere em `votos_realizados` e incrementa `fotos_concurso.votos` na mesma
+  transação — o contador de votos nunca é calculado no navegador, evitando
+  manipulação via DevTools.
+
+Consequência prática: se uma foto/patrocinador/premiação "some" do site
+para o público mas aparece normalmente na curadoria, o motivo quase sempre é
+uma policy de leitura pública faltando ou um campo `ativo`/`aprovada`
+desmarcado — não um bug de código (já aconteceu: um patrocinador linkado a
+um concurso não aparecia porque estava com `ativo = false`).
+
+## Otimização de egress: fotos vs. thumbnails
+
+O plano free do Supabase Storage tem um limite de egress (dados baixados por
+mês), e o evento espera ~8 mil visitantes num fim de semana — cada abertura
+de `votacao.html` sem otimização baixaria a grade inteira em tamanho cheio
+(até 1600px) para todo mundo.
+
+Solução: `enviar.html` gera **dois arquivos** no navegador antes do upload —
+a versão cheia (até 1600px, JPEG 80%) e uma thumbnail (até 300px, JPEG 65%) —
+e sobe as duas para o Storage. As grades (`votacao.html`, `curadoria.html`,
+`historico.html`) sempre carregam a thumbnail com `loading="lazy"`; a versão
+cheia só é buscada quando o visitante clica para ampliar a foto (modal). Fotos
+enviadas antes dessa mudança não têm `url_thumb` — o código sempre cai para
+`url_foto` nesse caso (`foto.url_thumb || foto.url_foto`).
+
+## Processamento de imagem no navegador (`enviar.html`)
+
+Esta é a parte mais frágil do projeto, fruto de um bug real em produção com
+fotos de Android/Samsung. Vale entender antes de mexer:
+
+- **HEIC → JPEG**: iPhones enviam fotos em HEIC; `heic2any` converte no
+  navegador. Antes de tentar a conversão (que pode levar ~30s), o código
+  checa a assinatura de bytes real do arquivo (`pareceBytesHeic`) para não
+  desperdiçar esse tempo em arquivos que só têm extensão `.heic` por engano.
+- **Remoção de metadados EXIF**: o parser lê os segmentos JPEG manualmente
+  (SOI/APPn/SOS/EOI) e remove todos os segmentos proprietários (EXIF, ICC,
+  segmentos de fabricante como o `APP4` da Samsung, comentários) — não só o
+  EXIF. Isso existe porque foi encontrado um caso real de uma foto Samsung com
+  "Foto em Movimento" que tinha ~23KB de dados de fabricante embutidos, e
+  outro caso (Pixel Motion Photo) com um vídeo anexado *depois* do fim real
+  da imagem (EOI) — `encontrarFimDaImagemJpeg` localiza o EOI de verdade
+  (ignorando bytes de stuffing e marcadores de restart dentro dos dados
+  entrópicos) para truncar esse lixo.
+- **Leitura do arquivo em memória uma única vez**: o bug raiz que motivou
+  boa parte dessa complexidade foi um `NotReadableError` do Android/Chrome —
+  arquivos vindos de `content://` URIs falham se lidos mais de uma vez (uma
+  leitura para checar HEIC, outra para EXIF, outra para decodificar...). A
+  correção foi ler o arquivo **uma vez** logo no início
+  (`lerArquivoComFallback`, com fallback para `FileReader` se
+  `.arrayBuffer()` falhar) e reusar esse buffer em todo o resto do pipeline.
+- **Degradação graciosa**: se mesmo assim a leitura falhar nas duas
+  tentativas, o código desiste de processar e sobe o arquivo original sem
+  compressão/conversão para os dois slots (cheio e thumb) — prioriza "o envio
+  aconteceu" sobre "a foto ficou otimizada", porque numa fila com milhares de
+  envios um erro bloqueante é pior que uma foto maior.
+- **Diagnóstico automático em caso de erro**: se o envio falhar por qualquer
+  motivo, o arquivo original é enviado para `diagnostico/` no Storage e o link
+  público é mostrado como texto selecionável na tela — isso substituiu um
+  link de download de blob que falhava silenciosamente ("Erro na rede") no
+  Chrome Android para arquivos grandes.
+
+## Login e votação (`votacao.html`)
+
+- Login é via Google OAuth. Duas formas de abrir: navegação normal
+  (`signInWithOAuth` na própria aba) ou popup (`entrarComGooglePopup`),
+  usada quando alguém abre um link de foto compartilhado (`?foto=<id>`) e
+  clica direto em "Entrar para votar" — a popup evita perder a modal aberta
+  e completa o voto automaticamente assim que o login termina.
+- O contador de votos exibido localmente é sempre reconferido no banco após
+  votar (nunca incrementado "otimisticamente" sem confirmação), porque o
+  incremento real acontece dentro da função `votar_em_foto` no Postgres.
+
+## Painel de curadoria (`curadoria.html` + `app.js`)
+
+- Padrão **cache + render separado**: `carregarConcursos()` /
+  `carregarPatrocinadores()` / `carregarPremiacoes()` buscam do banco uma vez
+  e guardam em variáveis de módulo (`concursosCache`, etc.); trocar o filtro
+  Ativo/Inativo/Todos chama só `renderizarX()`, que filtra o cache em memória
+  — sem round-trip de rede a cada clique no filtro. O mesmo padrão foi usado
+  no filtro de concurso da tela de moderação.
+- **Filtro de concurso na moderação** lembra a última seleção do moderador
+  entre trocas de tela, mas define automaticamente o concurso ativo como
+  padrão na primeira vez que a tela é aberta na sessão.
+- `is_admin()` é checado tanto no front-end (esconder o painel de quem não é
+  admin) quanto no banco via RLS — o front-end é só UX, a segurança real está
+  nas policies.
