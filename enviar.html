@@ -168,6 +168,20 @@
             return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
         }
 
+        // Mostra o progresso do envio como uma linha do tempo dentro do
+        // próprio texto do botão (ex: "1.2.🦖.4.5.6.7.8"), com o dinossauro
+        // andando pra etapa atual. Além de ficar mais bonito que um texto
+        // fixo de "Aguarde...", isso deixa visível em qual das 8 etapas o
+        // envio travou ou falhou, caso algo dê errado no celular.
+        const TOTAL_ETAPAS_ENVIO = 8;
+        function mostrarEtapaEnvio(etapaAtual) {
+            const etapas = [];
+            for (let i = 1; i <= TOTAL_ETAPAS_ENVIO; i++) {
+                etapas.push(i === etapaAtual ? '🦖' : String(i));
+            }
+            btnEnviar.textContent = etapas.join('.');
+        }
+
         // Fotos de iPhone costumam vir em HEIC/HEIF, formato que a maioria
         // dos navegadores não consegue desenhar em <canvas>. Convertemos
         // para JPEG antes de qualquer outro processamento.
@@ -463,38 +477,31 @@
             }
 
             btnEnviar.disabled = true;
-            btnEnviar.textContent = "Aguarde, enviando...";
+            mostrarEtapaEnvio(1);
+            let houveErro = false;
 
             const nome = document.getElementById('participante-nome').value;
             const fileOriginal = fileInput.files[0];
             const nomeArquivoUnico = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.jpg`;
             const nomeArquivoThumb = `${nomeArquivoUnico}-thumb.jpg`;
 
-            // DEBUG TEMPORÁRIO: popups sem formatação só pra identificar em
-            // qual etapa o envio está travando/falhando no celular. Remover
-            // depois de descobrir o problema.
-            alert(`[1/8] Arquivo escolhido: nome=${fileOriginal.name} tipo=${fileOriginal.type} tamanho=${Math.round(fileOriginal.size / 1024)}KB`);
-
             try {
-                btnEnviar.textContent = "Processando imagem...";
-
+                mostrarEtapaEnvio(2);
                 // Converte HEIC/HEIF (iPhone) para JPEG antes de processar
                 const fileNormalizado = await normalizarParaJpeg(fileOriginal);
-                alert(`[2/8] Após normalizarParaJpeg: convertido=${fileNormalizado !== fileOriginal} tipo=${fileNormalizado.type} tamanho=${Math.round(fileNormalizado.size / 1024)}KB`);
 
+                mostrarEtapaEnvio(3);
                 // Remove metadados EXIF (geolocalização inclusa) antes de decodificar,
                 // mas guarda a orientação pra reaplicar manualmente na compressão
                 let { blob: fileSemExif, orientacao } = await removerMetadadosExif(fileNormalizado);
-                alert(`[3/8] Após removerMetadadosExif: usouOriginal=${fileSemExif === fileNormalizado} orientacao=${orientacao} tipo=${fileSemExif.type} tamanho=${Math.round(fileSemExif.size / 1024)}KB`);
 
                 // Decodifica a imagem uma única vez, pra gerar as duas versões
                 // (cheia e thumbnail) a partir da mesma fonte em memória.
+                mostrarEtapaEnvio(4);
                 let fonteDecodificada;
                 try {
                     fonteDecodificada = await comTimeout(decodificarFonte(fileSemExif), 15000, 'A leitura da imagem demorou demais.');
-                    alert(`[4/8] Decodificação OK: ${fonteDecodificada.largura}x${fonteDecodificada.altura} via ${fonteDecodificada.fonte instanceof ImageBitmap ? 'createImageBitmap' : '<img>'}`);
                 } catch (erroDecodificacao) {
-                    alert(`[4/8] ERRO na decodificação: ${erroDecodificacao.name}: ${erroDecodificacao.message}`);
                     // Alguns navegadores embutidos (o "in-app browser" do
                     // Instagram/WhatsApp/Facebook, por exemplo) entregam fotos
                     // HEIC de iPhone sem MIME type nem extensão reconhecível,
@@ -503,7 +510,6 @@
                     // tenta como último recurso antes de desistir.
                     if (fileNormalizado !== fileOriginal) throw erroDecodificacao; // já era HEIC e mesmo assim falhou
 
-                    btnEnviar.textContent = "Convertendo formato da foto...";
                     try {
                         const convertido = await comTimeout(
                             heic2any({ blob: fileOriginal, toType: 'image/jpeg', quality: 0.85 }),
@@ -515,12 +521,9 @@
                         fileSemExif = semExif.blob;
                         orientacao = semExif.orientacao;
                         fonteDecodificada = await comTimeout(decodificarFonte(fileSemExif), 15000, 'A leitura da imagem demorou demais.');
-                        alert(`[4b/8] Fallback HEIC funcionou: ${fonteDecodificada.largura}x${fonteDecodificada.altura}`);
                     } catch (erroFallback) {
-                        alert(`[4b/8] ERRO no fallback HEIC: ${erroFallback.name}: ${erroFallback.message}`);
                         throw erroDecodificacao; // mensagem original é mais clara pro usuário
                     }
-                    btnEnviar.textContent = "Processando imagem...";
                 }
 
                 // Comprime a imagem antes de enviar (reduz peso e tempo de
@@ -531,17 +534,17 @@
                 // egress do Supabase durante o concurso.
                 const { fonte, largura, altura } = fonteDecodificada;
                 const mensagemTimeoutCompressao = 'A compressão da imagem demorou demais. Tente uma foto menor.';
+                mostrarEtapaEnvio(5);
                 const fileComprimido = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 1600, 0.8, orientacao), 15000, mensagemTimeoutCompressao);
-                alert(`[5/8] Compressão cheia OK: ${Math.round(fileComprimido.size / 1024)}KB`);
+                mostrarEtapaEnvio(6);
                 const fileThumb = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 300, 0.65, orientacao), 15000, mensagemTimeoutCompressao);
-                alert(`[6/8] Compressão thumb OK: ${Math.round(fileThumb.size / 1024)}KB`);
                 if (typeof fonte.close === 'function') fonte.close(); // libera a memória do ImageBitmap assim que possível
 
                 // Upload para o Storage (versão cheia + thumbnail). Timeout
                 // mais alto aqui porque depende da rede do celular, que num
                 // evento lotado pode ficar bem lenta sem cair de vez.
                 const mensagemTimeoutRede = 'A conexão está muito lenta ou caiu. Verifique sua internet e tente novamente.';
-                btnEnviar.textContent = "Enviando foto...";
+                mostrarEtapaEnvio(7);
                 const { data: storageData, error: storageError } = await comTimeout(
                     supabase.storage.from('arusuperguia-fotos').upload(nomeArquivoUnico, fileComprimido, { contentType: 'image/jpeg' }),
                     30000,
@@ -549,9 +552,8 @@
                 );
 
                 if (storageError) throw storageError;
-                alert(`[7/8] Upload da foto cheia OK`);
 
-                btnEnviar.textContent = "Enviando miniatura...";
+                mostrarEtapaEnvio(8);
                 const { data: storageThumbData, error: storageThumbError } = await comTimeout(
                     supabase.storage.from('arusuperguia-fotos').upload(nomeArquivoThumb, fileThumb, { contentType: 'image/jpeg' }),
                     30000,
@@ -559,7 +561,6 @@
                 );
 
                 if (storageThumbError) throw storageThumbError;
-                alert(`[8/8] Upload da miniatura OK`);
 
                 // Captura as URLs
                 const { data: urlData } = supabase.storage
@@ -577,7 +578,6 @@
                 // token do CAPTCHA no servidor antes de gravar (o insert
                 // direto na tabela pela chave anônima fica bloqueado — ver
                 // sql/002_bloquear_insert_direto.sql).
-                btnEnviar.textContent = "Finalizando envio...";
                 const controladorFn = new AbortController();
                 const timerFn = setTimeout(() => controladorFn.abort(), 30000);
                 let respostaFn;
@@ -610,14 +610,18 @@
                 sucessoContainer.classList.remove('hidden');
 
             } catch (error) {
+                houveErro = true;
                 console.error(error);
-                alert(`[ERRO] ${error && error.name}: ${error && error.message}\n${error && error.stack ? error.stack : ''}`);
                 erroMensagem.textContent = "Erro ao enviar: " + (error && error.message ? error.message : "algo deu errado. Tente novamente.");
                 erroMensagem.classList.remove('hidden');
                 if (typeof turnstile !== "undefined") turnstile.reset();
             } finally {
                 btnEnviar.disabled = false;
-                btnEnviar.textContent = "Enviar foto para curadoria";
+                // Em caso de erro, deixa o 🦖 parado na etapa onde travou (em
+                // vez de já sobrescrever com o texto padrão) — assim dá pra
+                // ver em qual das 8 etapas o envio falhou. Some sozinho no
+                // próximo envio, quando a linha do tempo reinicia do zero.
+                if (!houveErro) btnEnviar.textContent = "Enviar foto para curadoria";
             }
         });
     </script>
