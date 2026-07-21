@@ -390,9 +390,18 @@
 
                     const tamanhoSegmento = (bytes[offset + 2] << 8) | bytes[offset + 3];
 
-                    // APP1 é onde o bloco Exif (com GPS) normalmente fica.
-                    // Pulamos o segmento inteiro em vez de copiá-lo.
-                    if (marcador === 0xE1) {
+                    // Descarta blocos "APPn" proprietários/de fabricante
+                    // (APP1-APP15) e comentários (COM) — nenhum deles é
+                    // necessário pra decodificar a imagem (isso depende só de
+                    // SOI/DQT/SOF/DHT/DRI/SOS/EOI, que continuam intactos).
+                    // APP1 é o EXIF (com GPS, removido por privacidade).
+                    // Confirmamos num celular Samsung com "Foto em Movimento"
+                    // ligado que ele grava um bloco APP4 de ~23KB nesse
+                    // formato que trava a decodificação no Chrome mobile —
+                    // por segurança, descartamos a faixa toda (APP2-APP15),
+                    // não só o marcador específico que causou o problema.
+                    const ehAppProprietarioOuComentario = (marcador >= 0xE1 && marcador <= 0xEF) || marcador === 0xFE;
+                    if (ehAppProprietarioOuComentario) {
                         offset += 2 + tamanhoSegmento;
                         continue;
                     }
