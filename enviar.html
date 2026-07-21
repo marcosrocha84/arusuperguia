@@ -180,6 +180,25 @@
             return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
         }
 
+        // Lê o conteúdo do arquivo como ArrayBuffer, com um plano B: em
+        // alguns Android, o arquivo escolhido no seletor de mídia vem de uma
+        // referência "content://" temporária, e a API moderna (Blob.
+        // arrayBuffer()) pode falhar com "NotReadableError" mesmo o arquivo
+        // sendo perfeitamente válido — já vimos isso acontecer de verdade.
+        // A API mais antiga (FileReader) usa um caminho diferente por baixo
+        // dos panos e às vezes consegue ler o mesmo arquivo onde a moderna
+        // falhou, então tentamos ela antes de desistir de vez.
+        function lerArquivoComFallback(file) {
+            return file.arrayBuffer().catch((erroModerno) => {
+                return new Promise((resolve, reject) => {
+                    const leitor = new FileReader();
+                    leitor.onload = () => resolve(leitor.result);
+                    leitor.onerror = () => reject(erroModerno); // mensagem da API moderna é mais clara
+                    leitor.readAsArrayBuffer(file);
+                });
+            });
+        }
+
         // Mostra o progresso do envio como uma linha do tempo dentro do
         // próprio texto do botão (ex: "1.2.🦖.4.5.6.7.8"), com o dinossauro
         // andando pra etapa atual. Além de ficar mais bonito que um texto
@@ -584,6 +603,8 @@
             const nomeArquivoThumb = `${nomeArquivoUnico}-thumb.jpg`;
             let fileOriginal;
 
+            let fileComprimido, fileThumb;
+
             try {
                 // Lê o arquivo inteiro pra memória UMA ÚNICA VEZ, logo de
                 // cara, e passa a usar essa cópia (não mais a referência
@@ -595,93 +616,111 @@
                 // mesmo o arquivo sendo perfeitamente válido. Um Blob
                 // construído a partir dos bytes já lidos não tem mais essa
                 // dependência e pode ser lido quantas vezes for preciso.
-                const bufferOriginal = await fileSelecionado.arrayBuffer();
-                fileOriginal = new File([bufferOriginal], fileSelecionado.name, { type: fileSelecionado.type });
-
-                mostrarEtapaEnvio(2);
-                // Converte HEIC/HEIF (iPhone) para JPEG antes de processar
-                const fileNormalizado = await normalizarParaJpeg(fileOriginal);
-
-                mostrarEtapaEnvio(3);
-                // Remove metadados EXIF (geolocalização inclusa) antes de decodificar,
-                // mas guarda a orientação pra reaplicar manualmente na compressão
-                let { blob: fileSemExif, orientacao } = await removerMetadadosExif(fileNormalizado);
-
-                // Decodifica a imagem uma única vez, pra gerar as duas versões
-                // (cheia e thumbnail) a partir da mesma fonte em memória.
-                mostrarEtapaEnvio(4);
-                let fonteDecodificada;
+                let bufferOriginal;
                 try {
-                    fonteDecodificada = await comTimeout(decodificarFonte(fileSemExif), 15000, 'A leitura da imagem demorou demais.');
-                } catch (erroDecodificacao) {
-                    // Alguns navegadores embutidos (o "in-app browser" do
-                    // Instagram/WhatsApp/Facebook, por exemplo) entregam fotos
-                    // HEIC de iPhone sem MIME type nem extensão reconhecível,
-                    // então normalizarParaJpeg() não detecta e a decodificação
-                    // normal falha. Se ainda não tentamos converter via HEIC,
-                    // tenta como último recurso antes de desistir.
-                    // DEBUG TEMPORÁRIO: anexa dados reais do arquivo na
-                    // mensagem de erro (sem popup) pra identificar por que a
-                    // decodificação está falhando nesse celular. Remover
-                    // depois de descobrir o problema.
-                    //
-                    // "bytesLidos" confere se o navegador realmente conseguiu
-                    // ler o arquivo inteiro (existe um bug conhecido em
-                    // alguns Android onde a leitura de arquivos grandes vindos
-                    // de certos seletores de mídia vem truncada/incompleta) —
-                    // se for diferente de "tamanhoOriginal", achamos a causa.
-                    let bytesLidos = '(falhou ao ler)';
-                    try {
-                        bytesLidos = (await fileOriginal.arrayBuffer()).byteLength;
-                    } catch (e) {
-                        bytesLidos = `(erro: ${e.name}: ${e.message})`;
-                    }
-                    const infoDebug = `[debug: tipoOriginal=${fileOriginal.type || '(vazio)'} nomeOriginal=${fileOriginal.name} tamanhoOriginal=${fileOriginal.size} tamanhoSemExif=${fileSemExif.size} usouExifOriginal=${fileSemExif === fileNormalizado} bytesLidos=${bytesLidos}]`;
-
-                    if (fileNormalizado !== fileOriginal) {
-                        erroDecodificacao.message += ' ' + infoDebug + ' (já tinha passado pela conversão HEIC)';
-                        throw erroDecodificacao; // já era HEIC e mesmo assim falhou
-                    }
-
-                    // Só vale a pena tentar heic2any se o arquivo realmente
-                    // tiver a assinatura de bytes de um HEIC/HEIF — senão é
-                    // só perda de até 30s escondendo o erro real por trás de
-                    // uma tentativa de conversão que nunca ia funcionar.
-                    if (!(await pareceBytesHeic(fileOriginal))) {
-                        erroDecodificacao.message += ' ' + infoDebug + ' (não parece HEIC pelos bytes; fallback não tentado)';
-                        throw erroDecodificacao;
-                    }
-
-                    try {
-                        const convertido = await comTimeout(
-                            heic2any({ blob: fileOriginal, toType: 'image/jpeg', quality: 0.85 }),
-                            30000,
-                            'A conversão da foto demorou demais.'
-                        );
-                        const fileConvertido = Array.isArray(convertido) ? convertido[0] : convertido;
-                        const semExif = await removerMetadadosExif(fileConvertido);
-                        fileSemExif = semExif.blob;
-                        orientacao = semExif.orientacao;
-                        fonteDecodificada = await comTimeout(decodificarFonte(fileSemExif), 15000, 'A leitura da imagem demorou demais.');
-                    } catch (erroFallback) {
-                        erroDecodificacao.message += ' ' + infoDebug + ` (fallback HEIC também falhou: ${erroFallback.name}: ${erroFallback.message})`;
-                        throw erroDecodificacao; // mensagem original é mais clara pro usuário
-                    }
+                    bufferOriginal = await lerArquivoComFallback(fileSelecionado);
+                } catch (erroLeitura) {
+                    // Em alguns Android, nem a API moderna nem o FileReader
+                    // legado conseguem ler os bytes do arquivo — mas o
+                    // upload nativo do navegador (usado tanto no envio de
+                    // verdade quanto no link de diagnóstico) funciona sem
+                    // problema mesmo nesse caso, então enviamos a foto sem
+                    // processamento nenhum em vez de bloquear a participação
+                    // no concurso por causa de uma limitação do celular.
+                    console.error('Não foi possível ler os bytes da foto para processar; enviando sem compressão:', erroLeitura);
+                    fileOriginal = fileSelecionado;
+                    fileComprimido = fileSelecionado;
+                    fileThumb = fileSelecionado;
                 }
 
-                // Comprime a imagem antes de enviar (reduz peso e tempo de
-                // upload). Geramos duas versões: a cheia (até 1600px), usada
-                // na modal ampliada, e uma thumbnail bem menor (até 300px),
-                // usada nas grades de votação/curadoria — isso evita carregar
-                // dezenas de imagens em tamanho cheio de uma vez e estourar o
-                // egress do Supabase durante o concurso.
-                const { fonte, largura, altura } = fonteDecodificada;
-                const mensagemTimeoutCompressao = 'A compressão da imagem demorou demais. Tente uma foto menor.';
-                mostrarEtapaEnvio(5);
-                const fileComprimido = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 1600, 0.8, orientacao), 15000, mensagemTimeoutCompressao);
-                mostrarEtapaEnvio(6);
-                const fileThumb = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 300, 0.65, orientacao), 15000, mensagemTimeoutCompressao);
-                if (typeof fonte.close === 'function') fonte.close(); // libera a memória do ImageBitmap assim que possível
+                if (!fileComprimido) {
+                    fileOriginal = new File([bufferOriginal], fileSelecionado.name, { type: fileSelecionado.type });
+
+                    mostrarEtapaEnvio(2);
+                    // Converte HEIC/HEIF (iPhone) para JPEG antes de processar
+                    const fileNormalizado = await normalizarParaJpeg(fileOriginal);
+
+                    mostrarEtapaEnvio(3);
+                    // Remove metadados EXIF (geolocalização inclusa) antes de decodificar,
+                    // mas guarda a orientação pra reaplicar manualmente na compressão
+                    let { blob: fileSemExif, orientacao } = await removerMetadadosExif(fileNormalizado);
+
+                    // Decodifica a imagem uma única vez, pra gerar as duas versões
+                    // (cheia e thumbnail) a partir da mesma fonte em memória.
+                    mostrarEtapaEnvio(4);
+                    let fonteDecodificada;
+                    try {
+                        fonteDecodificada = await comTimeout(decodificarFonte(fileSemExif), 15000, 'A leitura da imagem demorou demais.');
+                    } catch (erroDecodificacao) {
+                        // Alguns navegadores embutidos (o "in-app browser" do
+                        // Instagram/WhatsApp/Facebook, por exemplo) entregam fotos
+                        // HEIC de iPhone sem MIME type nem extensão reconhecível,
+                        // então normalizarParaJpeg() não detecta e a decodificação
+                        // normal falha. Se ainda não tentamos converter via HEIC,
+                        // tenta como último recurso antes de desistir.
+                        // DEBUG TEMPORÁRIO: anexa dados reais do arquivo na
+                        // mensagem de erro (sem popup) pra identificar por que a
+                        // decodificação está falhando nesse celular. Remover
+                        // depois de descobrir o problema.
+                        //
+                        // "bytesLidos" confere se o navegador realmente conseguiu
+                        // ler o arquivo inteiro (existe um bug conhecido em
+                        // alguns Android onde a leitura de arquivos grandes vindos
+                        // de certos seletores de mídia vem truncada/incompleta) —
+                        // se for diferente de "tamanhoOriginal", achamos a causa.
+                        let bytesLidos = '(falhou ao ler)';
+                        try {
+                            bytesLidos = (await fileOriginal.arrayBuffer()).byteLength;
+                        } catch (e) {
+                            bytesLidos = `(erro: ${e.name}: ${e.message})`;
+                        }
+                        const infoDebug = `[debug: tipoOriginal=${fileOriginal.type || '(vazio)'} nomeOriginal=${fileOriginal.name} tamanhoOriginal=${fileOriginal.size} tamanhoSemExif=${fileSemExif.size} usouExifOriginal=${fileSemExif === fileNormalizado} bytesLidos=${bytesLidos}]`;
+
+                        if (fileNormalizado !== fileOriginal) {
+                            erroDecodificacao.message += ' ' + infoDebug + ' (já tinha passado pela conversão HEIC)';
+                            throw erroDecodificacao; // já era HEIC e mesmo assim falhou
+                        }
+
+                        // Só vale a pena tentar heic2any se o arquivo realmente
+                        // tiver a assinatura de bytes de um HEIC/HEIF — senão é
+                        // só perda de até 30s escondendo o erro real por trás de
+                        // uma tentativa de conversão que nunca ia funcionar.
+                        if (!(await pareceBytesHeic(fileOriginal))) {
+                            erroDecodificacao.message += ' ' + infoDebug + ' (não parece HEIC pelos bytes; fallback não tentado)';
+                            throw erroDecodificacao;
+                        }
+
+                        try {
+                            const convertido = await comTimeout(
+                                heic2any({ blob: fileOriginal, toType: 'image/jpeg', quality: 0.85 }),
+                                30000,
+                                'A conversão da foto demorou demais.'
+                            );
+                            const fileConvertido = Array.isArray(convertido) ? convertido[0] : convertido;
+                            const semExif = await removerMetadadosExif(fileConvertido);
+                            fileSemExif = semExif.blob;
+                            orientacao = semExif.orientacao;
+                            fonteDecodificada = await comTimeout(decodificarFonte(fileSemExif), 15000, 'A leitura da imagem demorou demais.');
+                        } catch (erroFallback) {
+                            erroDecodificacao.message += ' ' + infoDebug + ` (fallback HEIC também falhou: ${erroFallback.name}: ${erroFallback.message})`;
+                            throw erroDecodificacao; // mensagem original é mais clara pro usuário
+                        }
+                    }
+
+                    // Comprime a imagem antes de enviar (reduz peso e tempo de
+                    // upload). Geramos duas versões: a cheia (até 1600px), usada
+                    // na modal ampliada, e uma thumbnail bem menor (até 300px),
+                    // usada nas grades de votação/curadoria — isso evita carregar
+                    // dezenas de imagens em tamanho cheio de uma vez e estourar o
+                    // egress do Supabase durante o concurso.
+                    const { fonte, largura, altura } = fonteDecodificada;
+                    const mensagemTimeoutCompressao = 'A compressão da imagem demorou demais. Tente uma foto menor.';
+                    mostrarEtapaEnvio(5);
+                    fileComprimido = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 1600, 0.8, orientacao), 15000, mensagemTimeoutCompressao);
+                    mostrarEtapaEnvio(6);
+                    fileThumb = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 300, 0.65, orientacao), 15000, mensagemTimeoutCompressao);
+                    if (typeof fonte.close === 'function') fonte.close(); // libera a memória do ImageBitmap assim que possível
+                } // fecha o "if (!fileComprimido)" — pulado por completo quando a leitura falhou
 
                 // Upload para o Storage (versão cheia + thumbnail). Timeout
                 // mais alto aqui porque depende da rede do celular, que num
