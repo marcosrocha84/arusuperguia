@@ -153,11 +153,13 @@
             animation: modal-conteudo-in 0.25s cubic-bezier(.2, .8, .2, 1);
         }
         .modal-foto-imagem-wrap {
+            position: relative;
             background: var(--bone-2);
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            min-height: 40vh;
         }
         .modal-foto-imagem-wrap img {
             display: block;
@@ -166,7 +168,23 @@
             max-width: min(92vw, 40rem);
             max-height: 60vh;
             object-fit: contain;
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
         }
+        .modal-foto-imagem-wrap img.carregada {
+            opacity: 1;
+        }
+        @keyframes modal-foto-spinner-girar { to { transform: rotate(360deg); } }
+        .modal-foto-spinner {
+            position: absolute;
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 4px solid var(--bone);
+            border-top-color: var(--ember-dark);
+            border-radius: 999px;
+            animation: modal-foto-spinner-girar 0.7s linear infinite;
+        }
+        .modal-foto-spinner.hidden { display: none; }
         .modal-foto-fechar {
             position: absolute;
             top: 10px;
@@ -288,6 +306,7 @@
         <div class="modal-foto-conteudo ticket">
             <button id="modal-foto-fechar" type="button" class="modal-foto-fechar" aria-label="Fechar">✕</button>
             <div class="modal-foto-imagem-wrap">
+                <div id="modal-foto-spinner" class="modal-foto-spinner hidden" aria-hidden="true"></div>
                 <img id="modal-foto-img" src="" alt="Foto ampliada do concurso">
             </div>
             <div class="p-4 md:p-5 text-center">
@@ -325,6 +344,7 @@
         const modalFotoBackdrop = document.getElementById('modal-foto-backdrop');
         const modalFotoFechar = document.getElementById('modal-foto-fechar');
         const modalFotoImg = document.getElementById('modal-foto-img');
+        const modalFotoSpinner = document.getElementById('modal-foto-spinner');
         const modalFotoSelo = document.getElementById('modal-foto-selo');
         const modalFotoNome = document.getElementById('modal-foto-nome');
         const modalFotoData = document.getElementById('modal-foto-data');
@@ -342,12 +362,26 @@
         let modalFotoIdAtual = null;
         let concursoEncerrado = false;
 
+        // A grade usa thumbnails pequenos, então a versão cheia da modal
+        // (só carregada aqui, no clique) demora mais — mostramos um spinner
+        // enquanto isso pra não parecer que travou. onerror também esconde
+        // o spinner, senão ele fica girando pra sempre se a URL falhar.
+        modalFotoImg.addEventListener('load', () => {
+            modalFotoSpinner.classList.add('hidden');
+            modalFotoImg.classList.add('carregada');
+        });
+        modalFotoImg.addEventListener('error', () => {
+            modalFotoSpinner.classList.add('hidden');
+        });
+
         function abrirModalFoto(fotoId) {
             const foto = fotosExibidasCache.find(f => f.id === fotoId);
             if (!foto) return;
 
             modalFotoIdAtual = fotoId;
 
+            modalFotoImg.classList.remove('carregada');
+            modalFotoSpinner.classList.remove('hidden');
             modalFotoImg.src = foto.url_foto;
             modalFotoImg.alt = `Foto de ${foto.nome_participante}`;
             modalFotoNome.textContent = foto.nome_participante;
@@ -370,6 +404,8 @@
         function fecharModalFoto() {
             modalFoto.classList.add('hidden');
             modalFotoImg.src = '';
+            modalFotoImg.classList.remove('carregada');
+            modalFotoSpinner.classList.add('hidden');
             modalFotoIdAtual = null;
             document.body.style.overflow = '';
         }
@@ -820,7 +856,7 @@
                     return `
                         <div class="ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
                             <div class="foto-card-imagem relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" ${selo ? `style="box-shadow: inset 0 0 0 4px ${selo.cor};"` : ''} onclick="abrirModalFoto('${foto.id}')" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHTML(foto.nome_participante)}" onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===this){event.preventDefault();abrirModalFoto('${foto.id}');}">
-                                <img src="${escapeHTML(foto.url_foto)}" alt="Foto do Concurso" class="object-cover w-full h-full">
+                                <img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto do Concurso" loading="lazy" class="object-cover w-full h-full">
                                 <span class="foto-card-lupa" aria-hidden="true">🔍</span>
                             </div>
                             <div class="p-3 flex flex-col justify-between flex-1">

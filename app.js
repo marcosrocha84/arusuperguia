@@ -219,7 +219,7 @@ async function carregarFotos(filtro = 'Todas') {
         card.className = "ticket-sm overflow-hidden";
 
         card.innerHTML = `
-            <img src="${escapeHTML(foto.url_foto)}" alt="Foto de participante" class="w-full h-48 object-cover">
+            <img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto de participante" loading="lazy" class="w-full h-48 object-cover">
             <div class="p-4">
                 <p class="text-sm text-[var(--ink-soft)] mb-1">Participante: <strong class="text-[var(--ink)]">${escapeHTML(foto.nome_participante)}</strong></p>
                 <p class="text-xs text-[var(--ink-soft)] mb-2">Concurso: <strong class="text-[var(--ink)]">${foto.concursos ? escapeHTML(foto.concursos.descricao) : 'Sem concurso vinculado'}</strong></p>

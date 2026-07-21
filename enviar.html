@@ -420,6 +420,7 @@
             const nome = document.getElementById('participante-nome').value;
             const fileOriginal = fileInput.files[0];
             const nomeArquivoUnico = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.jpg`;
+            const nomeArquivoThumb = `${nomeArquivoUnico}-thumb.jpg`;
 
             try {
                 // Converte HEIC/HEIF (iPhone) para JPEG antes de processar
@@ -427,22 +428,39 @@
                 // Remove metadados EXIF (geolocalização inclusa) antes de decodificar,
                 // mas guarda a orientação pra reaplicar manualmente na compressão
                 const { blob: fileSemExif, orientacao } = await removerMetadadosExif(fileNormalizado);
-                // Comprime a imagem antes de enviar (reduz peso e tempo de upload)
+                // Comprime a imagem antes de enviar (reduz peso e tempo de upload).
+                // Geramos duas versões: a cheia (até 1600px), usada na modal
+                // ampliada, e uma thumbnail bem menor (até 300px), usada nas
+                // grades de votação/curadoria — isso evita carregar dezenas de
+                // imagens em tamanho cheio de uma vez e estourar o egress do
+                // Supabase durante o concurso.
                 const fileComprimido = await comprimirImagem(fileSemExif, 1600, 0.8, orientacao);
+                const fileThumb = await comprimirImagem(fileSemExif, 300, 0.65, orientacao);
 
-                // Upload para o Storage
+                // Upload para o Storage (versão cheia + thumbnail)
                 const { data: storageData, error: storageError } = await supabase.storage
                     .from('arusuperguia-fotos')
                     .upload(nomeArquivoUnico, fileComprimido, { contentType: 'image/jpeg' });
 
                 if (storageError) throw storageError;
 
-                // Captura URL
+                const { data: storageThumbData, error: storageThumbError } = await supabase.storage
+                    .from('arusuperguia-fotos')
+                    .upload(nomeArquivoThumb, fileThumb, { contentType: 'image/jpeg' });
+
+                if (storageThumbError) throw storageThumbError;
+
+                // Captura as URLs
                 const { data: urlData } = supabase.storage
                     .from('arusuperguia-fotos')
                     .getPublicUrl(nomeArquivoUnico);
 
+                const { data: urlThumbData } = supabase.storage
+                    .from('arusuperguia-fotos')
+                    .getPublicUrl(nomeArquivoThumb);
+
                 const urlPublicaDaFoto = urlData.publicUrl;
+                const urlPublicaDoThumb = urlThumbData.publicUrl;
 
                 // Salva na Tabela através da Edge Function, que valida o
                 // token do CAPTCHA no servidor antes de gravar (o insert
@@ -457,6 +475,7 @@
                     body: JSON.stringify({
                         nome: nome,
                         url_foto: urlPublicaDaFoto,
+                        url_thumb: urlPublicaDoThumb,
                         captchaToken: captchaResponse,
                     }),
                 });
