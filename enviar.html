@@ -96,14 +96,16 @@
 
             <!-- Mensagem de erro simples -->
             <p id="erro-mensagem" class="text-[var(--ember-dark)] text-sm text-center font-semibold px-6 pb-6 hidden"></p>
-            <!-- DEBUG TEMPORÁRIO: link pra baixar exatamente o arquivo que o
-                 navegador recebeu, pra diagnosticar falhas de decodificação
-                 sem depender de cópias feitas por outro caminho (USB, etc.),
-                 que podem não ser idênticas ao que chega no <input file>.
+            <!-- DEBUG TEMPORÁRIO: sobe o arquivo exatamente como o navegador
+                 recebeu (sem processamento nosso) pra um caminho separado no
+                 Storage, só pra diagnosticar falhas de decodificação — baixar
+                 blob: grande via o atributo "download" falha com "Erro na
+                 rede" em vários Android/Chrome, então evitamos esse caminho.
                  Remover depois de descobrir o problema. -->
-            <p id="erro-download-wrap" class="text-center px-6 pb-6 hidden">
-                <a id="erro-download-link" href="#" download class="underline underline-offset-2 text-[var(--ink)] text-sm font-semibold">📥 Baixar arquivo original (para diagnóstico)</a>
-            </p>
+            <div id="erro-download-wrap" class="text-center px-6 pb-6 hidden">
+                <p class="text-xs text-[var(--ink-soft)] mb-1">Link do arquivo original (envie esse link):</p>
+                <p id="erro-download-status" class="text-sm font-semibold text-[var(--ink)] break-all select-all"></p>
+            </div>
 
             <div class="ticket-tear"></div>
 
@@ -142,7 +144,7 @@
         const btnReiniciar = document.getElementById('btn-reiniciar');
         const erroMensagem = document.getElementById('erro-mensagem');
         const erroDownloadWrap = document.getElementById('erro-download-wrap');
-        const erroDownloadLink = document.getElementById('erro-download-link');
+        const erroDownloadStatus = document.getElementById('erro-download-status');
         const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
         const linkRegulamento = document.getElementById('link-regulamento');
 
@@ -730,15 +732,30 @@
                 erroMensagem.textContent = "Erro ao enviar: " + (error && error.message ? error.message : "algo deu errado. Tente novamente.");
                 erroMensagem.classList.remove('hidden');
 
-                // DEBUG TEMPORÁRIO: disponibiliza o arquivo exatamente como
-                // o navegador recebeu (antes de qualquer processamento
-                // nosso), pra descartar diferenças entre o que é copiado via
-                // USB/e-mail e o que realmente chega no <input type="file">.
+                // DEBUG TEMPORÁRIO: sobe o arquivo exatamente como o
+                // navegador recebeu (antes de qualquer processamento nosso)
+                // pra um caminho separado no Storage, só pra diagnóstico —
+                // descarta diferenças entre o que é copiado via USB/e-mail e
+                // o que realmente chega no <input type="file">. Falha aqui
+                // não deve incomodar o usuário além do necessário, por isso
+                // fica num try/catch próprio.
                 if (fileOriginal) {
-                    const urlDownloadDebug = URL.createObjectURL(fileOriginal);
-                    erroDownloadLink.href = urlDownloadDebug;
-                    erroDownloadLink.download = fileOriginal.name || 'foto-diagnostico.jpg';
                     erroDownloadWrap.classList.remove('hidden');
+                    erroDownloadStatus.textContent = 'Enviando arquivo de diagnóstico...';
+                    try {
+                        const nomeDebug = `diagnostico/${Date.now()}-${fileOriginal.name || 'foto.jpg'}`;
+                        const { error: erroUploadDebug } = await supabase.storage
+                            .from('arusuperguia-fotos')
+                            .upload(nomeDebug, fileOriginal, { contentType: fileOriginal.type || 'application/octet-stream' });
+
+                        if (erroUploadDebug) throw erroUploadDebug;
+
+                        const { data: urlDebug } = supabase.storage.from('arusuperguia-fotos').getPublicUrl(nomeDebug);
+                        erroDownloadStatus.textContent = urlDebug.publicUrl;
+                    } catch (erroDebug) {
+                        console.error('Falha ao subir arquivo de diagnóstico:', erroDebug);
+                        erroDownloadStatus.textContent = 'Não foi possível enviar o arquivo de diagnóstico (tente novamente).';
+                    }
                 }
 
                 if (typeof turnstile !== "undefined") turnstile.reset();
