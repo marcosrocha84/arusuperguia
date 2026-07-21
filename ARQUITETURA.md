@@ -100,6 +100,15 @@ cheia só é buscada quando o visitante clica para ampliar a foto (modal). Fotos
 enviadas antes dessa mudança não têm `url_thumb` — o código sempre cai para
 `url_foto` nesse caso (`foto.url_thumb || foto.url_foto`).
 
+Além disso, os dois uploads em `enviar.html` passam `cacheControl: '31536000'`
+(1 ano). Isso é seguro porque cada arquivo tem nome único (timestamp +
+random) e nunca é sobrescrito — sem essa opção, o Supabase aplica o padrão de
+1h, e qualquer visita a uma foto já vista há mais de 1h volta a gastar
+egress do zero, mesmo o arquivo nunca mudando. Num evento de fim de semana
+inteiro, isso faz diferença real: a mesma foto popular sendo revisitada por
+parte dos ~8 mil visitantes passa a vir do cache do navegador/CDN em vez do
+Supabase depois do primeiro carregamento.
+
 ## Processamento de imagem no navegador (`enviar.html`)
 
 Esta é a parte mais frágil do projeto, fruto de um bug real em produção com
@@ -158,6 +167,17 @@ fotos de Android/Samsung. Vale entender antes de mexer:
 - **Filtro de concurso na moderação** lembra a última seleção do moderador
   entre trocas de tela, mas define automaticamente o concurso ativo como
   padrão na primeira vez que a tela é aberta na sessão.
+- **Paginação na moderação**: diferente das telas de Concursos/Patrocinadores/
+  Premiações (que carregam tudo de uma vez e filtram em memória, por serem
+  listas pequenas), a grade de fotos usa `.range()` no Supabase e busca só a
+  página atual, com `count: 'exact'` pra saber o total de páginas — porque o
+  volume de fotos pendentes num evento grande pode ser bem maior do que o de
+  concursos/patrocinadores cadastrados, e carregar todas de uma vez pesaria
+  no navegador do moderador. Trocar filtro de status, concurso ou o tamanho
+  da página sempre volta para a página 1; só os botões Anterior/Próxima
+  mudam a página sem resetar os filtros. Se a página atual ficar vazia (ex:
+  era a última e a única foto dela foi reprovada), a função busca a última
+  página válida de novo automaticamente.
 - `is_admin()` é checado tanto no front-end (esconder o painel de quem não é
   admin) quanto no banco via RLS — o front-end é só UX, a segurança real está
   nas policies.

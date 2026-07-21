@@ -195,6 +195,13 @@
                                 <option value="Aprovadas">Aprovadas</option>
                                 <option value="Pendentes">Pendentes</option>
                             </select>
+                            <label for="moderacao-tamanho-pagina" class="text-[var(--ink)] font-medium text-sm">Por página:</label>
+                            <select id="moderacao-tamanho-pagina" class="border-2 border-[var(--ink)] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                <option value="6" selected>6</option>
+                                <option value="9">9</option>
+                                <option value="18">18</option>
+                                <option value="36">36</option>
+                            </select>
                         </div>
                     </div>
 
@@ -202,6 +209,13 @@
                     <div id="fotos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- As fotos serão injetadas dinamicamente aqui pelo JavaScript -->
                         <p class="text-[var(--ink-soft)] col-span-full text-center">Buscando fotos na nuvem...</p>
+                    </div>
+
+                    <!-- Paginação -->
+                    <div id="moderacao-paginacao" class="hidden flex items-center justify-center gap-4 mt-6">
+                        <button id="moderacao-pagina-anterior" type="button" class="btn btn-ghost text-sm !py-1.5 !px-4">← Anterior</button>
+                        <span id="moderacao-pagina-info" class="text-sm text-[var(--ink-soft)] font-medium"></span>
+                        <button id="moderacao-pagina-proxima" type="button" class="btn btn-ghost text-sm !py-1.5 !px-4">Próxima →</button>
                     </div>
                 </section>
 

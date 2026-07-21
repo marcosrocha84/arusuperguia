@@ -731,8 +731,14 @@
                 // evento lotado pode ficar bem lenta sem cair de vez.
                 const mensagemTimeoutRede = 'A conexão está muito lenta ou caiu. Verifique sua internet e tente novamente.';
                 mostrarEtapaEnvio(7);
+                // cacheControl de 1 ano: cada arquivo tem nome único
+                // (timestamp + random) e nunca é sobrescrito, então é seguro
+                // deixar o navegador/CDN cachear por muito tempo — sem isso,
+                // o Supabase usa o padrão de 1h e volta a gastar egress a
+                // cada nova visita depois desse prazo, mesmo pra fotos que
+                // não mudam nunca.
                 const { data: storageData, error: storageError } = await comTimeout(
-                    supabase.storage.from('arusuperguia-fotos').upload(nomeArquivoUnico, fileComprimido, { contentType: 'image/jpeg' }),
+                    supabase.storage.from('arusuperguia-fotos').upload(nomeArquivoUnico, fileComprimido, { contentType: 'image/jpeg', cacheControl: '31536000' }),
                     30000,
                     mensagemTimeoutRede
                 );
@@ -741,7 +747,7 @@
 
                 mostrarEtapaEnvio(8);
                 const { data: storageThumbData, error: storageThumbError } = await comTimeout(
-                    supabase.storage.from('arusuperguia-fotos').upload(nomeArquivoThumb, fileThumb, { contentType: 'image/jpeg' }),
+                    supabase.storage.from('arusuperguia-fotos').upload(nomeArquivoThumb, fileThumb, { contentType: 'image/jpeg', cacheControl: '31536000' }),
                     30000,
                     mensagemTimeoutRede
                 );

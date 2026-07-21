@@ -42,11 +42,19 @@ const btnLogout = document.getElementById('btn-logout');
 const fotosContainer = document.getElementById('fotos-container');
 const statusFilter = document.getElementById('status-filter');
 const moderacaoConcursoFilter = document.getElementById('moderacao-concurso-filter');
+const moderacaoTamanhoPagina = document.getElementById('moderacao-tamanho-pagina');
+const moderacaoPaginacao = document.getElementById('moderacao-paginacao');
+const moderacaoPaginaAnterior = document.getElementById('moderacao-pagina-anterior');
+const moderacaoPaginaProxima = document.getElementById('moderacao-pagina-proxima');
+const moderacaoPaginaInfo = document.getElementById('moderacao-pagina-info');
 const contadorFotosModeracao = document.getElementById('contador-fotos-moderacao');
 // Só define o concurso ativo como seleção padrão do filtro na primeira vez
 // que a tela de moderação é aberta — depois disso, respeita o que o
 // moderador escolheu, mesmo trocando de tela e voltando.
 let filtroConcursoModeracaoInicializado = false;
+// Página atual da grade de moderação — trocar filtro/concurso/tamanho de
+// página sempre volta pra página 1; os botões Anterior/Próxima só mudam isso.
+let paginaAtualModeracao = 1;
 
 // Navegação entre telas do painel (menu lateral fixo)
 const navItems = document.querySelectorAll('.nav-item');
@@ -160,7 +168,8 @@ function switchView(viewName) {
     else if (viewName === 'concursos') { carregarConcursos(); carregarListasVinculo(); }
     else if (viewName === 'moderacao') {
         carregarOpcoesConcursoModeracao().then(() => {
-            carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos');
+            paginaAtualModeracao = 1;
+            carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos', paginaAtualModeracao);
         });
     }
     else if (viewName === 'patrocinadores') carregarPatrocinadores();
@@ -199,10 +208,32 @@ btnLogout.addEventListener('click', async () => {
 });
 
 if (statusFilter) {
-    statusFilter.addEventListener('change', () => carregarFotos(statusFilter.value, moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos'));
+    statusFilter.addEventListener('change', () => {
+        paginaAtualModeracao = 1;
+        carregarFotos(statusFilter.value, moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos', paginaAtualModeracao);
+    });
 }
 if (moderacaoConcursoFilter) {
-    moderacaoConcursoFilter.addEventListener('change', () => carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter.value));
+    moderacaoConcursoFilter.addEventListener('change', () => {
+        paginaAtualModeracao = 1;
+        carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter.value, paginaAtualModeracao);
+    });
+}
+if (moderacaoTamanhoPagina) {
+    moderacaoTamanhoPagina.addEventListener('change', () => {
+        paginaAtualModeracao = 1;
+        carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos', paginaAtualModeracao);
+    });
+}
+if (moderacaoPaginaAnterior) {
+    moderacaoPaginaAnterior.addEventListener('click', () => {
+        carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos', paginaAtualModeracao - 1);
+    });
+}
+if (moderacaoPaginaProxima) {
+    moderacaoPaginaProxima.addEventListener('click', () => {
+        carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos', paginaAtualModeracao + 1);
+    });
 }
 
 // Popula o <select> de concursos da tela de moderação. Na primeira vez que
@@ -260,14 +291,33 @@ if (premiacaoStatusFilter) {
     premiacaoStatusFilter.addEventListener('change', () => renderizarPremiacoes());
 }
 
-// 4. Buscar e renderizar as fotos do banco de dados
-async function carregarFotos(filtro = 'Todas', concursoId = 'todos') {
+// Atualiza os controles de "Anterior"/"Próxima" e o texto "Página X de Y"
+// abaixo da grade de moderação. Some por completo quando não há nada pra
+// paginar (0 fotos no filtro atual).
+function atualizarPaginacaoModeracao(totalPaginas) {
+    if (!moderacaoPaginacao) return;
+
+    if (totalPaginas <= 0) {
+        moderacaoPaginacao.classList.add('hidden');
+        return;
+    }
+
+    moderacaoPaginacao.classList.remove('hidden');
+    moderacaoPaginaInfo.textContent = `Página ${paginaAtualModeracao} de ${totalPaginas}`;
+    moderacaoPaginaAnterior.disabled = paginaAtualModeracao <= 1;
+    moderacaoPaginaProxima.disabled = paginaAtualModeracao >= totalPaginas;
+}
+
+// 4. Buscar e renderizar as fotos do banco de dados, uma página por vez
+async function carregarFotos(filtro = 'Todas', concursoId = 'todos', pagina = 1) {
     fotosContainer.innerHTML = '<p class="text-gray-500 text-center col-span-full">Carregando fotos...</p>';
     contadorFotosModeracao.textContent = '';
 
+    const tamanhoPagina = parseInt(moderacaoTamanhoPagina ? moderacaoTamanhoPagina.value : '6', 10) || 6;
+
     let query = supabase
         .from('fotos_concurso')
-        .select('*, concursos(descricao)')
+        .select('*, concursos(descricao)', { count: 'exact' })
         .order('criado_em', { ascending: false });
 
     if (filtro === 'Aprovadas') {
@@ -280,20 +330,32 @@ async function carregarFotos(filtro = 'Todas', concursoId = 'todos') {
         query = query.eq('concurso_id', concursoId);
     }
 
-    const { data: fotos, error } = await query;
+    const inicio = (pagina - 1) * tamanhoPagina;
+    query = query.range(inicio, inicio + tamanhoPagina - 1);
+
+    const { data: fotos, error, count } = await query;
 
     if (error) {
         fotosContainer.innerHTML = `<p class="text-[var(--ember-dark)] text-center col-span-full font-semibold">Erro ao carregar dados: ${error.message}</p>`;
         return;
     }
 
-    // Contagem já reflete o filtro aplicado ("Todas"/"Aprovadas"/"Pendentes"),
-    // já que a query acima busca todas as linhas que batem com o filtro, sem
-    // paginação.
-    contadorFotosModeracao.textContent = `(${fotos.length})`;
+    const totalItens = count || 0;
+    const totalPaginas = Math.max(1, Math.ceil(totalItens / tamanhoPagina));
 
-    if (fotos.length === 0) {
+    // A página pedida ficou além do fim (ex: era a última e uma foto dela
+    // acabou de ser reprovada/excluída) — volta pra última página válida em
+    // vez de deixar o moderador olhando pra uma grade em branco.
+    if (totalItens > 0 && pagina > totalPaginas) {
+        return carregarFotos(filtro, concursoId, totalPaginas);
+    }
+
+    paginaAtualModeracao = pagina;
+    contadorFotosModeracao.textContent = `(${totalItens})`;
+
+    if (totalItens === 0) {
         fotosContainer.innerHTML = '<p class="text-gray-500 text-center col-span-full">Nenhuma foto enviada até o momento.</p>';
+        atualizarPaginacaoModeracao(0);
         return;
     }
 
@@ -324,6 +386,8 @@ async function carregarFotos(filtro = 'Todas', concursoId = 'todos') {
         `;
         fotosContainer.appendChild(card);
     });
+
+    atualizarPaginacaoModeracao(totalPaginas);
 }
 
 // 5. Função para aprovar ou reprovar a foto
@@ -336,7 +400,7 @@ window.alterarStatusFoto = async function(id, status) {
     if (error) {
         alert("Erro ao atualizar status: " + error.message);
     } else {
-        carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos');
+        carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos', paginaAtualModeracao);
     }
 }
 
@@ -351,7 +415,7 @@ window.deletarFoto = async function(id) {
         if (error) {
             alert("Erro ao deletar: " + error.message);
         } else {
-            carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos');
+            carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos', paginaAtualModeracao);
         }
     }
 }
