@@ -508,7 +508,16 @@
                     // então normalizarParaJpeg() não detecta e a decodificação
                     // normal falha. Se ainda não tentamos converter via HEIC,
                     // tenta como último recurso antes de desistir.
-                    if (fileNormalizado !== fileOriginal) throw erroDecodificacao; // já era HEIC e mesmo assim falhou
+                    // DEBUG TEMPORÁRIO: anexa dados reais do arquivo na
+                    // mensagem de erro (sem popup) pra identificar por que a
+                    // decodificação está falhando nesse celular. Remover
+                    // depois de descobrir o problema.
+                    const infoDebug = `[debug: tipoOriginal=${fileOriginal.type || '(vazio)'} nomeOriginal=${fileOriginal.name} tamanhoOriginal=${Math.round(fileOriginal.size / 1024)}KB tipoSemExif=${fileSemExif.type} tamanhoSemExif=${Math.round(fileSemExif.size / 1024)}KB usouExifOriginal=${fileSemExif === fileNormalizado}]`;
+
+                    if (fileNormalizado !== fileOriginal) {
+                        erroDecodificacao.message += ' ' + infoDebug + ' (já tinha passado pela conversão HEIC)';
+                        throw erroDecodificacao; // já era HEIC e mesmo assim falhou
+                    }
 
                     try {
                         const convertido = await comTimeout(
@@ -522,6 +531,7 @@
                         orientacao = semExif.orientacao;
                         fonteDecodificada = await comTimeout(decodificarFonte(fileSemExif), 15000, 'A leitura da imagem demorou demais.');
                     } catch (erroFallback) {
+                        erroDecodificacao.message += ' ' + infoDebug + ` (fallback HEIC também falhou: ${erroFallback.name}: ${erroFallback.message})`;
                         throw erroDecodificacao; // mensagem original é mais clara pro usuário
                     }
                 }
