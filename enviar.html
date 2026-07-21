@@ -514,6 +514,36 @@
         // aplicam essa rotação sozinhos quando não há mais EXIF, reaplicamos
         // manualmente — senão fotos em pé saem deitadas (ou vice-versa) no
         // arquivo final.
+        // Amostra alguns pontos espalhados pelo canvas depois do desenho e
+        // verifica se todos vieram praticamente idênticos — sinal de que o
+        // navegador "esvaziou" o canvas silenciosamente em vez de desenhar a
+        // foto de verdade. Isso acontece de vez em quando em navegadores
+        // mobile sob pressão de memória (foto de câmera moderna, alta
+        // resolução, decodificada antes do redimensionamento): não dá erro
+        // nenhum, o canvas só fica em branco, e sem essa checagem o toBlob()
+        // exportaria isso como se fosse uma compressão bem-sucedida.
+        function canvasPareceEmBranco(ctx, largura, altura) {
+            const pontos = [
+                [0.1, 0.1], [0.5, 0.1], [0.9, 0.1],
+                [0.1, 0.5], [0.5, 0.5], [0.9, 0.5],
+                [0.1, 0.9], [0.5, 0.9], [0.9, 0.9],
+            ];
+            let referencia = null;
+            for (const [px, py] of pontos) {
+                const x = Math.min(largura - 1, Math.floor(px * largura));
+                const y = Math.min(altura - 1, Math.floor(py * altura));
+                const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+                if (referencia === null) {
+                    referencia = [r, g, b];
+                    continue;
+                }
+                if (Math.abs(r - referencia[0]) > 4 || Math.abs(g - referencia[1]) > 4 || Math.abs(b - referencia[2]) > 4) {
+                    return false; // achou variação real de cor — não está em branco
+                }
+            }
+            return true; // todos os pontos amostrados vieram praticamente idênticos
+        }
+
         function comprimirAPartirDaFonte(fonte, largura, altura, maxLargura, qualidade, orientacao) {
             // Matriz de transformação equivalente a cada valor do EXIF
             // Orientation. Referência: https://exiftool.org/TagNames/EXIF.html
@@ -530,33 +560,53 @@
                 }
             }
 
+            // Orientações 5-8 giram a imagem em 90°/270°: largura e altura
+            // finais trocam de lugar.
+            const rotacionado90 = orientacao >= 5 && orientacao <= 8;
+            const larguraFinal = rotacionado90 ? altura : largura;
+            const alturaFinal = rotacionado90 ? largura : altura;
+            const escala = Math.min(1, maxLargura / larguraFinal);
+            const canvasWidth = larguraFinal * escala;
+            const canvasHeight = alturaFinal * escala;
+
+            const MAX_TENTATIVAS = 3;
+
             return new Promise((resolve, reject) => {
-                // Orientações 5-8 giram a imagem em 90°/270°: largura e
-                // altura finais trocam de lugar.
-                const rotacionado90 = orientacao >= 5 && orientacao <= 8;
-                const larguraFinal = rotacionado90 ? altura : largura;
-                const alturaFinal = rotacionado90 ? largura : altura;
-                const escala = Math.min(1, maxLargura / larguraFinal);
+                function tentarDesenharEExportar(tentativa) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+                    const ctx = canvas.getContext('2d');
 
-                const canvas = document.createElement('canvas');
-                canvas.width = larguraFinal * escala;
-                canvas.height = alturaFinal * escala;
-                const ctx = canvas.getContext('2d');
+                    // A ordem importa: escala primeiro (afeta tudo que vier
+                    // depois), rotação/espelhamento em seguida, e só então
+                    // desenhamos a imagem nas dimensões originais (não nas
+                    // finais) — o transform acima já dá conta de mapear pro
+                    // tamanho/orientação certos.
+                    ctx.scale(escala, escala);
+                    aplicarOrientacaoExif(ctx);
+                    ctx.drawImage(fonte, 0, 0, largura, altura);
 
-                // A ordem importa: escala primeiro (afeta tudo que vier
-                // depois), rotação/espelhamento em seguida, e só então
-                // desenhamos a imagem nas dimensões originais (não nas
-                // finais) — o transform acima já dá conta de mapear pro
-                // tamanho/orientação certos.
-                ctx.scale(escala, escala);
-                aplicarOrientacaoExif(ctx);
-                ctx.drawImage(fonte, 0, 0, largura, altura);
+                    if (canvasPareceEmBranco(ctx, canvas.width, canvas.height)) {
+                        if (tentativa < MAX_TENTATIVAS) {
+                            // Dá um respiro pro navegador antes de tentar de
+                            // novo — na prática, a memória costuma liberar
+                            // entre uma tentativa e outra.
+                            setTimeout(() => tentarDesenharEExportar(tentativa + 1), 200);
+                            return;
+                        }
+                        reject(new Error('Não foi possível processar essa foto (a imagem ficou em branco ao comprimir). Tente novamente ou use outra foto.'));
+                        return;
+                    }
 
-                canvas.toBlob(
-                    (blob) => blob ? resolve(blob) : reject(new Error('Falha ao comprimir a imagem. Tente outra foto.')),
-                    'image/jpeg',
-                    qualidade
-                );
+                    canvas.toBlob(
+                        (blob) => blob ? resolve(blob) : reject(new Error('Falha ao comprimir a imagem. Tente outra foto.')),
+                        'image/jpeg',
+                        qualidade
+                    );
+                }
+
+                tentarDesenharEExportar(1);
             });
         }
 

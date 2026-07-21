@@ -144,6 +144,20 @@ fotos de Android/Samsung. Vale entender antes de mexer:
   público é mostrado como texto selecionável na tela — isso substituiu um
   link de download de blob que falhava silenciosamente ("Erro na rede") no
   Chrome Android para arquivos grandes.
+- **Detecção de canvas em branco**: descoberto ao investigar uma foto real
+  cujo zoom (`url_foto`) abria completamente preto na votação, enquanto a
+  miniatura (`url_thumb`) da mesma foto estava normal. A imagem no Storage
+  era um JPEG válido — o problema foi no navegador de quem enviou: sob
+  pressão de memória, desenhar a versão cheia (maior, mais pesada de
+  codificar) no `<canvas>` falhou silenciosamente e devolveu um retângulo
+  vazio, sem erro nenhum, que o `toBlob()` exportou como se fosse sucesso; a
+  versão pequena, desenhada logo depois com menos memória exigida, saiu
+  certa. `comprimirAPartirDaFonte` agora amostra alguns pixels do canvas
+  depois de desenhar (`canvasPareceEmBranco`) e, se todos vierem
+  praticamente idênticos, tenta desenhar de novo (até 3 vezes, com uma
+  pequena pausa entre tentativas) antes de desistir e lançar um erro — que
+  cai no mesmo fluxo de erro/diagnóstico já existente, em vez de subir uma
+  foto quebrada sem ninguém perceber.
 
 ## Login e votação (`votacao.html`)
 
