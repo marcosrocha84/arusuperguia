@@ -579,11 +579,25 @@
             let houveErro = false;
 
             const nome = document.getElementById('participante-nome').value;
-            const fileOriginal = fileInput.files[0];
+            const fileSelecionado = fileInput.files[0];
             const nomeArquivoUnico = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.jpg`;
             const nomeArquivoThumb = `${nomeArquivoUnico}-thumb.jpg`;
+            let fileOriginal;
 
             try {
+                // Lê o arquivo inteiro pra memória UMA ÚNICA VEZ, logo de
+                // cara, e passa a usar essa cópia (não mais a referência
+                // original do seletor de mídia) daqui pra frente. Em vários
+                // Android, o arquivo escolhido vem de um "content://"
+                // temporário — ler seu conteúdo mais de uma vez (o que nosso
+                // pipeline faz: remover EXIF, decodificar, comprimir) pode
+                // falhar a partir da segunda tentativa com "NotReadableError",
+                // mesmo o arquivo sendo perfeitamente válido. Um Blob
+                // construído a partir dos bytes já lidos não tem mais essa
+                // dependência e pode ser lido quantas vezes for preciso.
+                const bufferOriginal = await fileSelecionado.arrayBuffer();
+                fileOriginal = new File([bufferOriginal], fileSelecionado.name, { type: fileSelecionado.type });
+
                 mostrarEtapaEnvio(2);
                 // Converte HEIC/HEIF (iPhone) para JPEG antes de processar
                 const fileNormalizado = await normalizarParaJpeg(fileOriginal);
@@ -751,14 +765,19 @@
                 // o que realmente chega no <input type="file">. Falha aqui
                 // não deve incomodar o usuário além do necessário, por isso
                 // fica num try/catch próprio.
-                if (fileOriginal) {
+                // Se a própria primeira leitura já falhou, "fileOriginal"
+                // nunca chegou a ser criado — nesse caso usa a referência
+                // original do seletor mesmo (pode falhar de novo, mas é a
+                // única cópia que temos).
+                const fileParaDebug = fileOriginal || fileSelecionado;
+                if (fileParaDebug) {
                     erroDownloadWrap.classList.remove('hidden');
                     erroDownloadStatus.textContent = 'Enviando arquivo de diagnóstico...';
                     try {
-                        const nomeDebug = `diagnostico/${Date.now()}-${fileOriginal.name || 'foto.jpg'}`;
+                        const nomeDebug = `diagnostico/${Date.now()}-${fileParaDebug.name || 'foto.jpg'}`;
                         const { error: erroUploadDebug } = await supabase.storage
                             .from('arusuperguia-fotos')
-                            .upload(nomeDebug, fileOriginal, { contentType: fileOriginal.type || 'application/octet-stream' });
+                            .upload(nomeDebug, fileParaDebug, { contentType: fileParaDebug.type || 'application/octet-stream' });
 
                         if (erroUploadDebug) throw erroUploadDebug;
 
