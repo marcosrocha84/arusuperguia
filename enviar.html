@@ -199,18 +199,23 @@
             });
         }
 
-        // Mostra o progresso do envio como uma linha do tempo dentro do
-        // próprio texto do botão (ex: "1.2.🦖.4.5.6.7.8"), com o dinossauro
-        // andando pra etapa atual. Além de ficar mais bonito que um texto
-        // fixo de "Aguarde...", isso deixa visível em qual das 8 etapas o
-        // envio travou ou falhou, caso algo dê errado no celular.
-        const TOTAL_ETAPAS_ENVIO = 8;
+        // Mostra o progresso do envio como uma mensagem descritiva no texto
+        // do botão — muda a cada etapa pra deixar claro que o envio está
+        // avançando (em vez de um texto fixo de "Aguarde...", que dá a
+        // impressão de que travou durante as etapas mais demoradas, como
+        // compressão da imagem e upload).
+        const MENSAGENS_ETAPA_ENVIO = {
+            1: 'Preparando envio...',
+            2: 'Processando imagem...',
+            3: 'Processando imagem...',
+            4: 'Processando imagem...',
+            5: 'Comprimindo imagem...',
+            6: 'Gerando miniatura...',
+            7: 'Enviando foto...',
+            8: 'Enviando miniatura...',
+        };
         function mostrarEtapaEnvio(etapaAtual) {
-            const etapas = [];
-            for (let i = 1; i <= TOTAL_ETAPAS_ENVIO; i++) {
-                etapas.push(i === etapaAtual ? '🦖' : String(i));
-            }
-            btnEnviar.textContent = etapas.join('.');
+            btnEnviar.textContent = MENSAGENS_ETAPA_ENVIO[etapaAtual] || 'Aguarde...';
         }
 
         // Confere a assinatura de bytes do arquivo (a caixa "ftyp" do
@@ -595,7 +600,6 @@
 
             btnEnviar.disabled = true;
             mostrarEtapaEnvio(1);
-            let houveErro = false;
 
             const nome = document.getElementById('participante-nome').value;
             const fileSelecionado = fileInput.files[0];
@@ -792,7 +796,6 @@
                 sucessoContainer.classList.remove('hidden');
 
             } catch (error) {
-                houveErro = true;
                 console.error(error);
                 erroMensagem.textContent = "Erro ao enviar: " + (error && error.message ? error.message : "algo deu errado. Tente novamente.");
                 erroMensagem.classList.remove('hidden');
@@ -831,11 +834,7 @@
                 if (typeof turnstile !== "undefined") turnstile.reset();
             } finally {
                 btnEnviar.disabled = false;
-                // Em caso de erro, deixa o 🦖 parado na etapa onde travou (em
-                // vez de já sobrescrever com o texto padrão) — assim dá pra
-                // ver em qual das 8 etapas o envio falhou. Some sozinho no
-                // próximo envio, quando a linha do tempo reinicia do zero.
-                if (!houveErro) btnEnviar.textContent = "Enviar foto para curadoria";
+                btnEnviar.textContent = "Enviar foto para curadoria";
             }
         });
     </script>
