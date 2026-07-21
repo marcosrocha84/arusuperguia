@@ -233,7 +233,7 @@
         //
         // Retorna { blob, orientacao } — a orientação é lida antes do bloco
         // ser descartado, pra podermos reaplicar a rotação manualmente no
-        // canvas (ver aplicarOrientacaoExif em comprimirImagem).
+        // canvas (ver aplicarOrientacaoExif em comprimirAPartirDaFonte).
         async function removerMetadadosExif(file) {
             if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') return { blob: file, orientacao: 1 };
 
@@ -288,10 +288,11 @@
             }
         }
 
-        // Redimensiona/comprime a foto no navegador antes do upload.
-        // Fotos de celular costumam vir com vários MB — isso reduz o peso
-        // no Storage e acelera bastante o carregamento da tela de votação,
-        // que mostra várias fotos ao mesmo tempo.
+        // Decodifica o arquivo uma única vez (a etapa mais cara em memória,
+        // principalmente em celulares com câmera de alta resolução) pra ser
+        // reaproveitada na geração das duas versões (cheia e thumbnail) —
+        // decodificar o arquivo original duas vezes seria desperdício de
+        // memória e tempo, e em celulares mais fracos pode travar a aba.
         //
         // Tentamos createImageBitmap() primeiro (decodifica direto do
         // arquivo, sem precisar de uma string base64 gigante como o
@@ -301,16 +302,48 @@
         // do padrão etc.) mesmo quando o navegador conseguiria abrir a
         // mesma imagem numa tag <img> normal. Por isso, se createImageBitmap
         // falhar, caímos pro caminho via <img> + Object URL antes de desistir.
+        function decodificarFonte(file) {
+            function decodificarViaImgTag(resolve, reject) {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    resolve({ fonte: img, largura: img.naturalWidth, altura: img.naturalHeight });
+                    URL.revokeObjectURL(url);
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Não foi possível abrir essa imagem. Tente outra foto ou outro formato (JPG/PNG).'));
+                };
+                img.src = url;
+            }
+
+            return new Promise((resolve, reject) => {
+                if (window.createImageBitmap) {
+                    createImageBitmap(file)
+                        .then((bitmap) => resolve({ fonte: bitmap, largura: bitmap.width, altura: bitmap.height }))
+                        .catch(() => decodificarViaImgTag(resolve, reject));
+                    return;
+                }
+
+                decodificarViaImgTag(resolve, reject);
+            });
+        }
+
+        // Redimensiona/comprime a foto já decodificada (ver decodificarFonte)
+        // pro tamanho/qualidade pedidos. Fotos de celular costumam vir com
+        // vários MB — isso reduz o peso no Storage e acelera bastante o
+        // carregamento da tela de votação, que mostra várias fotos ao mesmo
+        // tempo.
         //
         // "orientacao" é o valor (1-8) lido do EXIF antes de ele ser removido
         // (ver lerOrientacaoExif). Como nem createImageBitmap nem <canvas>
         // aplicam essa rotação sozinhos quando não há mais EXIF, reaplicamos
         // manualmente — senão fotos em pé saem deitadas (ou vice-versa) no
         // arquivo final.
-        function comprimirImagem(file, maxLargura = 1600, qualidade = 0.8, orientacao = 1) {
+        function comprimirAPartirDaFonte(fonte, largura, altura, maxLargura, qualidade, orientacao) {
             // Matriz de transformação equivalente a cada valor do EXIF
             // Orientation. Referência: https://exiftool.org/TagNames/EXIF.html
-            function aplicarOrientacaoExif(ctx, largura, altura) {
+            function aplicarOrientacaoExif(ctx) {
                 switch (orientacao) {
                     case 2: ctx.transform(-1, 0, 0, 1, largura, 0); break;
                     case 3: ctx.transform(-1, 0, 0, -1, largura, altura); break;
@@ -323,7 +356,7 @@
                 }
             }
 
-            function desenharEComprimir(fonte, largura, altura, resolve, reject) {
+            return new Promise((resolve, reject) => {
                 // Orientações 5-8 giram a imagem em 90°/270°: largura e
                 // altura finais trocam de lugar.
                 const rotacionado90 = orientacao >= 5 && orientacao <= 8;
@@ -342,7 +375,7 @@
                 // finais) — o transform acima já dá conta de mapear pro
                 // tamanho/orientação certos.
                 ctx.scale(escala, escala);
-                aplicarOrientacaoExif(ctx, largura, altura);
+                aplicarOrientacaoExif(ctx);
                 ctx.drawImage(fonte, 0, 0, largura, altura);
 
                 canvas.toBlob(
@@ -350,31 +383,6 @@
                     'image/jpeg',
                     qualidade
                 );
-            }
-
-            function comprimirViaImgTag(resolve, reject) {
-                const url = URL.createObjectURL(file);
-                const img = new Image();
-                img.onload = () => {
-                    desenharEComprimir(img, img.naturalWidth, img.naturalHeight, resolve, reject);
-                    URL.revokeObjectURL(url);
-                };
-                img.onerror = () => {
-                    URL.revokeObjectURL(url);
-                    reject(new Error('Não foi possível abrir essa imagem. Tente outra foto ou outro formato (JPG/PNG).'));
-                };
-                img.src = url;
-            }
-
-            return new Promise((resolve, reject) => {
-                if (window.createImageBitmap) {
-                    createImageBitmap(file)
-                        .then((bitmap) => desenharEComprimir(bitmap, bitmap.width, bitmap.height, resolve, reject))
-                        .catch(() => comprimirViaImgTag(resolve, reject));
-                    return;
-                }
-
-                comprimirViaImgTag(resolve, reject);
             });
         }
 
@@ -423,27 +431,62 @@
             const nomeArquivoThumb = `${nomeArquivoUnico}-thumb.jpg`;
 
             try {
+                btnEnviar.textContent = "Processando imagem...";
+
                 // Converte HEIC/HEIF (iPhone) para JPEG antes de processar
                 const fileNormalizado = await normalizarParaJpeg(fileOriginal);
                 // Remove metadados EXIF (geolocalização inclusa) antes de decodificar,
                 // mas guarda a orientação pra reaplicar manualmente na compressão
-                const { blob: fileSemExif, orientacao } = await removerMetadadosExif(fileNormalizado);
-                // Comprime a imagem antes de enviar (reduz peso e tempo de upload).
-                // Geramos duas versões: a cheia (até 1600px), usada na modal
-                // ampliada, e uma thumbnail bem menor (até 300px), usada nas
-                // grades de votação/curadoria — isso evita carregar dezenas de
-                // imagens em tamanho cheio de uma vez e estourar o egress do
-                // Supabase durante o concurso.
-                const fileComprimido = await comprimirImagem(fileSemExif, 1600, 0.8, orientacao);
-                const fileThumb = await comprimirImagem(fileSemExif, 300, 0.65, orientacao);
+                let { blob: fileSemExif, orientacao } = await removerMetadadosExif(fileNormalizado);
+
+                // Decodifica a imagem uma única vez, pra gerar as duas versões
+                // (cheia e thumbnail) a partir da mesma fonte em memória.
+                let fonteDecodificada;
+                try {
+                    fonteDecodificada = await decodificarFonte(fileSemExif);
+                } catch (erroDecodificacao) {
+                    // Alguns navegadores embutidos (o "in-app browser" do
+                    // Instagram/WhatsApp/Facebook, por exemplo) entregam fotos
+                    // HEIC de iPhone sem MIME type nem extensão reconhecível,
+                    // então normalizarParaJpeg() não detecta e a decodificação
+                    // normal falha. Se ainda não tentamos converter via HEIC,
+                    // tenta como último recurso antes de desistir.
+                    if (fileNormalizado !== fileOriginal) throw erroDecodificacao; // já era HEIC e mesmo assim falhou
+
+                    btnEnviar.textContent = "Convertendo formato da foto...";
+                    try {
+                        const convertido = await heic2any({ blob: fileOriginal, toType: 'image/jpeg', quality: 0.85 });
+                        const fileConvertido = Array.isArray(convertido) ? convertido[0] : convertido;
+                        const semExif = await removerMetadadosExif(fileConvertido);
+                        fileSemExif = semExif.blob;
+                        orientacao = semExif.orientacao;
+                        fonteDecodificada = await decodificarFonte(fileSemExif);
+                    } catch (erroFallback) {
+                        throw erroDecodificacao; // mensagem original é mais clara pro usuário
+                    }
+                    btnEnviar.textContent = "Processando imagem...";
+                }
+
+                // Comprime a imagem antes de enviar (reduz peso e tempo de
+                // upload). Geramos duas versões: a cheia (até 1600px), usada
+                // na modal ampliada, e uma thumbnail bem menor (até 300px),
+                // usada nas grades de votação/curadoria — isso evita carregar
+                // dezenas de imagens em tamanho cheio de uma vez e estourar o
+                // egress do Supabase durante o concurso.
+                const { fonte, largura, altura } = fonteDecodificada;
+                const fileComprimido = await comprimirAPartirDaFonte(fonte, largura, altura, 1600, 0.8, orientacao);
+                const fileThumb = await comprimirAPartirDaFonte(fonte, largura, altura, 300, 0.65, orientacao);
+                if (typeof fonte.close === 'function') fonte.close(); // libera a memória do ImageBitmap assim que possível
 
                 // Upload para o Storage (versão cheia + thumbnail)
+                btnEnviar.textContent = "Enviando foto...";
                 const { data: storageData, error: storageError } = await supabase.storage
                     .from('arusuperguia-fotos')
                     .upload(nomeArquivoUnico, fileComprimido, { contentType: 'image/jpeg' });
 
                 if (storageError) throw storageError;
 
+                btnEnviar.textContent = "Enviando miniatura...";
                 const { data: storageThumbData, error: storageThumbError } = await supabase.storage
                     .from('arusuperguia-fotos')
                     .upload(nomeArquivoThumb, fileThumb, { contentType: 'image/jpeg' });
@@ -466,6 +509,7 @@
                 // token do CAPTCHA no servidor antes de gravar (o insert
                 // direto na tabela pela chave anônima fica bloqueado — ver
                 // sql/002_bloquear_insert_direto.sql).
+                btnEnviar.textContent = "Finalizando envio...";
                 const respostaFn = await fetch(`${SUPABASE_URL}/functions/v1/enviar-foto`, {
                     method: 'POST',
                     headers: {
