@@ -144,6 +144,18 @@ fotos de Android/Samsung. Vale entender antes de mexer:
   público é mostrado como texto selecionável na tela — isso substituiu um
   link de download de blob que falhava silenciosamente ("Erro na rede") no
   Chrome Android para arquivos grandes.
+- **`<meta name="color-scheme" content="light">`** em todas as páginas: sem
+  essa tag, o site não avisa o navegador que já controla suas próprias
+  cores — vários navegadores/WebViews Android têm um recurso de "escurecer
+  sites automaticamente" que reprocessa as cores de páginas sem esse aviso, o
+  que foi confirmado visualmente (cores diferentes entre o navegador padrão
+  de um Android e o Chrome). Investigado como possível causa também do
+  "canvas em branco" acima — o canvas de compressão nunca é inserido no DOM,
+  então em teoria não deveria ser afetado por um filtro de recoloração
+  visual, mas esse recurso de "forçar modo escuro" de WebViews Android já
+  teve bugs documentados que corrompiam conteúdo de canvas mesmo fora de
+  tela. A tag resolve o problema de cor de qualquer forma; se também reduzir
+  os casos de foto em branco, foi bônus.
 - **Detecção de canvas em branco**: descoberto ao investigar uma foto real
   cujo zoom (`url_foto`) abria completamente preto na votação, enquanto a
   miniatura (`url_thumb`) da mesma foto estava normal. A imagem no Storage
@@ -155,9 +167,17 @@ fotos de Android/Samsung. Vale entender antes de mexer:
   certa. `comprimirAPartirDaFonte` agora amostra alguns pixels do canvas
   depois de desenhar (`canvasPareceEmBranco`) e, se todos vierem
   praticamente idênticos, tenta desenhar de novo (até 3 vezes, com uma
-  pequena pausa entre tentativas) antes de desistir e lançar um erro — que
-  cai no mesmo fluxo de erro/diagnóstico já existente, em vez de subir uma
-  foto quebrada sem ninguém perceber.
+  pequena pausa entre tentativas). Reaconteceu mesmo depois desse fix (com
+  outra pessoa, outro aparelho), então foi confirmado que a causa real é o
+  "forçar modo escuro" de alguns navegadores/WebViews Android (ver item
+  acima) — uma limitação do aparelho, não algo que uma nova tentativa
+  resolve sozinha. Por isso, se as 3 tentativas ainda falharem,
+  `comprimirAPartirDaFonte` rejeita com um erro marcado
+  (`erro.canvasEmBranco = true`) e o código que chama (dentro do envio, em
+  `enviar.html`) cai para o arquivo original **só naquele slot** (cheia ou
+  thumb, cada um tratado de forma independente) em vez de bloquear o envio
+  inteiro — mesma filosofia de degradação graciosa usada no caso de leitura
+  de arquivo falhar: melhor uma foto sem otimização do que nenhuma foto.
 
 ## Login e votação (`votacao.html`)
 

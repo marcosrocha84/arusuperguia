@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
     <title>Enviar Foto - Concurso Dino Parque</title>
     <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
@@ -595,7 +596,9 @@
                             setTimeout(() => tentarDesenharEExportar(tentativa + 1), 200);
                             return;
                         }
-                        reject(new Error('Não foi possível processar essa foto (a imagem ficou em branco ao comprimir). Tente novamente ou use outra foto.'));
+                        const erroCanvasEmBranco = new Error('Não foi possível processar essa foto (a imagem ficou em branco ao comprimir).');
+                        erroCanvasEmBranco.canvasEmBranco = true; // marca esse erro específico pra quem chamar poder decidir cair para o arquivo original em vez de bloquear o envio
+                        reject(erroCanvasEmBranco);
                         return;
                     }
 
@@ -770,9 +773,25 @@
                     const { fonte, largura, altura } = fonteDecodificada;
                     const mensagemTimeoutCompressao = 'A compressão da imagem demorou demais. Tente uma foto menor.';
                     mostrarEtapaEnvio(5);
-                    fileComprimido = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 1600, 0.8, orientacao), 15000, mensagemTimeoutCompressao);
+                    try {
+                        fileComprimido = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 1600, 0.8, orientacao), 15000, mensagemTimeoutCompressao);
+                    } catch (erroCompressao) {
+                        // Mesmo depois das tentativas dentro de comprimirAPartirDaFonte,
+                        // o canvas continuou em branco (limitação do aparelho, não algo
+                        // que dá pra resolver tentando de novo aqui) — sobe o arquivo
+                        // original nesse slot em vez de bloquear o envio inteiro.
+                        if (!erroCompressao.canvasEmBranco) throw erroCompressao;
+                        console.error('Canvas em branco ao gerar a versão cheia; enviando o arquivo original nesse slot:', erroCompressao);
+                        fileComprimido = fileOriginal;
+                    }
                     mostrarEtapaEnvio(6);
-                    fileThumb = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 300, 0.65, orientacao), 15000, mensagemTimeoutCompressao);
+                    try {
+                        fileThumb = await comTimeout(comprimirAPartirDaFonte(fonte, largura, altura, 300, 0.65, orientacao), 15000, mensagemTimeoutCompressao);
+                    } catch (erroCompressaoThumb) {
+                        if (!erroCompressaoThumb.canvasEmBranco) throw erroCompressaoThumb;
+                        console.error('Canvas em branco ao gerar a thumbnail; enviando o arquivo original nesse slot:', erroCompressaoThumb);
+                        fileThumb = fileOriginal;
+                    }
                     if (typeof fonte.close === 'function') fonte.close(); // libera a memória do ImageBitmap assim que possível
                 } // fecha o "if (!fileComprimido)" — pulado por completo quando a leitura falhou
 
