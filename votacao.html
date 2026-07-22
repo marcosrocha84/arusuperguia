@@ -246,10 +246,32 @@
 
                 <!-- Barra do Usuário (Visível se logado) -->
                 <div id="user-info-bar" class="hidden ticket-sm px-4 py-2 flex items-center gap-4">
-                    <span id="user-name" class="text-sm font-medium text-[var(--ink)]"></span>
+                    <div class="flex flex-col leading-tight gap-0.5">
+                        <span id="user-name" class="text-sm font-medium text-[var(--ink)]"></span>
+                        <button id="btn-preferencias-marketing" class="hidden text-xs text-left underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">
+                            ⚙️ Preferências de e-mail
+                        </button>
+                    </div>
                     <button id="btn-logout" class="text-xs bg-[var(--amber)] hover:bg-[var(--amber-dark)] text-black font-bold px-3 py-1.5 rounded-lg border-2 border-[var(--ink)] transition">
                         Sair
                     </button>
+                </div>
+            </div>
+
+            <!-- Banner de opt-in de e-mail marketing (só aparece se o concurso ativo
+                 habilitar e o usuário estiver logado) -->
+            <div id="banner-optin-marketing" class="hidden ticket-sm mx-6 mb-6 p-4">
+                <p class="text-sm text-[var(--ink)] mb-3">
+                    Quer receber novidades e ofertas por e-mail do Belinzoni Dino Parque e de patrocinadores parceiros dos concursos?
+                </p>
+                <label class="flex items-center gap-2 mb-1 cursor-pointer">
+                    <input type="checkbox" id="optin-marketing-checkbox" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                    <span class="text-sm text-[var(--ink)]">Aceito receber e-mails com novidades e ofertas do Parque e de patrocinadores parceiros.</span>
+                </label>
+                <a href="./privacy.html#marketing" target="_blank" rel="noopener noreferrer" class="block mb-3 text-xs underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">Saiba mais sobre esse uso dos seus dados</a>
+                <div class="flex items-center gap-3">
+                    <button id="btn-optin-marketing-salvar" type="button" class="btn btn-fern text-sm !py-1.5 !px-3">Salvar</button>
+                    <button id="btn-optin-marketing-fechar" type="button" class="btn btn-ghost text-sm !py-1.5 !px-3">Agora não</button>
                 </div>
             </div>
 
@@ -343,6 +365,11 @@
         const btnAtualizar = document.getElementById('btn-atualizar');
         const ultimaAtualizacaoSpan = document.getElementById('ultima-atualizacao');
         const areaLogin = document.getElementById('area-login');
+        const btnPreferenciasMarketing = document.getElementById('btn-preferencias-marketing');
+        const bannerOptinMarketing = document.getElementById('banner-optin-marketing');
+        const optinMarketingCheckbox = document.getElementById('optin-marketing-checkbox');
+        const btnOptinMarketingSalvar = document.getElementById('btn-optin-marketing-salvar');
+        const btnOptinMarketingFechar = document.getElementById('btn-optin-marketing-fechar');
         const tituloVotacao = document.getElementById('titulo-votacao');
         const subtituloVotacao = document.getElementById('subtitulo-votacao');
         const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
@@ -585,6 +612,16 @@
         let usuarioAtual = null;
         let meusVotosRealizados = [];
 
+        // Se o concurso ativo no momento habilita (ou não) o opt-in de
+        // marketing — controlado pelo curador em curadoria.html.
+        let concursoMostrarOptinMarketing = false;
+
+        // Versão do texto de consentimento exibido no banner. Só muda se o
+        // texto do opt-in mudar de sentido no futuro (ex: passar a incluir
+        // WhatsApp) — nesse caso, suba esse valor para os usuários serem
+        // solicitados a confirmar de novo.
+        const TERMO_MARKETING_VERSAO = '2026-07-22';
+
         // 1. GERENCIAMENTO DE SESSÃO DO USUÁRIO
         async function checarSessao() {
             const { data: { session } } = await supabase.auth.getSession();
@@ -612,7 +649,12 @@
             await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.href
+                    // Nunca usar window.location.href aqui: se a URL ainda
+                    // tiver o #access_token de um login anterior (o hash não
+                    // é limpo depois de autenticar), o Supabase anexaria um
+                    // novo hash em cima do antigo, gerando um fragmento
+                    // malformado (##access_token) que trava o login seguinte.
+                    redirectTo: window.location.origin + window.location.pathname
                 }
             });
         });
@@ -633,9 +675,12 @@
                 return;
             }
 
+            // Mesmo cuidado do login normal acima: nunca reaproveitar
+            // window.location.href puro, que pode ter um #access_token
+            // velho grudado e corromper o redirect do OAuth.
             const redirectUrl = fotoIdParaVotar
                 ? `${window.location.origin}${window.location.pathname}?foto=${fotoIdParaVotar}`
-                : window.location.href;
+                : `${window.location.origin}${window.location.pathname}`;
 
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
@@ -734,7 +779,7 @@
             const { data, error } = await supabase
                 .from('concursos')
                 .select(`
-                    id, descricao, data, regulamento_pdf_url, qtd_vencedores,
+                    id, descricao, data, regulamento_pdf_url, qtd_vencedores, mostrar_optin_marketing,
                     concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
                     concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
                 `)
@@ -755,6 +800,82 @@
             return dataFim < hoje;
         }
 
+        // Opt-in de e-mail marketing — a resposta do usuário fica gravada por
+        // user_id (tabela preferencias_marketing), independente do concurso
+        // ativo no momento em que foi dada. O concurso só decide se pergunta.
+        async function verificarOptInMarketing() {
+            if (!usuarioAtual || !concursoMostrarOptinMarketing) {
+                bannerOptinMarketing.classList.add('hidden');
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('preferencias_marketing')
+                .select('optin_email_marketing')
+                .eq('user_id', usuarioAtual.id)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Erro ao buscar preferência de marketing:', error);
+                return;
+            }
+
+            // Só mostra o banner sozinho se a pessoa nunca respondeu ainda.
+            // Quem já respondeu (aceitou ou recusou) só vê de novo clicando
+            // em "Preferências de e-mail".
+            bannerOptinMarketing.classList.toggle('hidden', data !== null);
+        }
+
+        async function salvarOptInMarketing(aceitou) {
+            const { error } = await supabase
+                .from('preferencias_marketing')
+                .upsert({
+                    user_id: usuarioAtual.id,
+                    optin_email_marketing: aceitou,
+                    optin_em: new Date().toISOString(),
+                    optin_versao_termo: TERMO_MARKETING_VERSAO,
+                    atualizado_em: new Date().toISOString(),
+                });
+
+            if (error) {
+                alert('Não foi possível salvar sua preferência: ' + error.message);
+                return;
+            }
+
+            bannerOptinMarketing.classList.add('hidden');
+        }
+
+        btnOptinMarketingSalvar.addEventListener('click', () => {
+            salvarOptInMarketing(optinMarketingCheckbox.checked);
+        });
+
+        // "Agora não" também grava (como recusa) — assim o link de
+        // preferências passa a ser o único jeito de reabrir o banner depois,
+        // em vez dele reaparecer em toda visita futura.
+        btnOptinMarketingFechar.addEventListener('click', () => {
+            optinMarketingCheckbox.checked = false;
+            salvarOptInMarketing(false);
+        });
+
+        // Reabre o banner pré-preenchido com a resposta atual, pra quem já
+        // respondeu poder mudar de ideia a qualquer momento.
+        btnPreferenciasMarketing.addEventListener('click', async () => {
+            const { data, error } = await supabase
+                .from('preferencias_marketing')
+                .select('optin_email_marketing')
+                .eq('user_id', usuarioAtual.id)
+                .maybeSingle();
+
+            if (error) {
+                alert('Não foi possível carregar sua preferência: ' + error.message);
+                return;
+            }
+
+            optinMarketingCheckbox.checked = data ? data.optin_email_marketing : false;
+            bannerOptinMarketing.classList.remove('hidden');
+            bannerOptinMarketing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
         // 2. BUSCA E RENDERIZAÇÃO DAS FOTOS APROVADAS
         async function carregarFotosAprovadas() {
             try {
@@ -767,6 +888,16 @@
 
                 // Concurso encerrado: não faz mais sentido oferecer login/voto
                 areaLogin.classList.toggle('hidden', encerrado);
+
+                concursoMostrarOptinMarketing = concursoAtivo.mostrar_optin_marketing;
+                if (encerrado || !usuarioAtual) {
+                    bannerOptinMarketing.classList.add('hidden');
+                    btnPreferenciasMarketing.classList.add('hidden');
+                } else {
+                    btnPreferenciasMarketing.classList.toggle('hidden', !concursoMostrarOptinMarketing);
+                    await verificarOptInMarketing();
+                }
+
                 if (encerrado) {
                     const dataFormatada = new Date(concursoAtivo.data + 'T00:00:00').toLocaleDateString('pt-BR');
                     tituloVotacao.textContent = '🏆 Fotos campeãs da temporada!';

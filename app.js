@@ -75,6 +75,7 @@ const concursoDescricaoInput = document.getElementById('concurso-descricao');
 const concursoDataInput = document.getElementById('concurso-data');
 const concursoAtivoInput = document.getElementById('concurso-ativo');
 const concursoEncerradoInput = document.getElementById('concurso-encerrado');
+const concursoMostrarOptinMarketingInput = document.getElementById('concurso-mostrar-optin-marketing');
 const concursoQtdVencedoresInput = document.getElementById('concurso-qtd-vencedores');
 const trofeuOpcoes = document.querySelectorAll('.trofeu-opcao');
 const concursoRegulamentoArquivoInput = document.getElementById('concurso-regulamento-arquivo');
@@ -860,6 +861,7 @@ function resetConcursoForm() {
     concursoIdInput.value = '';
     concursoAtivoInput.checked = true;
     concursoEncerradoInput.checked = false;
+    concursoMostrarOptinMarketingInput.checked = false;
     selecionarQtdVencedores(3);
     marcarSelecionadosLista(concursoPatrocinadoresLista, []);
     marcarSelecionadosPremiacoes([]);
@@ -879,6 +881,7 @@ window.editarConcurso = function(id) {
     concursoDataInput.value = concurso.data;
     concursoAtivoInput.checked = concurso.ativo;
     concursoEncerradoInput.checked = concurso.encerrado;
+    concursoMostrarOptinMarketingInput.checked = concurso.mostrar_optin_marketing;
     selecionarQtdVencedores(concurso.qtd_vencedores || 3);
     marcarSelecionadosLista(concursoPatrocinadoresLista, (concurso.concursos_patrocinadores || []).map(v => v.patrocinador_id));
     marcarSelecionadosPremiacoes((concurso.concursos_premiacoes || []).map(v => ({ premiacao_id: v.premiacao_id, posicao: v.posicao })));
@@ -923,6 +926,7 @@ if (concursoForm) {
             data: concursoDataInput.value,
             ativo: concursoAtivoInput.checked,
             encerrado: concursoEncerradoInput.checked,
+            mostrar_optin_marketing: concursoMostrarOptinMarketingInput.checked,
             qtd_vencedores: Number(concursoQtdVencedoresInput.value),
         };
 
