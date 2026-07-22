@@ -16,6 +16,29 @@
 
     <!-- Conversor HEIC → JPEG (fotos de iPhone não abrem em <canvas> sem isso) -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+
+    <style>
+        @keyframes toast-entra-sai {
+            0% { opacity: 0; transform: translate(-50%, 8px); }
+            10%, 85% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, 8px); }
+        }
+        .toast-compartilhar {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translate(-50%, 0);
+            background: var(--ink);
+            color: var(--bone);
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 10001;
+            animation: toast-entra-sai 2.2s ease forwards;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body class="bg-canopy min-h-screen flex flex-col justify-between items-center p-4">
 
@@ -78,10 +101,20 @@
             <div id="sucesso-container" class="hidden text-center py-8 px-6 md:px-8">
                 <div class="text-5xl mb-4">🦕🎉</div>
                 <span class="stamp stamp-fern">Inscrição confirmada</span>
-                <p class="text-[var(--ink-soft)] text-sm mt-4 mb-6">
-                    Sua foto foi enviada com sucesso para os nossos jurados. Fique de olho na área de votação!
-                </p>                
-                
+                <p class="text-[var(--ink-soft)] text-sm mt-4 mb-4">
+                    Sua foto foi enviada com sucesso para os nossos jurados. Ela passa por uma curadoria e pode ser aprovada ou reprovada conforme o regulamento.
+                </p>
+
+                <!-- Código de acompanhamento -->
+                <div class="ticket-sm p-4 mb-5 text-left">
+                    <p class="text-xs text-[var(--ink-soft)] mb-1">Código de acompanhamento — guarde para consultar o status da sua foto:</p>
+                    <div class="flex flex-col items-center gap-2 text-center">
+                        <p id="codigo-acompanhamento" class="font-mono text-xs sm:text-sm font-semibold text-[var(--ink)] break-all select-all"></p>
+                        <button id="btn-copiar-codigo" type="button" class="btn btn-ghost !py-1.5 !px-3 text-xs">📋 Copiar</button>
+                    </div>
+                    <a href="./status.html" class="text-xs underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)] mt-2 inline-block">🔎 Acompanhar minha foto</a>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-1 gap-3">
                     <button id="btn-reiniciar" class="btn btn-amber btn-block mt-3">
                         🔄 Enviar uma nova foto
@@ -143,6 +176,8 @@
         const imagePreview = document.getElementById('image-preview');
         const btnEnviar = document.getElementById('btn-enviar');
         const btnReiniciar = document.getElementById('btn-reiniciar');
+        const codigoAcompanhamentoEl = document.getElementById('codigo-acompanhamento');
+        const btnCopiarCodigo = document.getElementById('btn-copiar-codigo');
         const erroMensagem = document.getElementById('erro-mensagem');
         const erroDownloadWrap = document.getElementById('erro-download-wrap');
         const erroDownloadStatus = document.getElementById('erro-download-status');
@@ -624,12 +659,34 @@
             }
         });
 
+        // Pequeno aviso flutuante ao copiar o código (mesmo padrão usado em
+        // votacao.html pro botão de compartilhar).
+        function mostrarToast(mensagem) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-compartilhar';
+            toast.textContent = mensagem;
+            document.body.appendChild(toast);
+            toast.addEventListener('animationend', () => toast.remove());
+        }
+
+        btnCopiarCodigo.addEventListener('click', async () => {
+            const codigo = codigoAcompanhamentoEl.textContent;
+            if (!codigo) return;
+            try {
+                await navigator.clipboard.writeText(codigo);
+                mostrarToast('🔗 Código copiado!');
+            } catch (err) {
+                mostrarToast('Não foi possível copiar. Selecione o código manualmente.');
+            }
+        });
+
         btnReiniciar.addEventListener('click', () => {
             uploadForm.reset();
             previewContainer.classList.add('hidden');
             erroMensagem.classList.add('hidden');
             erroDownloadWrap.classList.add('hidden');
             sucessoContainer.classList.add('hidden');
+            codigoAcompanhamentoEl.textContent = '';
             formContainer.classList.remove('hidden');
 
             // Força o reset do CAPTCHA para o próximo envio
@@ -866,6 +923,8 @@
 
                 const resultadoFn = await respostaFn.json();
                 if (!respostaFn.ok) throw new Error(resultadoFn.error || 'Erro ao registrar a foto.');
+
+                codigoAcompanhamentoEl.textContent = resultadoFn.codigo || '';
 
                 formContainer.classList.add('hidden');
                 sucessoContainer.classList.remove('hidden');

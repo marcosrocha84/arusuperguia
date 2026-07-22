@@ -323,7 +323,12 @@ async function carregarFotos(filtro = 'Todas', concursoId = 'todos', pagina = 1)
     if (filtro === 'Aprovadas') {
         query = query.eq('aprovada', true);
     } else if (filtro === 'Pendentes') {
-        query = query.eq('aprovada', false);
+        // "Pendentes" é quem ainda não recebeu decisão nenhuma — exclui as
+        // já reprovadas (reprovada=true), senão elas nunca sairiam da fila
+        // já que agora reprovar não apaga mais a linha (ver deletarFoto).
+        query = query.eq('aprovada', false).eq('reprovada', false);
+    } else if (filtro === 'Reprovadas') {
+        query = query.eq('reprovada', true);
     }
 
     if (concursoId && concursoId !== 'todos') {
@@ -365,22 +370,39 @@ async function carregarFotos(filtro = 'Todas', concursoId = 'todos', pagina = 1)
         const card = document.createElement('div');
         card.className = "ticket-sm overflow-hidden";
 
+        // Fotos reprovadas têm o arquivo removido do Storage (ver
+        // deletarFoto) — sem URL pra mostrar, exibe um espaço reservado em
+        // vez de um <img src=""> (que gera um pedido de rede inválido).
+        const imagemHtml = foto.reprovada
+            ? `<div class="w-full h-48 bg-[var(--bone-2)] flex items-center justify-center text-4xl">🗑️</div>`
+            : `<img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto de participante" loading="lazy" class="w-full h-48 object-cover">`;
+
+        const dataEnvio = new Date(foto.criado_em).toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
         card.innerHTML = `
-            <img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto de participante" loading="lazy" class="w-full h-48 object-cover">
+            ${imagemHtml}
             <div class="p-4">
-                <p class="text-sm text-[var(--ink-soft)] mb-1">Participante: <strong class="text-[var(--ink)]">${escapeHTML(foto.nome_participante)}</strong></p>
-                <p class="text-xs text-[var(--ink-soft)] mb-2">Concurso: <strong class="text-[var(--ink)]">${foto.concursos ? escapeHTML(foto.concursos.descricao) : 'Sem concurso vinculado'}</strong></p>
+                <p class="text-sm text-[var(--ink-soft)] mb-1">👤 Participante: <strong class="text-[var(--ink)]">${escapeHTML(foto.nome_participante)}</strong></p>
+                <p class="text-xs text-[var(--ink-soft)] mb-2">🏆 Concurso: <strong class="text-[var(--ink)]">${foto.concursos ? escapeHTML(foto.concursos.descricao) : 'Sem concurso vinculado'}</strong></p>
+                <p class="text-xs text-[var(--ink-soft)] mb-1">📅 Enviada em: <strong class="text-[var(--ink)]">${dataEnvio}</strong></p>
+                <p class="text-xs text-[var(--ink-soft)] mb-2">📋 Código de acompanhamento:<br><span class="font-mono text-[var(--ink)] break-all select-all">${escapeHTML(foto.id)}</span></p>
                 <div class="flex items-center space-x-2 my-2">
-                    <span class="stamp ${foto.aprovada ? 'stamp-fern' : 'stamp-amber'}">
-                        ${foto.aprovada ? 'Aprovada (visível)' : 'Pendente'}
+                    <span class="stamp ${foto.aprovada ? 'stamp-fern' : (foto.reprovada ? 'stamp-ember' : 'stamp-amber')}">
+                        ${foto.aprovada ? 'Aprovada (visível)' : (foto.reprovada ? 'Reprovada' : 'Pendente')}
                     </span>
                 </div>
                 <div class="flex space-x-2 mt-4">
-                    ${!foto.aprovada ?
-                        `<button onclick="alterarStatusFoto('${foto.id}', true)" class="btn btn-fern flex-1 text-sm !py-1.5 !px-3">Aprovar</button>` :
-                        `<button onclick="alterarStatusFoto('${foto.id}', false)" class="btn btn-amber flex-1 text-sm !py-1.5 !px-3">Desaprovar</button>`
+                    ${foto.reprovada ?
+                        // Arquivo já foi removido do Storage ao reprovar — não tem
+                        // como "desfazer" reaprovando (a foto não existe mais).
+                        `<p class="text-xs text-[var(--ink-soft)] italic flex-1">Arquivo removido do armazenamento.</p>` :
+                        !foto.aprovada ?
+                            `<button onclick="alterarStatusFoto('${foto.id}', true)" class="btn btn-fern flex-1 text-sm !py-1.5 !px-3">Aprovar</button>
+                             <button onclick="deletarFoto('${foto.id}')" class="btn btn-ember text-sm !py-1.5 !px-3">Reprovar</button>` :
+                            `<button onclick="alterarStatusFoto('${foto.id}', false)" class="btn btn-amber flex-1 text-sm !py-1.5 !px-3">Desaprovar</button>`
                     }
-                    <button onclick="deletarFoto('${foto.id}')" class="btn btn-ember text-sm !py-1.5 !px-3">Reprovar</button>
                 </div>
             </div>
         `;
@@ -390,11 +412,16 @@ async function carregarFotos(filtro = 'Todas', concursoId = 'todos', pagina = 1)
     atualizarPaginacaoModeracao(totalPaginas);
 }
 
-// 5. Função para aprovar ou reprovar a foto
+// 5. Função para aprovar ou desaprovar a foto (só chamada pra fotos ainda
+// pendentes ou já aprovadas — a UI não oferece essa ação pra reprovadas,
+// já que o arquivo delas foi removido do Storage e não tem como reaprovar
+// sem o arquivo). O reset de "reprovada" aqui é só uma proteção defensiva.
 window.alterarStatusFoto = async function(id, status) {
+    const payload = status ? { aprovada: true, reprovada: false } : { aprovada: false };
+
     const { error } = await supabase
         .from('fotos_concurso')
-        .update({ aprovada: status })
+        .update(payload)
         .eq('id', id);
 
     if (error) {
@@ -404,19 +431,57 @@ window.alterarStatusFoto = async function(id, status) {
     }
 }
 
-// 6. Função para deletar a foto (se for imprópria, por exemplo)
-window.deletarFoto = async function(id) {
-    if (confirm("Tem certeza que deseja REPROVAR esta foto permanentemente?\nEssa ação excluirá a foto e não pode ser desfeita.")) {
-        const { error } = await supabase
-            .from('fotos_concurso')
-            .delete()
-            .eq('id', id);
+// Extrai o caminho do arquivo dentro do bucket a partir da URL pública
+// salva no banco (ex: ".../object/public/arusuperguia-fotos/123-abc.jpg"
+// -> "123-abc.jpg") — é o formato que supabase.storage...remove() espera.
+function extrairCaminhoNoBucketFotos(url) {
+    if (!url) return null;
+    const marcador = '/arusuperguia-fotos/';
+    const indice = url.indexOf(marcador);
+    if (indice === -1) return null;
+    return decodeURIComponent(url.slice(indice + marcador.length));
+}
 
-        if (error) {
-            alert("Erro ao deletar: " + error.message);
-        } else {
-            carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos', paginaAtualModeracao);
-        }
+// 6. Função para reprovar a foto: remove os arquivos do Storage (cheio +
+// thumbnail) — não faz sentido manter uma foto reprovada ocupando espaço —
+// mas mantém a linha na tabela (só com aprovada=false, reprovada=true e as
+// URLs limpas), pra quem enviou conseguir ver esse status pelo código de
+// acompanhamento em status.html (ver sql/018_fotos_concurso_reprovada.sql
+// e sql/019_storage_fotos_admin_delete.sql).
+window.deletarFoto = async function(id) {
+    if (!confirm("Tem certeza que deseja REPROVAR esta foto?\nO arquivo será removido do armazenamento. Quem enviou vai poder ver esse status pelo código de acompanhamento.")) {
+        return;
+    }
+
+    const { data: foto, error: erroBusca } = await supabase
+        .from('fotos_concurso')
+        .select('url_foto, url_thumb')
+        .eq('id', id)
+        .single();
+
+    if (erroBusca) {
+        alert("Erro ao reprovar: " + erroBusca.message);
+        return;
+    }
+
+    const caminhos = [extrairCaminhoNoBucketFotos(foto.url_foto), extrairCaminhoNoBucketFotos(foto.url_thumb)].filter(Boolean);
+    if (caminhos.length > 0) {
+        const { error: erroStorage } = await supabase.storage.from('arusuperguia-fotos').remove(caminhos);
+        // Não interrompe o fluxo se a exclusão do arquivo falhar — a foto
+        // já vai ser marcada como reprovada de qualquer forma; o pior caso é
+        // um arquivo órfão no Storage, não um bloqueio da moderação.
+        if (erroStorage) console.error('Erro ao remover arquivos do Storage (a foto será marcada como reprovada mesmo assim):', erroStorage);
+    }
+
+    const { error } = await supabase
+        .from('fotos_concurso')
+        .update({ aprovada: false, reprovada: true, url_foto: '', url_thumb: '' })
+        .eq('id', id);
+
+    if (error) {
+        alert("Erro ao reprovar: " + error.message);
+    } else {
+        carregarFotos(statusFilter ? statusFilter.value : 'Todas', moderacaoConcursoFilter ? moderacaoConcursoFilter.value : 'todos', paginaAtualModeracao);
     }
 }
 

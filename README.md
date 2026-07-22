@@ -17,6 +17,7 @@ README cobre só "o que existe" e "como rodar".
 | `enviar.html` | visitante | Formulário de envio de foto (compressão + thumbnail no navegador, CAPTCHA, upload) |
 | `votacao.html` | visitante | Grade de fotos aprovadas do concurso ativo; login Google pra votar; vira "fotos campeãs" quando o concurso encerra |
 | `historico.html` | visitante | Pódio de cada concurso já encerrado (edições anteriores) |
+| `status.html` | visitante | Consulta o status da foto enviada (em análise/aprovada/reprovada) por código, sem login |
 | `curadoria.html` + `app.js` | admin | Painel: modera fotos, e faz CRUD de concursos, patrocinadores e premiações |
 | `privacy.html` / `terms.html` | visitante | Páginas legais |
 

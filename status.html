@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <title>Acompanhar Foto - Concurso Dino Parque</title>
+    <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <style>
+        @keyframes status-relogio-balancar {
+            0%, 100% { transform: rotate(-10deg); }
+            50% { transform: rotate(10deg); }
+        }
+        .status-relogio {
+            display: inline-block;
+            font-size: 2.5rem;
+            animation: status-relogio-balancar 1s ease-in-out infinite;
+        }
+    </style>
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="./supabase-client.js?v=1.0"></script>
+</head>
+<body class="bg-canopy min-h-screen flex flex-col justify-between items-center p-4">
+
+    <main class="w-full max-w-md relative z-10 my-auto py-6">
+        <div class="ticket">
+
+            <!-- Cabeçalho -->
+            <div class="text-center p-6 md:p-8">
+                <p class="eyebrow text-[var(--ember-dark)]">Belinzoni Dino Parque</p>
+                <h1 class="font-display text-2xl md:text-3xl text-[var(--ink)] mt-1">🔎 Acompanhar minha foto</h1>
+                <p class="text-sm text-[var(--ink-soft)] mt-2">
+                    Cole abaixo o código que você recebeu na tela de envio pra ver o status da sua foto.
+                </p>
+            </div>
+
+            <div class="ticket-tear"></div>
+
+            <!-- Busca por código -->
+            <div id="busca-container" class="p-6 md:p-8">
+                <form id="status-form" class="space-y-4">
+                    <div>
+                        <label for="codigo-input" class="block text-[var(--ink)] text-sm font-semibold mb-1">Código de acompanhamento</label>
+                        <input type="text" id="codigo-input" required placeholder="Ex: 5ea4fa96-95f2-4aa3-adba-9bc84897a06b" class="w-full px-4 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)] bg-white font-mono text-sm">
+                    </div>
+                    <button type="submit" id="btn-verificar" class="btn btn-fern btn-block">Verificar status</button>
+                </form>
+            </div>
+
+            <!-- Resultado da consulta -->
+            <div id="resultado-container" class="hidden p-6 md:p-8 pt-0 text-center">
+                <div id="resultado-conteudo"></div>
+                <button id="btn-voltar" type="button" class="btn btn-ghost btn-block mt-5">🔄 Consultar outro código</button>
+            </div>
+
+            <p id="erro-mensagem" class="text-[var(--ember-dark)] text-sm text-center font-semibold px-6 pb-6 hidden"></p>
+
+            <div class="text-center px-6 md:px-8 pb-6">
+                <a href="./index.html" class="btn btn-ghost btn-block">
+                    🏠 Página inicial
+                </a>
+            </div>
+
+            <div class="ticket-tear"></div>
+
+            <!-- Rodapé -->
+            <footer class="text-center p-6 md:p-10 pt-8 text-[var(--ink-soft)]">
+                <p class="text-sm font-semibold">
+                    Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
+                </p>
+                <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
+                    © AruSuperGuia
+                    <span class="divider-dot"></span>
+                    <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
+                    <span class="divider-dot"></span>
+                    <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
+                    <span class="divider-dot"></span>
+                    <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
+                </div>
+            </footer>
+        </div>
+    </main>
+
+    <script>
+        // Configuração do Supabase vem de supabase-client.js
+
+        const statusForm = document.getElementById('status-form');
+        const codigoInput = document.getElementById('codigo-input');
+        const btnVerificar = document.getElementById('btn-verificar');
+        const buscaContainer = document.getElementById('busca-container');
+        const resultadoContainer = document.getElementById('resultado-container');
+        const resultadoConteudo = document.getElementById('resultado-conteudo');
+        const btnVoltar = document.getElementById('btn-voltar');
+        const erroMensagem = document.getElementById('erro-mensagem');
+
+        // Um bloco de HTML por status possível devolvido pela Edge Function
+        // status-foto — "nao_encontrado" também cobre código malformado ou
+        // digitado errado, sem expor detalhe técnico nenhum pro visitante.
+        const CONTEUDO_POR_STATUS = {
+            pendente: () => `
+                <div class="flex flex-col items-center gap-2 mb-2">
+                    <div class="status-relogio">🕐</div>
+                    <span class="stamp stamp-amber">Em análise</span>
+                </div>
+                <p class="text-[var(--ink-soft)] text-sm mt-3">
+                    Sua foto foi recebida e ainda está sendo avaliada pela nossa curadoria. Volte aqui mais tarde pra conferir o resultado.
+                </p>
+            `,
+            aprovada: (dados) => `
+                <div class="text-5xl mb-3">✅</div>
+                ${dados.url_thumb ? `<img src="${escapeHTML(dados.url_thumb)}" alt="Sua foto aprovada" class="w-32 h-32 object-cover rounded-lg border-2 border-[var(--ink)] mx-auto mb-3">` : ''}
+                <span class="stamp stamp-fern mb-2">Aprovada</span>
+                <p class="text-[var(--ink-soft)] text-sm mt-3">
+                    Sua foto foi aprovada! Procure por ela na área de votação 🦖
+                </p>
+                <a href="./votacao.html" class="btn btn-ember btn-block mt-4">❤️ Ir para a votação</a>
+            `,
+            reprovada: () => `
+                <div class="text-5xl mb-3">❌</div>
+                <span class="stamp stamp-ember mb-2">Reprovada</span>
+                <p class="text-[var(--ink-soft)] text-sm mt-3">
+                    Sua foto não atendeu aos critérios do regulamento. Você pode enviar uma nova foto se desejar.
+                </p>
+                <a href="./enviar.html" class="btn btn-fern btn-block mt-4">📸 Enviar outra foto</a>
+            `,
+            nao_encontrado: () => `
+                <div class="text-5xl mb-3">🔍</div>
+                <p class="text-[var(--ink)] font-semibold">Código não encontrado</p>
+                <p class="text-[var(--ink-soft)] text-sm mt-2">
+                    Confira se copiou o código certinho, sem espaços extras, e tente de novo.
+                </p>
+            `,
+        };
+
+        function mostrarResultado(status, dados) {
+            const montar = CONTEUDO_POR_STATUS[status] || CONTEUDO_POR_STATUS.nao_encontrado;
+            resultadoConteudo.innerHTML = montar(dados || {});
+            buscaContainer.classList.add('hidden');
+            resultadoContainer.classList.remove('hidden');
+        }
+
+        statusForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            erroMensagem.classList.add('hidden');
+
+            const codigo = codigoInput.value.trim();
+            if (!codigo) return;
+
+            btnVerificar.disabled = true;
+            btnVerificar.textContent = 'Verificando...';
+
+            try {
+                const resposta = await fetch(`${SUPABASE_URL}/functions/v1/status-foto`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    },
+                    body: JSON.stringify({ codigo }),
+                });
+
+                const resultado = await resposta.json();
+                if (!resposta.ok) throw new Error(resultado.error || 'Não foi possível consultar o status agora.');
+
+                mostrarResultado(resultado.status, resultado);
+            } catch (error) {
+                console.error(error);
+                erroMensagem.textContent = 'Não foi possível consultar o status agora. Tente novamente em instantes.';
+                erroMensagem.classList.remove('hidden');
+            } finally {
+                btnVerificar.disabled = false;
+                btnVerificar.textContent = 'Verificar status';
+            }
+        });
+
+        btnVoltar.addEventListener('click', () => {
+            codigoInput.value = '';
+            resultadoContainer.classList.add('hidden');
+            buscaContainer.classList.remove('hidden');
+            codigoInput.focus();
+        });
+    </script>
+</body>
+</html>

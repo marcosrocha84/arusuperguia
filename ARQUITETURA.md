@@ -179,6 +179,56 @@ fotos de Android/Samsung. Vale entender antes de mexer:
   inteiro — mesma filosofia de degradação graciosa usada no caso de leitura
   de arquivo falhar: melhor uma foto sem otimização do que nenhuma foto.
 
+## Acompanhamento de status sem login (`status.html`)
+
+Depois de enviar, o participante não tinha nenhuma forma de saber se a foto
+foi aprovada ou reprovada sem entrar em contato — a única pista era abrir
+`votacao.html` e procurar a própria foto na grade. `status.html` resolve
+isso com um código de acompanhamento, sem exigir login/e-mail/dado extra
+nenhum.
+
+- **O código é o próprio `id` (uuid) da foto** em `fotos_concurso`, devolvido
+  pela Edge Function `enviar-foto` na resposta de sucesso. Não existe tabela
+  ou coluna nova só pra isso — é único e não-adivinhável por natureza (é um
+  uuid v4 gerado pelo Postgres), então reaproveitar é mais simples e mais
+  seguro do que inventar um código curto derivado.
+- **Por que a consulta de status passa por uma Edge Function
+  (`status-foto`) em vez de uma query direta do navegador**: a RLS pública
+  hoje só libera leitura de fotos com `aprovada = true` (sql/015) — de
+  propósito, pra ninguém conseguir listar nome e foto de todo mundo que
+  ainda está em análise. Se `status.html` consultasse a tabela direto, a
+  única forma de também mostrar "pendente"/"reprovada" seria afrouxar essa
+  policy pra cobrir todas as linhas — o que abriria exatamente essa brecha
+  (qualquer pessoa poderia listar todas as fotos pendentes via API, não só
+  consultar a sua pelo código). Rodando com a Service Role Key numa Edge
+  Function, a busca é sempre por um `id` exato vindo do corpo da requisição
+  — não tem como listar todas por essa rota — e a resposta só inclui o
+  mínimo necessário (status + `url_thumb` quando aprovada).
+- **Reprovar virou soft-delete**: até essa mudança, o botão "Reprovar" da
+  curadoria excluía a linha inteira da tabela (`deletarFoto` fazia
+  `.delete()`). Isso tornava "reprovada" e "código nunca existiu"
+  indistinguíveis pra quem consultasse o status depois. A coluna
+  `reprovada` (sql/018) resolve isso: reprovar agora marca
+  `aprovada=false, reprovada=true` e mantém a linha. Como consequência, o
+  filtro "Pendentes" da moderação (`app.js`) precisou passar a excluir
+  `reprovada=true` explicitamente — senão fotos já reprovadas nunca mais
+  sairiam da fila de moderação, já que a linha não desaparece mais.
+- **Mas o arquivo em si é excluído do Storage ao reprovar**: manter a linha
+  na tabela não significa manter a foto ocupando espaço — `deletarFoto`
+  (app.js) extrai o caminho do arquivo a partir da URL salva, chama
+  `storage.remove()` pra apagar a versão cheia e a thumbnail, e só depois
+  limpa `url_foto`/`url_thumb` (string vazia, não `null`, pra não esbarrar
+  em possível constraint `NOT NULL`) no mesmo update que marca
+  `reprovada=true`. Precisou de uma policy de DELETE nova em
+  `storage.objects` pro bucket `arusuperguia-fotos`
+  (sql/019_storage_fotos_admin_delete.sql) — esse bucket só tinha policy de
+  INSERT (pública, usada por `enviar.html`) até então. Se a exclusão do
+  arquivo falhar por qualquer motivo, a foto é marcada como reprovada mesmo
+  assim (só fica um arquivo órfão no Storage) — o registro da decisão de
+  moderação não pode ficar bloqueado por uma falha no Storage. O card da
+  foto reprovada na grade de moderação mostra um placeholder (🗑️) em vez de
+  tentar carregar um `<img>` com URL vazia.
+
 ## Login e votação (`votacao.html`)
 
 - Login é via Google OAuth. Duas formas de abrir: navegação normal

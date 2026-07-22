@@ -130,9 +130,14 @@ Deno.serve(async (req) => {
         const concursoId = concursosAtivos[0].id;
 
         // 3) Grava no banco com a Service Role (ignora RLS, pois já validamos tudo aqui)
-        const { error: dbError } = await supabaseAdmin
+        // .select("id").single() devolve o id gerado — reaproveitado pelo
+        // front-end como "código de acompanhamento" (ver status.html), sem
+        // precisar de nenhuma coluna nova só pra isso.
+        const { data: fotoInserida, error: dbError } = await supabaseAdmin
             .from("fotos_concurso")
-            .insert([{ nome_participante: nome, url_foto, url_thumb, aprovada: false, concurso_id: concursoId }]);
+            .insert([{ nome_participante: nome, url_foto, url_thumb, aprovada: false, concurso_id: concursoId }])
+            .select("id")
+            .single();
 
         if (dbError) {
             return new Response(JSON.stringify({ error: dbError.message }), {
@@ -141,7 +146,7 @@ Deno.serve(async (req) => {
             });
         }
 
-        return new Response(JSON.stringify({ success: true }), {
+        return new Response(JSON.stringify({ success: true, codigo: fotoInserida.id }), {
             status: 200,
             headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         });
