@@ -64,6 +64,7 @@ const views = document.querySelectorAll('.view');
 const metricTotal = document.getElementById('metric-total');
 const metricAprovadas = document.getElementById('metric-aprovadas');
 const metricPendentes = document.getElementById('metric-pendentes');
+const metricReprovadas = document.getElementById('metric-reprovadas');
 const btnAtualizarDashboard = document.getElementById('btn-atualizar-dashboard');
 const metricasPorConcursoContainer = document.getElementById('metricas-por-concurso');
 
@@ -492,17 +493,20 @@ async function carregarMetricas() {
     metricTotal.textContent = '…';
     metricAprovadas.textContent = '…';
     metricPendentes.textContent = '…';
+    metricReprovadas.textContent = '…';
     if (btnAtualizarDashboard) btnAtualizarDashboard.disabled = true;
 
-    const [totalRes, aprovadasRes, pendentesRes] = await Promise.all([
+    const [totalRes, aprovadasRes, pendentesRes, reprovadasRes] = await Promise.all([
         supabase.from('fotos_concurso').select('*', { count: 'exact', head: true }),
         supabase.from('fotos_concurso').select('*', { count: 'exact', head: true }).eq('aprovada', true),
-        supabase.from('fotos_concurso').select('*', { count: 'exact', head: true }).eq('aprovada', false),
+        supabase.from('fotos_concurso').select('*', { count: 'exact', head: true }).eq('aprovada', false).eq('reprovada', false),
+        supabase.from('fotos_concurso').select('*', { count: 'exact', head: true }).eq('reprovada', true),
     ]);
 
     metricTotal.textContent = totalRes.error ? '—' : totalRes.count;
     metricAprovadas.textContent = aprovadasRes.error ? '—' : aprovadasRes.count;
     metricPendentes.textContent = pendentesRes.error ? '—' : pendentesRes.count;
+    metricReprovadas.textContent = reprovadasRes.error ? '—' : reprovadasRes.count;
     if (btnAtualizarDashboard) btnAtualizarDashboard.disabled = false;
 }
 
@@ -517,7 +521,7 @@ async function carregarMetricasPorConcurso() {
 
     const [concursosRes, fotosRes] = await Promise.all([
         supabase.from('concursos').select('id, descricao, data, ativo').order('criado_em', { ascending: true }),
-        supabase.from('fotos_concurso').select('concurso_id, aprovada'),
+        supabase.from('fotos_concurso').select('concurso_id, aprovada, reprovada'),
     ]);
 
     if (concursosRes.error) {
@@ -538,9 +542,10 @@ async function carregarMetricasPorConcurso() {
     const contagemPorConcurso = {};
     fotosRes.data.forEach(foto => {
         const chave = foto.concurso_id || 'sem-concurso';
-        if (!contagemPorConcurso[chave]) contagemPorConcurso[chave] = { total: 0, aprovadas: 0, pendentes: 0 };
+        if (!contagemPorConcurso[chave]) contagemPorConcurso[chave] = { total: 0, aprovadas: 0, pendentes: 0, reprovadas: 0 };
         contagemPorConcurso[chave].total++;
         if (foto.aprovada) contagemPorConcurso[chave].aprovadas++;
+        else if (foto.reprovada) contagemPorConcurso[chave].reprovadas++;
         else contagemPorConcurso[chave].pendentes++;
     });
 
@@ -552,7 +557,7 @@ async function carregarMetricasPorConcurso() {
                     ${dataFormatada ? `<span class="text-sm text-[var(--ink-soft)]">📅 ${dataFormatada}</span>` : ''}
                     ${ativo !== null ? `<span class="stamp ${ativo ? 'stamp-fern' : 'stamp-amber'}">${ativo ? 'Ativo' : 'Inativo'}</span>` : ''}
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div class="ticket-sm-light p-5">
                         <p class="eyebrow text-[var(--fern-dark)] mb-2">Total de fotos</p>
                         <p class="font-display text-3xl text-[var(--ink)]">${contagem.total}</p>
@@ -565,12 +570,16 @@ async function carregarMetricasPorConcurso() {
                         <p class="eyebrow text-[var(--ember-dark)] mb-2">Pendentes</p>
                         <p class="font-display text-3xl text-[var(--ink)]">${contagem.pendentes}</p>
                     </div>
+                    <div class="ticket-sm-light p-5">
+                        <p class="eyebrow text-[var(--ink-soft)] mb-2">Reprovadas</p>
+                        <p class="font-display text-3xl text-[var(--ink)]">${contagem.reprovadas}</p>
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    const vazio = { total: 0, aprovadas: 0, pendentes: 0 };
+    const vazio = { total: 0, aprovadas: 0, pendentes: 0, reprovadas: 0 };
 
     let html = concursosRes.data.map(concurso => {
         const dataFormatada = new Date(concurso.data + 'T00:00:00').toLocaleDateString('pt-BR');
