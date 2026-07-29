@@ -124,6 +124,28 @@ const premiacaoStatusFilter = document.getElementById('premiacao-status-filter')
 const contadorPremiacoes = document.getElementById('contador-premiacoes');
 let premiacoesCache = [];
 
+// Campanhas de e-mail marketing
+const campanhaForm = document.getElementById('campanha-form');
+const campanhaIdInput = document.getElementById('campanha-id');
+const campanhaPatrocinadorInput = document.getElementById('campanha-patrocinador');
+const campanhaConcursoInput = document.getElementById('campanha-concurso');
+const campanhaAssuntoInput = document.getElementById('campanha-assunto');
+const campanhaCorpoInput = document.getElementById('campanha-corpo');
+const campanhaSubmitBtn = document.getElementById('campanha-submit-btn');
+const campanhaCancelBtn = document.getElementById('campanha-cancel-btn');
+const campanhaError = document.getElementById('campanha-error');
+const campanhaSucesso = document.getElementById('campanha-sucesso');
+const campanhasContainer = document.getElementById('campanhas-container');
+const contadorCampanhas = document.getElementById('contador-campanhas');
+const campanhaRelatorioModal = document.getElementById('campanha-relatorio-modal');
+const campanhaRelatorioConteudo = document.getElementById('campanha-relatorio-conteudo');
+const campanhaRelatorioFechar = document.getElementById('campanha-relatorio-fechar');
+const campanhaRelatorioPdfBtn = document.getElementById('campanha-relatorio-pdf');
+let campanhasCache = [];
+// Guarda os dados do relatório atualmente aberto no modal — usado pelo
+// botão "Gerar PDF" pra não precisar buscar tudo de novo no banco.
+let campanhaRelatorioAtual = null;
+
 // 1. Monitorar estado da autenticação (Mantém logado mesmo se atualizar a página)
 //
 // Ter uma sessão válida do Supabase Auth NÃO é suficiente pra abrir o
@@ -176,6 +198,7 @@ function switchView(viewName) {
     }
     else if (viewName === 'patrocinadores') carregarPatrocinadores();
     else if (viewName === 'premiacoes') carregarPremiacoes();
+    else if (viewName === 'campanhas') { carregarOpcoesCampanha(); carregarCampanhas(); }
 }
 navItems.forEach(item => item.addEventListener('click', () => switchView(item.dataset.view)));
 
@@ -1340,4 +1363,375 @@ if (premiacaoForm) {
 
 if (premiacaoCancelBtn) {
     premiacaoCancelBtn.addEventListener('click', resetPremiacaoForm);
+}
+
+// 11. Campanhas de e-mail marketing (disparo via Edge Function disparar-campanha)
+const TIPOS_EVENTO_EMAIL = ['sent', 'delivered', 'opened', 'clicked', 'bounced', 'complained'];
+const ROTULOS_EVENTO_EMAIL = {
+    sent: 'Enviados',
+    delivered: 'Entregues',
+    opened: 'Abertos',
+    clicked: 'Clicados',
+    bounced: 'Rejeitados',
+    complained: 'Reclamações',
+};
+
+// Popula os selects de patrocinador/concurso do formulário — refeito toda
+// vez que a aba é aberta, pra refletir cadastros novos feitos noutra aba.
+async function carregarOpcoesCampanha() {
+    const [patrocinadoresRes, concursosRes] = await Promise.all([
+        supabase.from('patrocinadores').select('id, nome').eq('ativo', true).order('nome', { ascending: true }),
+        supabase.from('concursos').select('id, descricao').order('criado_em', { ascending: false }),
+    ]);
+
+    if (campanhaPatrocinadorInput) {
+        const selecionado = campanhaPatrocinadorInput.value;
+        campanhaPatrocinadorInput.innerHTML = (patrocinadoresRes.data || [])
+            .map(p => `<option value="${p.id}">${escapeHTML(p.nome)}</option>`)
+            .join('') || '<option value="">Nenhum patrocinador ativo cadastrado</option>';
+        campanhaPatrocinadorInput.value = selecionado;
+    }
+
+    if (campanhaConcursoInput) {
+        const selecionado = campanhaConcursoInput.value;
+        campanhaConcursoInput.innerHTML = '<option value="">Toda a base (opt-in)</option>' +
+            (concursosRes.data || [])
+                .map(c => `<option value="${c.id}">${escapeHTML(c.descricao)}</option>`)
+                .join('');
+        campanhaConcursoInput.value = selecionado;
+    }
+}
+
+async function carregarCampanhas() {
+    if (!campanhasContainer) return;
+    campanhasContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Buscando campanhas...</p>';
+
+    const { data, error } = await supabase
+        .from('campanhas_marketing')
+        .select('*, patrocinadores(nome), concursos(descricao)')
+        .order('criado_em', { ascending: false });
+
+    if (error) {
+        campanhasContainer.innerHTML = `<p class="text-[var(--ember-dark)] text-center font-semibold">Erro ao carregar campanhas: ${escapeHTML(error.message)}</p>`;
+        return;
+    }
+
+    campanhasCache = data;
+    renderizarCampanhas();
+}
+
+const STAMP_POR_STATUS_CAMPANHA = {
+    rascunho: 'stamp-amber',
+    enviando: 'stamp-amber',
+    concluida: 'stamp-fern',
+    erro: 'stamp-ember',
+};
+
+const ROTULO_POR_STATUS_CAMPANHA = {
+    rascunho: 'Rascunho',
+    enviando: 'Enviando...',
+    concluida: 'Concluída',
+    erro: 'Erro no envio',
+};
+
+function renderizarCampanhas() {
+    if (!campanhasContainer) return;
+
+    if (contadorCampanhas) contadorCampanhas.textContent = `(${campanhasCache.length})`;
+
+    if (campanhasCache.length === 0) {
+        campanhasContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhuma campanha cadastrada até o momento.</p>';
+        return;
+    }
+
+    campanhasContainer.innerHTML = '';
+
+    campanhasCache.forEach(campanha => {
+        const podeDisparar = campanha.status === 'rascunho' || campanha.status === 'erro';
+        const row = document.createElement('div');
+        row.className = 'ticket-sm p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3';
+        row.innerHTML = `
+            <div>
+                <p class="font-semibold text-[var(--ink)]">${escapeHTML(campanha.assunto)}</p>
+                <div class="flex flex-wrap items-center gap-2 mt-1">
+                    <span class="stamp ${STAMP_POR_STATUS_CAMPANHA[campanha.status] || 'stamp-amber'}">${ROTULO_POR_STATUS_CAMPANHA[campanha.status] || campanha.status}</span>
+                    <span class="text-sm text-[var(--ink-soft)]">${escapeHTML(campanha.patrocinadores?.nome || 'Patrocinador removido')}</span>
+                    <span class="text-sm text-[var(--ink-soft)]">· ${campanha.concursos?.descricao ? 'Votantes de ' + escapeHTML(campanha.concursos.descricao) : 'Toda a base'}</span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                ${podeDisparar ? `<button onclick="editarCampanha('${campanha.id}')" class="btn btn-ghost text-sm !py-1.5 !px-3">Editar</button>` : ''}
+                ${podeDisparar ? `<button onclick="dispararCampanhaExistente('${campanha.id}')" class="btn btn-fern text-sm !py-1.5 !px-3">Disparar</button>` : ''}
+                <button onclick="verRelatorioCampanha('${campanha.id}')" class="btn btn-ghost text-sm !py-1.5 !px-3">Ver relatório</button>
+            </div>
+        `;
+        campanhasContainer.appendChild(row);
+    });
+}
+
+function resetCampanhaForm() {
+    campanhaForm.reset();
+    campanhaIdInput.value = '';
+    campanhaSubmitBtn.textContent = 'Salvar rascunho';
+    campanhaCancelBtn.classList.add('hidden');
+    campanhaError.classList.add('hidden');
+    campanhaSucesso.classList.add('hidden');
+}
+
+window.editarCampanha = function (id) {
+    const campanha = campanhasCache.find(c => c.id === id);
+    if (!campanha) return;
+
+    campanhaIdInput.value = campanha.id;
+    campanhaPatrocinadorInput.value = campanha.patrocinador_id;
+    campanhaConcursoInput.value = campanha.concurso_id || '';
+    campanhaAssuntoInput.value = campanha.assunto;
+    campanhaCorpoInput.value = campanha.corpo_html;
+    campanhaSubmitBtn.textContent = 'Salvar alterações';
+    campanhaCancelBtn.classList.remove('hidden');
+    campanhaError.classList.add('hidden');
+    campanhaSucesso.classList.add('hidden');
+    campanhaAssuntoInput.focus();
+};
+
+// Grava (insere ou atualiza) a campanha a partir do formulário e devolve o
+// id salvo — reaproveitado tanto pelo botão "Salvar rascunho" quanto pelo
+// botão "Disparar" (que precisa salvar antes de chamar a Edge Function).
+async function salvarCampanhaDoFormulario() {
+    const id = campanhaIdInput.value;
+    const payload = {
+        patrocinador_id: campanhaPatrocinadorInput.value,
+        concurso_id: campanhaConcursoInput.value || null,
+        assunto: campanhaAssuntoInput.value.trim(),
+        corpo_html: campanhaCorpoInput.value,
+    };
+
+    if (!payload.patrocinador_id) throw new Error('Selecione um patrocinador.');
+
+    if (id) {
+        const { error } = await supabase.from('campanhas_marketing').update(payload).eq('id', id);
+        if (error) throw error;
+        return id;
+    }
+
+    const { data: sessao } = await supabase.auth.getSession();
+    payload.criado_por = sessao.session?.user?.id || null;
+
+    const { data, error } = await supabase.from('campanhas_marketing').insert([payload]).select('id').single();
+    if (error) throw error;
+    return data.id;
+}
+
+if (campanhaForm) {
+    campanhaForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        campanhaError.classList.add('hidden');
+        campanhaSucesso.classList.add('hidden');
+        campanhaSubmitBtn.disabled = true;
+
+        try {
+            await salvarCampanhaDoFormulario();
+            resetCampanhaForm();
+            carregarCampanhas();
+        } catch (error) {
+            campanhaError.textContent = 'Erro ao salvar campanha: ' + error.message;
+            campanhaError.classList.remove('hidden');
+        } finally {
+            campanhaSubmitBtn.disabled = false;
+        }
+    });
+}
+
+if (campanhaCancelBtn) {
+    campanhaCancelBtn.addEventListener('click', resetCampanhaForm);
+}
+
+// Chama a Edge Function disparar-campanha com o JWT do admin logado (não a
+// chave anônima) — é esse JWT que a function usa pra validar is_admin().
+async function chamarDisparoCampanha(campanhaId) {
+    const { data: sessao } = await supabase.auth.getSession();
+    const token = sessao.session?.access_token;
+    if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+    const resposta = await fetch(`${SUPABASE_URL}/functions/v1/disparar-campanha`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ campanha_id: campanhaId }),
+    });
+
+    const resultado = await resposta.json();
+    if (!resposta.ok || resultado.error) throw new Error(resultado.error || 'Falha ao disparar a campanha.');
+    return resultado;
+}
+
+if (campanhaForm) {
+    const btnDispararFormulario = document.createElement('button');
+    // Botão "Disparar" do formulário — pedido explicitamente na tela de
+    // criação (além do botão por campanha já salva na listagem abaixo),
+    // pra permitir criar e disparar em um único passo.
+    btnDispararFormulario.type = 'button';
+    btnDispararFormulario.id = 'campanha-disparar-btn';
+    btnDispararFormulario.className = 'btn btn-ember text-sm !py-2 !px-4';
+    btnDispararFormulario.textContent = 'Disparar';
+    campanhaSubmitBtn.insertAdjacentElement('afterend', btnDispararFormulario);
+
+    btnDispararFormulario.addEventListener('click', async () => {
+        campanhaError.classList.add('hidden');
+        campanhaSucesso.classList.add('hidden');
+        btnDispararFormulario.disabled = true;
+        campanhaSubmitBtn.disabled = true;
+
+        try {
+            const id = await salvarCampanhaDoFormulario();
+            const resultado = await chamarDisparoCampanha(id);
+            campanhaSucesso.textContent = `Campanha disparada com sucesso: ${resultado.enviados} e-mail(s) enviado(s).`;
+            campanhaSucesso.classList.remove('hidden');
+            resetCampanhaForm();
+            carregarCampanhas();
+        } catch (error) {
+            campanhaError.textContent = 'Erro ao disparar campanha: ' + error.message;
+            campanhaError.classList.remove('hidden');
+        } finally {
+            btnDispararFormulario.disabled = false;
+            campanhaSubmitBtn.disabled = false;
+        }
+    });
+}
+
+window.dispararCampanhaExistente = async function (id) {
+    if (!confirm('Disparar esta campanha agora? Essa ação não pode ser desfeita.')) return;
+
+    try {
+        const resultado = await chamarDisparoCampanha(id);
+        alert(`Campanha disparada com sucesso: ${resultado.enviados} e-mail(s) enviado(s).`);
+        carregarCampanhas();
+    } catch (error) {
+        alert('Erro ao disparar campanha: ' + error.message);
+    }
+};
+
+window.verRelatorioCampanha = async function (id) {
+    if (!campanhaRelatorioModal || !campanhaRelatorioConteudo) return;
+
+    campanhaRelatorioAtual = null;
+    if (campanhaRelatorioPdfBtn) campanhaRelatorioPdfBtn.disabled = true;
+    campanhaRelatorioModal.classList.remove('hidden');
+    campanhaRelatorioConteudo.innerHTML = '<p class="col-span-2 text-center text-[var(--ink-soft)]">Carregando...</p>';
+
+    const { data, error } = await supabase
+        .from('eventos_email')
+        .select('tipo')
+        .eq('campanha_id', id);
+
+    if (error) {
+        campanhaRelatorioConteudo.innerHTML = `<p class="col-span-2 text-center text-[var(--ember-dark)]">Erro ao carregar relatório: ${escapeHTML(error.message)}</p>`;
+        return;
+    }
+
+    const contagens = TIPOS_EVENTO_EMAIL.reduce((acc, tipo) => ({ ...acc, [tipo]: 0 }), {});
+    (data || []).forEach(evento => {
+        if (contagens[evento.tipo] !== undefined) contagens[evento.tipo]++;
+    });
+
+    campanhaRelatorioConteudo.innerHTML = TIPOS_EVENTO_EMAIL.map(tipo => `
+        <div class="ticket-sm p-3 text-center">
+            <p class="text-2xl font-display">${contagens[tipo]}</p>
+            <p class="text-xs text-[var(--ink-soft)]">${ROTULOS_EVENTO_EMAIL[tipo]}</p>
+        </div>
+    `).join('');
+
+    // Campanha pode não estar mais no cache (ex: lista recarregada entre
+    // cliques) — busca de novo nesse caso raro, em vez de travar o botão de PDF.
+    let campanha = campanhasCache.find(c => c.id === id);
+    if (!campanha) {
+        const { data: campanhaAvulsa } = await supabase
+            .from('campanhas_marketing')
+            .select('*, patrocinadores(nome), concursos(descricao)')
+            .eq('id', id)
+            .maybeSingle();
+        campanha = campanhaAvulsa;
+    }
+
+    campanhaRelatorioAtual = { campanha, contagens };
+    if (campanhaRelatorioPdfBtn) campanhaRelatorioPdfBtn.disabled = !campanha;
+};
+
+if (campanhaRelatorioFechar) {
+    campanhaRelatorioFechar.addEventListener('click', () => {
+        campanhaRelatorioModal.classList.add('hidden');
+    });
+}
+
+// Monta um PDF simples com os números do relatório — pensado pra ser
+// entregue ao patrocinador como comprovante do resultado da campanha
+// contratada, sem precisar printar a tela.
+if (campanhaRelatorioPdfBtn) {
+    campanhaRelatorioPdfBtn.addEventListener('click', () => {
+        if (!campanhaRelatorioAtual || !campanhaRelatorioAtual.campanha) return;
+        const { campanha, contagens } = campanhaRelatorioAtual;
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const margemEsquerda = 20;
+        let y = 22;
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.text('AruSuperGuia — Relatório de Campanha de E-mail Marketing', margemEsquerda, y);
+
+        y += 12;
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+
+        const linhasInfo = [
+            ['Patrocinador', campanha.patrocinadores?.nome || '—'],
+            ['Assunto', campanha.assunto],
+            ['Público-alvo', campanha.concursos?.descricao ? `Votantes de "${campanha.concursos.descricao}"` : 'Toda a base opt-in'],
+            ['Status', ROTULO_POR_STATUS_CAMPANHA[campanha.status] || campanha.status],
+            ['Enviada em', campanha.enviado_em ? new Date(campanha.enviado_em).toLocaleString('pt-BR') : '—'],
+            ['Relatório gerado em', new Date().toLocaleString('pt-BR')],
+        ];
+
+        linhasInfo.forEach(([rotulo, valor]) => {
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${rotulo}:`, margemEsquerda, y);
+            doc.setFont('helvetica', 'normal');
+            doc.text(String(valor), margemEsquerda + 45, y);
+            y += 8;
+        });
+
+        y += 6;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text('Resultados', margemEsquerda, y);
+        y += 10;
+
+        doc.setFontSize(11);
+        TIPOS_EVENTO_EMAIL.forEach(tipo => {
+            doc.setFont('helvetica', 'normal');
+            doc.text(ROTULOS_EVENTO_EMAIL[tipo], margemEsquerda, y);
+            doc.setFont('helvetica', 'bold');
+            doc.text(String(contagens[tipo]), margemEsquerda + 60, y);
+            y += 8;
+        });
+
+        // Taxas úteis pro patrocinador avaliar o resultado, sem ele ter que
+        // fazer conta em cima dos números brutos.
+        if (contagens.sent > 0) {
+            const taxaEntrega = ((contagens.delivered / contagens.sent) * 100).toFixed(1);
+            const taxaAbertura = contagens.delivered > 0 ? ((contagens.opened / contagens.delivered) * 100).toFixed(1) : '0.0';
+
+            y += 6;
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Taxa de entrega: ${taxaEntrega}%`, margemEsquerda, y);
+            y += 8;
+            doc.text(`Taxa de abertura (sobre entregues): ${taxaAbertura}%`, margemEsquerda, y);
+        }
+
+        const nomeArquivo = `relatorio-campanha-${(campanha.assunto || 'sem-assunto').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}.pdf`;
+        doc.save(nomeArquivo);
+    });
 }
