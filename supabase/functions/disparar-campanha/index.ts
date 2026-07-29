@@ -208,6 +208,34 @@ Deno.serve(async (req) => {
             });
         }
 
+        // Idempotência: se esta campanha já tinha começado a enviar antes
+        // (ex: parou em "erro" por estourar a cota diária do plano do
+        // Resend, no meio do envio) e o admin clica "Disparar" de novo, não
+        // reenvia pra quem já recebeu — sem isso, um retry duplicaria o
+        // e-mail pra parte da lista.
+        const { data: jaEnviados, error: jaEnviadosError } = await supabaseAdmin
+            .from("eventos_email")
+            .select("destinatario_user_id")
+            .eq("campanha_id", campanha_id)
+            .eq("tipo", "sent");
+
+        if (jaEnviadosError) {
+            return new Response(JSON.stringify({ error: jaEnviadosError.message }), {
+                status: 500,
+                headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+            });
+        }
+
+        const idsJaEnviados = new Set((jaEnviados ?? []).map((e) => e.destinatario_user_id));
+        userIds = userIds.filter((id) => !idsJaEnviados.has(id));
+
+        if (userIds.length === 0) {
+            return new Response(JSON.stringify({ error: "Todos os destinatários já haviam recebido esta campanha numa tentativa anterior." }), {
+                status: 409,
+                headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+            });
+        }
+
         // auth.users não tem uma tabela pública equivalente — precisa do
         // Admin API (getUserById) pra resolver user_id -> e-mail.
         const destinatarios: { user_id: string; email: string }[] = [];
@@ -293,7 +321,16 @@ Deno.serve(async (req) => {
                 .update({ status: "erro" })
                 .eq("id", campanha_id);
 
-            return new Response(JSON.stringify({ error: String((erroEnvio as Error).message ?? erroEnvio) }), {
+            // Inclui quantos e-mails já saíram antes da falha (ex: parou no
+            // meio por causa da cota diária do plano do Resend) — quem lê o
+            // erro na tela precisa saber que parte da lista já foi
+            // notificada, e que um novo "Disparar" não vai duplicar isso
+            // (ver checagem de idempotência acima).
+            const mensagemErro = totalEnviados > 0
+                ? `${String((erroEnvio as Error).message ?? erroEnvio)} (${totalEnviados} e-mail(s) já enviados antes da falha — não serão reenviados numa nova tentativa.)`
+                : String((erroEnvio as Error).message ?? erroEnvio);
+
+            return new Response(JSON.stringify({ error: mensagemErro }), {
                 status: 502,
                 headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
             });
