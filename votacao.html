@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>Votação - Concurso Dino Parque</title>
+    <title>Votação - AruSuperGuia</title>
     <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link rel="stylesheet" href="./styles.css?v=2.0">
@@ -230,9 +230,9 @@
             <!-- Cabeçalho da Votação -->
             <div class="text-center p-6 md:p-8">
                 <p class="eyebrow text-[var(--ember-dark)]">Arena de Cliques</p>
-                <h1 id="titulo-votacao" class="font-display text-3xl md:text-4xl text-[var(--ink)] mt-1">🦖 Escolha a melhor foto!</h1>
+                <h1 id="titulo-votacao" class="font-display text-3xl md:text-4xl text-[var(--ink)] mt-1">❤️ Escolha a melhor foto!</h1>
                 <p id="subtitulo-votacao" class="text-sm md:text-base text-[var(--ink-soft)] mt-2 max-w-md mx-auto">
-                    Vote nas suas fotos favoritas do Belinzoni Dino Parque. Entre com sua conta Google para validar seu voto.
+                    Vote nas suas fotos favoritas. Entre com sua conta Google para validar seu voto.
                 </p>
             </div>
 
@@ -262,11 +262,11 @@
                  habilitar e o usuário estiver logado) -->
             <div id="banner-optin-marketing" class="hidden ticket-sm mx-6 mb-6 p-4">
                 <p class="text-sm text-[var(--ink)] mb-3">
-                    Quer receber novidades e ofertas por e-mail do Belinzoni Dino Parque e de patrocinadores parceiros dos concursos?
+                    Quer receber novidades e ofertas por e-mail dos concursos e de seus patrocinadores parceiros?
                 </p>
                 <label class="flex items-center gap-2 mb-1 cursor-pointer">
                     <input type="checkbox" id="optin-marketing-checkbox" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
-                    <span class="text-sm text-[var(--ink)]">Aceito receber e-mails com novidades e ofertas do Parque e de patrocinadores parceiros.</span>
+                    <span class="text-sm text-[var(--ink)]">Aceito receber e-mails com novidades e ofertas dos concursos e de seus patrocinadores parceiros.</span>
                 </label>
                 <a href="./privacy.html#marketing" target="_blank" rel="noopener noreferrer" class="block mb-3 text-xs underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">Saiba mais sobre esse uso dos seus dados</a>
                 <div class="flex items-center gap-3">
@@ -301,7 +301,7 @@
             </div>
 
             <div class="text-center px-6 md:px-8 pb-6">
-                <a href="./index.html" class="btn btn-ghost btn-block">
+                <a id="link-pagina-inicial" href="./index.html" class="btn btn-ghost btn-block">
                     🏠 Página inicial
                 </a>
             </div>
@@ -501,14 +501,14 @@
             event.stopPropagation();
 
             const foto = fotosExibidasCache.find(f => f.id === fotoId);
-            const url = `${window.location.origin}${window.location.pathname}?foto=${fotoId}`;
+            const url = construirUrlPagina({ foto: fotoId });
             const texto = foto
-                ? `Vote na foto de ${foto.nome_participante} no concurso do Belinzoni Dino Parque!`
-                : 'Vote nesta foto do concurso do Belinzoni Dino Parque!';
+                ? `Vote na foto de ${foto.nome_participante} neste concurso!`
+                : 'Vote nesta foto do concurso!';
 
             if (navigator.share) {
                 try {
-                    await navigator.share({ title: 'Concurso Belinzoni Dino Parque', text: texto, url });
+                    await navigator.share({ title: 'AruSuperGuia - Concurso', text: texto, url });
                 } catch (err) {
                     // Usuário cancelou o compartilhamento nativo — não é um erro real.
                 }
@@ -609,6 +609,45 @@
             }
         }
 
+        // Slug do concurso desta página (?c=slug) — propagado em todo link
+        // que volta pra esta mesma página (compartilhamento, redirect de
+        // login), pra não perder de vista qual concurso está sendo votado.
+        const concursoSlugAtual = new URLSearchParams(window.location.search).get('c');
+
+        // Monta a URL desta página preservando "c" e adicionando os
+        // parâmetros extras passados (ex: { foto: id }).
+        function construirUrlPagina(paramsExtras) {
+            const params = new URLSearchParams();
+            if (concursoSlugAtual) params.set('c', concursoSlugAtual);
+            Object.entries(paramsExtras || {}).forEach(([chave, valor]) => params.set(chave, valor));
+            const query = params.toString();
+            return `${window.location.origin}${window.location.pathname}${query ? '?' + query : ''}`;
+        }
+
+        if (concursoSlugAtual) {
+            document.getElementById('link-pagina-inicial').href = `./concurso.html?c=${encodeURIComponent(concursoSlugAtual)}`;
+        }
+
+        // Aplica o theme_config do concurso (mesma lógica de concurso.html)
+        // — sobrescreve só as cores de destaque usadas em botões/fundo.
+        function aplicarTema(themeConfig) {
+            if (!themeConfig) return;
+            const root = document.documentElement.style;
+            const cores = themeConfig.cores || {};
+            if (cores.primaria) {
+                root.setProperty('--fern', cores.primaria);
+                root.setProperty('--fern-dark', cores.primaria);
+            }
+            if (cores.secundaria) {
+                root.setProperty('--ember', cores.secundaria);
+                root.setProperty('--ember-dark', cores.secundaria);
+            }
+            if (cores.fundo) {
+                root.setProperty('--canopy', cores.fundo);
+                root.setProperty('--canopy-2', cores.fundo);
+            }
+        }
+
         let usuarioAtual = null;
         let meusVotosRealizados = [];
 
@@ -654,7 +693,7 @@
                     // é limpo depois de autenticar), o Supabase anexaria um
                     // novo hash em cima do antigo, gerando um fragmento
                     // malformado (##access_token) que trava o login seguinte.
-                    redirectTo: window.location.origin + window.location.pathname
+                    redirectTo: construirUrlPagina()
                 }
             });
         });
@@ -679,8 +718,8 @@
             // window.location.href puro, que pode ter um #access_token
             // velho grudado e corromper o redirect do OAuth.
             const redirectUrl = fotoIdParaVotar
-                ? `${window.location.origin}${window.location.pathname}?foto=${fotoIdParaVotar}`
-                : `${window.location.origin}${window.location.pathname}`;
+                ? construirUrlPagina({ foto: fotoIdParaVotar })
+                : construirUrlPagina();
 
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
@@ -772,23 +811,27 @@
             return null;
         }
 
-        // Descobre o concurso ativo no momento (só pode existir 1 por vez —
-        // ver painel de curadoria > Concursos). É por esse ID que a votação
-        // é filtrada, para não misturar fotos de concursos antigos.
+        // Descobre o concurso desta página pelo slug (?c=slug) — cada
+        // concurso ativo agora tem sua própria página de votação. É por
+        // esse ID que a votação é filtrada, para não misturar fotos de
+        // outros concursos.
         async function buscarConcursoAtivo() {
+            if (!concursoSlugAtual) throw new Error('Nenhum concurso especificado na URL.');
+
             const { data, error } = await supabase
                 .from('concursos')
                 .select(`
-                    id, descricao, data, regulamento_pdf_url, qtd_vencedores, mostrar_optin_marketing,
+                    id, slug, nome, descricao, data, ativo, regulamento_pdf_url, qtd_vencedores, mostrar_optin_marketing, theme_config,
                     concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
                     concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
                 `)
-                .eq('ativo', true);
+                .eq('slug', concursoSlugAtual)
+                .maybeSingle();
 
             if (error) throw error;
-            if (!data || data.length === 0) throw new Error('Nenhum concurso ativo no momento.');
-            if (data.length > 1) throw new Error('Configuração inválida: existe mais de um concurso ativo simultaneamente. Contate o suporte.');
-            return data[0];
+            if (!data) throw new Error('Concurso não encontrado.');
+            if (!data.ativo) throw new Error('Este concurso não está mais ativo.');
+            return data;
         }
 
         // Compara a data de encerramento do concurso (campo "data") com hoje,
@@ -880,6 +923,7 @@
         async function carregarFotosAprovadas() {
             try {
                 const concursoAtivo = await buscarConcursoAtivo();
+                aplicarTema(concursoAtivo.theme_config);
                 const encerrado = concursoEstaEncerrado(concursoAtivo.data);
                 concursoEncerrado = encerrado;
                 const qtdVencedores = concursoAtivo.qtd_vencedores || 3;
@@ -901,7 +945,15 @@
                 if (encerrado) {
                     const dataFormatada = new Date(concursoAtivo.data + 'T00:00:00').toLocaleDateString('pt-BR');
                     tituloVotacao.textContent = '🏆 Fotos campeãs da temporada!';
-                    subtituloVotacao.textContent = `O concurso "${concursoAtivo.descricao}" foi encerrado em ${dataFormatada}. Confira abaixo as fotos mais votadas.`;
+                    subtituloVotacao.textContent = `O concurso "${concursoAtivo.nome || concursoAtivo.descricao}" foi encerrado em ${dataFormatada}. Confira abaixo as fotos mais votadas.`;
+                } else {
+                    // Concurso em andamento: usa o título/subtítulo do
+                    // theme_config, se o curador tiver preenchido, em vez do
+                    // texto genérico fixo (evita a página de votação de um
+                    // concurso qualquer ficar sempre com o mesmo texto).
+                    const textos = (concursoAtivo.theme_config && concursoAtivo.theme_config.textos) || {};
+                    if (textos.titulo) tituloVotacao.textContent = `❤️ ${textos.titulo}`;
+                    if (textos.subtitulo) subtituloVotacao.textContent = textos.subtitulo;
                 }
 
                 const { data: fotos, error } = await supabase
@@ -928,7 +980,7 @@
                     fotosExibidasCache = [];
                     gridFotos.innerHTML = `
                         <div class="col-span-2 md:col-span-3 text-center ticket-sm p-6">
-                            <p class="text-lg font-medium text-[var(--ink)]">🦕 ${encerrado ? 'Este concurso encerrou sem nenhuma foto aprovada.' : 'Nenhuma foto aprovada para votação no momento.'}</p>
+                            <p class="text-lg font-medium text-[var(--ink)]">📭 ${encerrado ? 'Este concurso encerrou sem nenhuma foto aprovada.' : 'Nenhuma foto aprovada para votação no momento.'}</p>
                         </div>
                     `;
                     exibirPremiacoesEPatrocinadores(null);

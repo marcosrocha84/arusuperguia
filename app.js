@@ -71,12 +71,25 @@ const metricasPorConcursoContainer = document.getElementById('metricas-por-concu
 // Concursos (CRUD)
 const concursoForm = document.getElementById('concurso-form');
 const concursoIdInput = document.getElementById('concurso-id');
+const concursoNomeInput = document.getElementById('concurso-nome');
+const concursoSlugInput = document.getElementById('concurso-slug');
+const concursoSlugGerarBtn = document.getElementById('concurso-slug-gerar-btn');
+const concursoSlugPreview = document.getElementById('concurso-slug-preview');
 const concursoDescricaoInput = document.getElementById('concurso-descricao');
 const concursoDataInput = document.getElementById('concurso-data');
 const concursoAtivoInput = document.getElementById('concurso-ativo');
 const concursoEncerradoInput = document.getElementById('concurso-encerrado');
 const concursoMostrarOptinMarketingInput = document.getElementById('concurso-mostrar-optin-marketing');
 const concursoQtdVencedoresInput = document.getElementById('concurso-qtd-vencedores');
+const concursoTemaCorPrimariaInput = document.getElementById('concurso-tema-cor-primaria');
+const concursoTemaCorSecundariaInput = document.getElementById('concurso-tema-cor-secundaria');
+const concursoTemaCorFundoInput = document.getElementById('concurso-tema-cor-fundo');
+const concursoTemaLogoInput = document.getElementById('concurso-tema-logo');
+const concursoTemaFaviconInput = document.getElementById('concurso-tema-favicon');
+const concursoTemaMascoteInput = document.getElementById('concurso-tema-mascote');
+const concursoTemaTituloInput = document.getElementById('concurso-tema-titulo');
+const concursoTemaSubtituloInput = document.getElementById('concurso-tema-subtitulo');
+const concursoTemaCtaInput = document.getElementById('concurso-tema-cta');
 const trofeuOpcoes = document.querySelectorAll('.trofeu-opcao');
 const concursoRegulamentoArquivoInput = document.getElementById('concurso-regulamento-arquivo');
 const concursoRegulamentoAtualDiv = document.getElementById('concurso-regulamento-atual');
@@ -272,7 +285,7 @@ async function carregarOpcoesConcursoModeracao() {
 
     const { data: concursos, error } = await supabase
         .from('concursos')
-        .select('id, descricao, ativo')
+        .select('id, nome, descricao, ativo')
         .order('criado_em', { ascending: false });
 
     if (error) {
@@ -282,7 +295,7 @@ async function carregarOpcoesConcursoModeracao() {
 
     const opcoes = ['<option value="todos">Todos os concursos</option>']
         .concat((concursos || []).map(c =>
-            `<option value="${c.id}">${escapeHTML(c.descricao)}${c.ativo ? ' (ativo)' : ''}</option>`
+            `<option value="${c.id}">${escapeHTML(c.nome || c.descricao)}${c.ativo ? ' (ativo)' : ''}</option>`
         ));
     moderacaoConcursoFilter.innerHTML = opcoes.join('');
 
@@ -544,7 +557,7 @@ async function carregarMetricasPorConcurso() {
     metricasPorConcursoContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Buscando concursos...</p>';
 
     const [concursosRes, fotosRes] = await Promise.all([
-        supabase.from('concursos').select('id, descricao, data, ativo').order('criado_em', { ascending: true }),
+        supabase.from('concursos').select('id, nome, descricao, data, ativo').order('criado_em', { ascending: true }),
         supabase.from('fotos_concurso').select('concurso_id, aprovada, reprovada'),
     ]);
 
@@ -608,7 +621,7 @@ async function carregarMetricasPorConcurso() {
     let html = concursosRes.data.map(concurso => {
         const dataFormatada = new Date(concurso.data + 'T00:00:00').toLocaleDateString('pt-BR');
         const contagem = contagemPorConcurso[concurso.id] || vazio;
-        return blocoMetricas(concurso.descricao, dataFormatada, concurso.ativo, contagem);
+        return blocoMetricas(concurso.nome || concurso.descricao, dataFormatada, concurso.ativo, contagem);
     }).join('');
 
     // Fotos sem concurso vinculado (ex: concurso excluído depois do envio) —
@@ -624,6 +637,29 @@ if (btnAtualizarDashboard) {
     btnAtualizarDashboard.addEventListener('click', () => {
         carregarMetricas();
         carregarMetricasPorConcurso();
+    });
+}
+
+// Deriva um slug (usado na URL pública /c/<slug>) a partir de um texto
+// livre: minúsculas, sem acento, espaços e símbolos viram hífen único.
+function gerarSlugAPartirDoTexto(texto) {
+    return (texto || '')
+        .normalize('NFD').replace(new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g'), '') // remove acentos
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-+|-+$)/g, '');
+}
+
+if (concursoSlugPreview) {
+    const atualizarPreviewSlug = () => { concursoSlugPreview.textContent = concursoSlugInput.value || 'slug'; };
+    concursoSlugInput.addEventListener('input', atualizarPreviewSlug);
+    atualizarPreviewSlug();
+}
+
+if (concursoSlugGerarBtn) {
+    concursoSlugGerarBtn.addEventListener('click', () => {
+        concursoSlugInput.value = gerarSlugAPartirDoTexto(concursoNomeInput.value);
+        concursoSlugInput.dispatchEvent(new Event('input'));
     });
 }
 
@@ -674,7 +710,7 @@ function renderizarConcursos() {
         row.className = 'ticket-sm p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3';
         row.innerHTML = `
             <div>
-                <p class="font-semibold text-[var(--ink)]">${escapeHTML(concurso.descricao)}</p>
+                <p class="font-semibold text-[var(--ink)]">${escapeHTML(concurso.nome || concurso.descricao)} <span class="font-mono text-xs text-[var(--ink-soft)] font-normal">/c/${escapeHTML(concurso.slug || '')}</span></p>
                 <div class="flex items-center gap-2 mt-1">
                     <span class="text-sm text-[var(--ink-soft)]">📅 ${dataFormatada}</span>
                     <span class="stamp ${concurso.ativo ? 'stamp-fern' : 'stamp-amber'}">${concurso.ativo ? 'Ativo' : 'Inativo'}</span>
@@ -885,6 +921,10 @@ function resetConcursoForm() {
     concursoAtivoInput.checked = true;
     concursoEncerradoInput.checked = false;
     concursoMostrarOptinMarketingInput.checked = false;
+    concursoTemaCorPrimariaInput.value = '#3C8156';
+    concursoTemaCorSecundariaInput.value = '#C1452C';
+    concursoTemaCorFundoInput.value = '#152A20';
+    if (concursoSlugPreview) concursoSlugPreview.textContent = 'slug';
     selecionarQtdVencedores(3);
     marcarSelecionadosLista(concursoPatrocinadoresLista, []);
     marcarSelecionadosPremiacoes([]);
@@ -900,11 +940,29 @@ window.editarConcurso = function(id) {
     if (!concurso) return;
 
     concursoIdInput.value = concurso.id;
+    concursoNomeInput.value = concurso.nome || '';
+    concursoSlugInput.value = concurso.slug || '';
+    if (concursoSlugPreview) concursoSlugPreview.textContent = concurso.slug || 'slug';
     concursoDescricaoInput.value = concurso.descricao;
     concursoDataInput.value = concurso.data;
     concursoAtivoInput.checked = concurso.ativo;
     concursoEncerradoInput.checked = concurso.encerrado;
     concursoMostrarOptinMarketingInput.checked = concurso.mostrar_optin_marketing;
+
+    const tema = concurso.theme_config || {};
+    const cores = tema.cores || {};
+    const icones = tema.icones || {};
+    const textos = tema.textos || {};
+    concursoTemaCorPrimariaInput.value = cores.primaria || '#3C8156';
+    concursoTemaCorSecundariaInput.value = cores.secundaria || '#C1452C';
+    concursoTemaCorFundoInput.value = cores.fundo || '#152A20';
+    concursoTemaLogoInput.value = icones.logo || '';
+    concursoTemaFaviconInput.value = icones.favicon || '';
+    concursoTemaMascoteInput.value = icones.mascote || '';
+    concursoTemaTituloInput.value = textos.titulo || '';
+    concursoTemaSubtituloInput.value = textos.subtitulo || '';
+    concursoTemaCtaInput.value = textos.cta_participar || '';
+
     selecionarQtdVencedores(concurso.qtd_vencedores || 3);
     marcarSelecionadosLista(concursoPatrocinadoresLista, (concurso.concursos_patrocinadores || []).map(v => v.patrocinador_id));
     marcarSelecionadosPremiacoes((concurso.concursos_premiacoes || []).map(v => ({ premiacao_id: v.premiacao_id, posicao: v.posicao })));
@@ -945,13 +1003,38 @@ if (concursoForm) {
         const arquivoRegulamento = concursoRegulamentoArquivoInput.files[0];
 
         const payload = {
+            nome: concursoNomeInput.value.trim(),
+            slug: gerarSlugAPartirDoTexto(concursoSlugInput.value),
             descricao: concursoDescricaoInput.value.trim(),
             data: concursoDataInput.value,
             ativo: concursoAtivoInput.checked,
             encerrado: concursoEncerradoInput.checked,
             mostrar_optin_marketing: concursoMostrarOptinMarketingInput.checked,
             qtd_vencedores: Number(concursoQtdVencedoresInput.value),
+            theme_config: {
+                cores: {
+                    primaria: concursoTemaCorPrimariaInput.value,
+                    secundaria: concursoTemaCorSecundariaInput.value,
+                    fundo: concursoTemaCorFundoInput.value,
+                },
+                icones: {
+                    logo: concursoTemaLogoInput.value.trim(),
+                    favicon: concursoTemaFaviconInput.value.trim(),
+                    mascote: concursoTemaMascoteInput.value.trim(),
+                },
+                textos: {
+                    titulo: concursoTemaTituloInput.value.trim(),
+                    subtitulo: concursoTemaSubtituloInput.value.trim(),
+                    cta_participar: concursoTemaCtaInput.value.trim(),
+                },
+            },
         };
+
+        if (!payload.slug) {
+            concursoError.textContent = 'Informe um slug válido (ou clique em "gerar a partir do nome").';
+            concursoError.classList.remove('hidden');
+            return;
+        }
 
         // Trava de segurança: a interface já desabilita checkboxes e limita
         // as posições disponíveis, mas validamos de novo aqui antes de
@@ -1029,7 +1112,7 @@ if (concursoForm) {
             carregarConcursos();
         } catch (error) {
             concursoError.textContent = error.code === '23505'
-                ? 'Já existe outro concurso marcado como Ativo. Desative-o antes de ativar este.'
+                ? 'Já existe outro concurso com esse slug. Escolha um slug diferente.'
                 : 'Erro ao salvar concurso: ' + error.message;
             concursoError.classList.remove('hidden');
         } finally {

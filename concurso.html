@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <title id="titulo-pagina">AruSuperGuia - Concurso</title>
+    <meta id="meta-description" name="description" content="Envie sua foto e vote nos registros mais criativos do concurso.">
+    <meta id="og-title" property="og:title" content="AruSuperGuia - Concurso Cultural">
+    <meta id="og-description" property="og:description" content="Envie sua foto e vote nos registros mais criativos do concurso.">
+    <meta property="og:type" content="website">
+    <link id="favicon-link" rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="./supabase-client.js?v=1.0"></script>
+</head>
+<body class="bg-canopy min-h-screen flex items-center justify-center p-4 md:p-8">
+
+    <main class="relative z-10 w-full max-w-3xl py-10">
+
+        <div class="ticket">
+            <!-- Cabeçalho do bilhete -->
+            <div class="p-6 md:p-10 text-center">
+                <p class="eyebrow text-[var(--fern-dark)]"><b>Concurso Cultural</b></p>
+                <img id="concurso-logo" src="./logo-medio.jpg" alt="AruSuperGuia" class="mx-auto w-24 h-24 md:w-28 md:h-28 mt-4 rounded-2xl border-2 border-[var(--ink)] shadow-md object-cover">
+                <h1 id="concurso-titulo" class="font-display text-3xl md:text-4xl text-[var(--ink)] mt-4">Concurso Cultural</h1>
+                <p id="concurso-subtitulo" class="text-sm md:text-base text-[var(--ink-soft)] mt-3 leading-relaxed max-w-lg mx-auto">
+                    Participe e concorra a prêmios!<span id="concurso-nome-data"></span>.
+                </p>
+            </div>
+
+            <div class="ticket-tear"></div>
+
+            <!-- Estado: carregando informações do concurso -->
+            <div id="conteudo-carregando" class="p-6 md:p-10 pt-8 text-center">
+                <span class="text-sm font-medium text-[var(--ink-soft)]">Carregando informações do concurso...</span>
+            </div>
+
+            <!-- Estado: concurso não encontrado ou não está mais ativo -->
+            <div id="sem-concurso" class="hidden p-6 md:p-10 pt-8 text-center">
+                <div class="text-5xl mb-4">😢</div>
+                <p class="font-display text-xl text-[var(--ink)]">Este concurso não está disponível</p>
+                <p class="text-sm text-[var(--ink-soft)] mt-2 max-w-sm mx-auto">
+                    O link pode estar errado, ou o concurso já não está mais ativo. Veja os concursos em andamento na página inicial.
+                </p>
+                <a href="./index.html" class="btn btn-fern btn-block mt-6 max-w-xs mx-auto">🏠 Ver concursos ativos</a>
+            </div>
+
+            <!-- Corpo do bilhete: as duas etapas (só aparece com o concurso disponível) -->
+            <div id="conteudo-ativo" class="hidden p-6 md:p-10 pt-8">
+                <!-- Contagem regressiva até o encerramento do concurso -->
+                <div class="ticket-sm p-4 mb-6 text-center">
+                    <p id="contador-dias-numero" class="font-display text-4xl text-[var(--ember-dark)] leading-none">–</p>
+                    <p id="contador-dias-texto" class="text-sm font-semibold text-[var(--ink)] mt-1">Calculando prazo do concurso...</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                    <div class="info-card p-4">
+                        <p class="eyebrow text-[var(--fern-dark)] mb-1">Etapa 1</p>
+                        <h3 class="font-display text-lg text-[var(--ink)] flex items-center gap-2">📸 Arena de envios</h3>
+                        <p class="text-sm text-[var(--ink-soft)] mt-1 leading-snug">
+                            Registrou um momento incrível? Envie sua foto, aceite o termo de imagem e participe da seleção oficial.
+                        </p>
+                    </div>
+                    <div class="info-card p-4">
+                        <p class="eyebrow text-[var(--ember-dark)] mb-1">Etapa 2</p>
+                        <h3 class="font-display text-lg text-[var(--ink)] flex items-center gap-2">❤️ Arena de cliques</h3>
+                        <p class="text-sm text-[var(--ink-soft)] mt-1 leading-snug">
+                            Vote nos seus registros favoritos em tempo real. Para garantir uma disputa 100% justa, entre com sua conta Google para validar o voto.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <a id="btn-enviar-foto" href="./enviar.html" class="btn btn-fern btn-block">
+                        📸 <span id="texto-cta-participar">Enviar minha foto</span>
+                    </a>
+                    <a id="btn-ir-votacao" href="./votacao.html" class="btn btn-ember btn-block">
+                        ❤️ Ir para a votação
+                    </a>
+                </div>
+                <p id="texto-prazo-encerrado" class="hidden text-xs text-[var(--ember-dark)] font-semibold mt-2 text-center">
+                    ⏰ O prazo para envio de fotos já encerrou.
+                </p>
+
+                <p class="text-xs text-[var(--ink-soft)] mt-5 italic text-center">
+                    Todos os envios passam pela curadoria da nossa equipe antes de entrarem na Arena de Cliques.
+                </p>
+            </div>
+
+            <div id="separador-premiacoes-patrocinadores" class="hidden ticket-tear"></div>
+
+            <!-- Premiações e patrocinadores deste concurso -->
+            <div id="secao-premiacoes-patrocinadores" class="hidden px-6 md:px-10 pb-8">
+                <div id="bloco-premiacoes" class="hidden mb-6">
+                    <p class="eyebrow text-[var(--ember-dark)] mb-3 text-center"><br>🏅 Premiações</p>
+                    <div id="lista-premiacoes" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </div>
+                <div id="bloco-patrocinadores" class="hidden">
+                    <p class="eyebrow text-[var(--fern-dark)] mb-3 text-center">Realização e patrocínio</p>
+                    <div id="lista-patrocinadores" class="flex flex-wrap items-center justify-center gap-4"></div>
+                </div>
+            </div>
+
+            <div class="ticket-tear"></div>
+
+            <!-- Rodapé -->
+            <footer class="text-center p-6 md:p-10 pt-8 text-[var(--ink-soft)]">
+                <p class="text-sm font-semibold">
+                    Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
+                </p>
+                <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
+                    © AruSuperGuia
+                    <span class="divider-dot"></span>
+                    <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
+                    <span class="divider-dot"></span>
+                    <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
+                    <span id="regulamento-link-wrap" style="display: none;">
+                        <span class="divider-dot"></span>
+                        <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">📄 Regulamento do concurso</a>
+                    </span>
+                    <span class="divider-dot"></span>
+                    <a href="./index.html" class="underline underline-offset-2 hover:text-[var(--ink)]">🏠 Ver outros concursos ativos</a>
+                    <span class="divider-dot"></span>
+                    <a href="./status.html" class="underline underline-offset-2 hover:text-[var(--ink)]">🔎 Acompanhar minha foto</a>
+                    <span class="divider-dot"></span>
+                    <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
+                </div>
+            </footer>
+        </div>
+    </main>
+
+    <script>
+        // Configuração do Supabase vem de supabase-client.js
+
+        // Aplica o theme_config do concurso como CSS custom properties em
+        // :root — sobrescreve só as 3 cores de destaque (fern/ember/canopy)
+        // usadas em botões e fundo; o resto da paleta (bone, ink etc.)
+        // continua fixo, porque é a base neutra do "papel do bilhete" em
+        // qualquer concurso.
+        function aplicarTema(themeConfig) {
+            if (!themeConfig) return;
+            const root = document.documentElement.style;
+            const cores = themeConfig.cores || {};
+            if (cores.primaria) {
+                root.setProperty('--fern', cores.primaria);
+                root.setProperty('--fern-dark', cores.primaria);
+            }
+            if (cores.secundaria) {
+                root.setProperty('--ember', cores.secundaria);
+                root.setProperty('--ember-dark', cores.secundaria);
+            }
+            if (cores.fundo) {
+                root.setProperty('--canopy', cores.fundo);
+                root.setProperty('--canopy-2', cores.fundo);
+            }
+
+            const icones = themeConfig.icones || {};
+            if (icones.logo) document.getElementById('concurso-logo').src = icones.logo;
+            if (icones.favicon) document.getElementById('favicon-link').href = icones.favicon;
+
+            const textos = themeConfig.textos || {};
+            if (textos.titulo) {
+                document.getElementById('concurso-titulo').textContent = textos.titulo;
+                document.getElementById('titulo-pagina').textContent = `AruSuperGuia - ${textos.titulo}`;
+            }
+            if (textos.subtitulo) document.getElementById('concurso-subtitulo').textContent = textos.subtitulo;
+            if (textos.cta_participar) document.getElementById('texto-cta-participar').textContent = textos.cta_participar;
+        }
+
+        function exibirPremiacoesEPatrocinadores(concurso) {
+            const medalhaPorPosicao = { 1: '🥇', 2: '🥈', 3: '🥉' };
+            const premiacoes = (concurso.concursos_premiacoes || [])
+                .filter(v => v.premiacoes && v.premiacoes.ativo)
+                .sort((a, b) => a.posicao - b.posicao);
+            const patrocinadores = (concurso.concursos_patrocinadores || [])
+                .map(v => v.patrocinadores)
+                .filter(p => p && p.ativo);
+
+            const blocoPremiacoes = document.getElementById('bloco-premiacoes');
+            const listaPremiacoes = document.getElementById('lista-premiacoes');
+            const blocoPatrocinadores = document.getElementById('bloco-patrocinadores');
+            const listaPatrocinadores = document.getElementById('lista-patrocinadores');
+
+            if (premiacoes.length > 0) {
+                listaPremiacoes.innerHTML = premiacoes.map(v => `
+                    <div class="info-card p-3 text-sm text-[var(--ink)] text-center">${medalhaPorPosicao[v.posicao] || '🏅'} ${escapeHTML(v.premiacoes.descricao)}</div>
+                `).join('');
+                blocoPremiacoes.classList.remove('hidden');
+            }
+
+            if (patrocinadores.length > 0) {
+                listaPatrocinadores.innerHTML = patrocinadores.map(p => {
+                    const nomeHtml = p.url_rede_social
+                        ? `<a href="${escapeHTML(p.url_rede_social)}" target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--ink-soft)] text-center leading-tight underline underline-offset-2 hover:text-[var(--ink)]">${escapeHTML(p.nome)}</a>`
+                        : `<span class="text-xs text-[var(--ink-soft)] text-center leading-tight">${escapeHTML(p.nome)}</span>`;
+                    return `
+                        <div class="flex flex-col items-center gap-1.5 max-w-[7rem]">
+                            ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}" class="h-14 object-contain">` : ''}
+                            ${nomeHtml}
+                        </div>
+                    `;
+                }).join('');
+                blocoPatrocinadores.classList.remove('hidden');
+            }
+
+            if (premiacoes.length > 0 || patrocinadores.length > 0) {
+                document.getElementById('separador-premiacoes-patrocinadores').classList.remove('hidden');
+                document.getElementById('secao-premiacoes-patrocinadores').classList.remove('hidden');
+            }
+        }
+
+        // Diferença em dias de calendário (não em horas) entre hoje e a
+        // data de encerramento do concurso.
+        function calcularDiasRestantes(dataStr) {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const dataFim = new Date(dataStr + 'T00:00:00');
+            return Math.round((dataFim - hoje) / (1000 * 60 * 60 * 24));
+        }
+
+        (async () => {
+            const conteudoCarregando = document.getElementById('conteudo-carregando');
+            const conteudoAtivo = document.getElementById('conteudo-ativo');
+            const semConcurso = document.getElementById('sem-concurso');
+            const concursoNomeData = document.getElementById('concurso-nome-data');
+            const contadorNumero = document.getElementById('contador-dias-numero');
+            const contadorTexto = document.getElementById('contador-dias-texto');
+            const btnEnviarFoto = document.getElementById('btn-enviar-foto');
+            const btnIrVotacao = document.getElementById('btn-ir-votacao');
+            const textoPrazoEncerrado = document.getElementById('texto-prazo-encerrado');
+            const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
+            const linkRegulamento = document.getElementById('link-regulamento');
+
+            const slug = new URLSearchParams(window.location.search).get('c');
+
+            if (!slug) {
+                semConcurso.classList.remove('hidden');
+                conteudoCarregando.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const { data: concurso, error } = await supabase
+                    .from('concursos')
+                    .select(`
+                        id, slug, nome, descricao, data, ativo, regulamento_pdf_url, theme_config,
+                        concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
+                        concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
+                    `)
+                    .eq('slug', slug)
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                if (!concurso || !concurso.ativo) {
+                    semConcurso.classList.remove('hidden');
+                    return;
+                }
+
+                aplicarTema(concurso.theme_config);
+
+                const nomeExibicao = concurso.nome || concurso.descricao;
+                document.getElementById('og-title').content = `AruSuperGuia - ${nomeExibicao}`;
+                document.getElementById('og-description').content = `Envie sua foto e vote no concurso "${nomeExibicao}".`;
+                document.getElementById('meta-description').content = `Envie sua foto e vote no concurso "${nomeExibicao}".`;
+
+                // Passa o slug adiante pras páginas de envio/votação saberem
+                // de qual concurso se trata.
+                btnEnviarFoto.href = `./enviar.html?c=${encodeURIComponent(slug)}`;
+                btnIrVotacao.href = `./votacao.html?c=${encodeURIComponent(slug)}`;
+
+                const dataFormatada = new Date(concurso.data + 'T00:00:00').toLocaleDateString('pt-BR');
+                concursoNomeData.textContent = ` ${concurso.nome || concurso.descricao} que se encerra em ${dataFormatada}`;
+
+                if (concurso.regulamento_pdf_url) {
+                    linkRegulamento.href = concurso.regulamento_pdf_url;
+                    regulamentoLinkWrap.style.display = 'contents';
+                }
+
+                exibirPremiacoesEPatrocinadores(concurso);
+
+                const dias = calcularDiasRestantes(concurso.data);
+                if (dias > 0) {
+                    contadorNumero.textContent = dias;
+                    contadorTexto.textContent = `📸 Você ainda tem ${dias} dia${dias === 1 ? '' : 's'} para participar!`;
+                } else if (dias === 0) {
+                    contadorNumero.textContent = '🔥';
+                    contadorTexto.textContent = 'Hoje é o último dia para participar!';
+                } else {
+                    contadorNumero.textContent = '⏰';
+                    contadorTexto.textContent = 'O prazo para participar já encerrou.';
+
+                    btnEnviarFoto.removeAttribute('href');
+                    btnEnviarFoto.setAttribute('aria-disabled', 'true');
+                    btnEnviarFoto.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+                    textoPrazoEncerrado.classList.remove('hidden');
+                }
+
+                conteudoAtivo.classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+                semConcurso.classList.remove('hidden');
+            } finally {
+                conteudoCarregando.classList.add('hidden');
+            }
+        })();
+    </script>
+</body>
+</html>

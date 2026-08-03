@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>Enviar Foto - Concurso Dino Parque</title>
+    <title>Enviar Foto - AruSuperGuia</title>
     <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link rel="stylesheet" href="./styles.css?v=2.0">
@@ -50,14 +50,29 @@
 
             <div class="p-6 md:p-8 text-center">
                 <p class="eyebrow text-[var(--fern-dark)]">Arena de Envios</p>
-                <h2 class="font-display text-2xl md:text-3xl text-[var(--ink)] mt-1">🦖 Participe do Concurso!</h2>
-                <p class="text-[var(--ink-soft)] text-sm mt-2">Envie sua melhor foto no Belinzoni Dino Parque para concorrer a prêmios.</p>
+                <h2 id="titulo-enviar" class="font-display text-2xl md:text-3xl text-[var(--ink)] mt-1">📸 Participe do Concurso!</h2>
+                <p id="subtitulo-enviar" class="text-[var(--ink-soft)] text-sm mt-2">Envie sua melhor foto para concorrer a prêmios.</p>
             </div>
 
             <div class="ticket-tear"></div>
 
+            <!-- Estado: carregando o concurso desta página -->
+            <div id="carregando-concurso" class="text-center py-8 px-6 md:px-8">
+                <span class="text-sm font-medium text-[var(--ink-soft)]">Carregando...</span>
+            </div>
+
+            <!-- Estado: concurso não encontrado ou não está mais ativo -->
+            <div id="sem-concurso" class="hidden text-center py-8 px-6 md:px-8">
+                <div class="text-5xl mb-4">😢</div>
+                <p class="font-display text-xl text-[var(--ink)]">Não foi possível abrir este concurso</p>
+                <p class="text-sm text-[var(--ink-soft)] mt-2 max-w-sm mx-auto">
+                    O link pode estar errado, ou o concurso já não está mais aceitando envios.
+                </p>
+                <a href="./index.html" class="btn btn-fern btn-block mt-6 max-w-xs mx-auto">🏠 Ver concursos ativos</a>
+            </div>
+
             <!-- ÁREA DO FORMULÁRIO -->
-            <div id="form-container" class="p-6 md:p-8 pt-6">
+            <div id="form-container" class="hidden p-6 md:p-8 pt-6">
                 <form id="upload-form" class="space-y-4">
                     <div>
                         <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Seu nome completo</label>
@@ -90,7 +105,7 @@
                     </button>
 
                     <div class="text-center pt-1">
-                        <a href="./index.html" class="btn btn-ghost btn-block">
+                        <a id="link-pagina-inicial" href="./index.html" class="btn btn-ghost btn-block">
                             🏠 Página inicial
                         </a>
                     </div>
@@ -99,7 +114,7 @@
 
             <!-- TELA DE SUCESSO -->
             <div id="sucesso-container" class="hidden text-center py-8 px-6 md:px-8">
-                <div class="text-5xl mb-4">🦕🎉</div>
+                <div class="text-5xl mb-4">🎉</div>
                 <span class="stamp stamp-fern">Inscrição confirmada</span>
                 <p class="text-[var(--ink-soft)] text-sm mt-4 mb-4">
                     Sua foto foi enviada com sucesso para os nossos jurados. Ela passa por uma curadoria e pode ser aprovada ou reprovada conforme o regulamento.
@@ -119,10 +134,10 @@
                     <button id="btn-reiniciar" class="btn btn-amber btn-block mt-3">
                         🔄 Enviar uma nova foto
                     </button>
-                    <a href="./votacao.html" class="btn btn-ember btn-block">
+                    <a id="link-votacao-sucesso" href="./votacao.html" class="btn btn-ember btn-block">
                         ❤️ Ir para a votação
                     </a>
-                    <a href="./index.html" class="btn btn-ghost btn-block">
+                    <a id="link-pagina-inicial-sucesso" href="./index.html" class="btn btn-ghost btn-block">
                         🏠 Página inicial
                     </a>
                 </div>
@@ -168,7 +183,9 @@
     <script>
         // Configuração do Supabase vem de supabase-client.js
 
+        const carregandoConcurso = document.getElementById('carregando-concurso');
         const formContainer = document.getElementById('form-container');
+        const semConcurso = document.getElementById('sem-concurso');
         const sucessoContainer = document.getElementById('sucesso-container');
         const uploadForm = document.getElementById('upload-form');
         const fileInput = document.getElementById('foto-arquivo');
@@ -184,18 +201,83 @@
         const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
         const linkRegulamento = document.getElementById('link-regulamento');
 
-        // Exibe o link do regulamento no rodapé, se o concurso ativo tiver
-        // um PDF cadastrado na curadoria.
-        (async () => {
-            const { data } = await supabase
-                .from('concursos')
-                .select('regulamento_pdf_url')
-                .eq('ativo', true);
+        // Id do concurso desta página, descoberto a partir do slug na URL
+        // (?c=slug) — preenchido antes do formulário ficar disponível. Sem
+        // slug válido e ativo, o formulário nem aparece (ver mais abaixo).
+        let concursoAtual = null;
 
-            if (data && data.length > 0 && data[0].regulamento_pdf_url) {
-                linkRegulamento.href = data[0].regulamento_pdf_url;
+        // Aplica o theme_config do concurso (mesma lógica de concurso.html)
+        // — sobrescreve as cores de destaque usadas em botões/fundo e, se
+        // o curador tiver preenchido, o título/subtítulo desta tela (sem
+        // isso, a tela ficaria com um texto genérico "Participe do
+        // Concurso!" pra qualquer concurso, em vez do nome/tema dele).
+        function aplicarTema(themeConfig) {
+            if (!themeConfig) return;
+            const root = document.documentElement.style;
+            const cores = themeConfig.cores || {};
+            if (cores.primaria) {
+                root.setProperty('--fern', cores.primaria);
+                root.setProperty('--fern-dark', cores.primaria);
+            }
+            if (cores.secundaria) {
+                root.setProperty('--ember', cores.secundaria);
+                root.setProperty('--ember-dark', cores.secundaria);
+            }
+            if (cores.fundo) {
+                root.setProperty('--canopy', cores.fundo);
+                root.setProperty('--canopy-2', cores.fundo);
+            }
+
+            const textos = themeConfig.textos || {};
+            if (textos.titulo) document.getElementById('titulo-enviar').textContent = `📸 ${textos.titulo}`;
+            if (textos.subtitulo) document.getElementById('subtitulo-enviar').textContent = textos.subtitulo;
+        }
+
+        // Descobre o concurso desta página pelo slug (?c=slug), valida que
+        // está ativo e libera o formulário. Sem isso, a Edge Function
+        // "enviar-foto" já rejeitaria o envio (ela exige concurso_id válido
+        // e ativo — ver supabase/functions/enviar-foto/index.ts), mas é
+        // melhor barrar aqui e mostrar uma mensagem clara antes de a pessoa
+        // preencher o formulário inteiro.
+        (async () => {
+            const slug = new URLSearchParams(window.location.search).get('c');
+            const linkPaginaInicial = document.getElementById('link-pagina-inicial');
+            const linkPaginaInicialSucesso = document.getElementById('link-pagina-inicial-sucesso');
+            const linkVotacaoSucesso = document.getElementById('link-votacao-sucesso');
+
+            if (!slug) {
+                semConcurso.classList.remove('hidden');
+                carregandoConcurso.classList.add('hidden');
+                return;
+            }
+
+            const { data: concurso, error } = await supabase
+                .from('concursos')
+                .select('id, ativo, regulamento_pdf_url, theme_config')
+                .eq('slug', slug)
+                .maybeSingle();
+
+            if (error || !concurso || !concurso.ativo) {
+                semConcurso.classList.remove('hidden');
+                carregandoConcurso.classList.add('hidden');
+                return;
+            }
+
+            concursoAtual = concurso;
+            aplicarTema(concurso.theme_config);
+
+            const hrefConcurso = `./concurso.html?c=${encodeURIComponent(slug)}`;
+            linkPaginaInicial.href = hrefConcurso;
+            linkPaginaInicialSucesso.href = hrefConcurso;
+            linkVotacaoSucesso.href = `./votacao.html?c=${encodeURIComponent(slug)}`;
+
+            if (concurso.regulamento_pdf_url) {
+                linkRegulamento.href = concurso.regulamento_pdf_url;
                 regulamentoLinkWrap.style.display = 'contents';
             }
+
+            carregandoConcurso.classList.add('hidden');
+            formContainer.classList.remove('hidden');
         })();
 
         // Faz uma Promise "desistir" depois de "ms" milissegundos, rejeitando
@@ -708,6 +790,12 @@
                 return;
             }
 
+            if (!concursoAtual) {
+                erroMensagem.textContent = "Não foi possível identificar o concurso. Recarregue a página.";
+                erroMensagem.classList.remove('hidden');
+                return;
+            }
+
             btnEnviar.disabled = true;
             mostrarEtapaEnvio(1);
 
@@ -911,6 +999,7 @@
                             url_foto: urlPublicaDaFoto,
                             url_thumb: urlPublicaDoThumb,
                             captchaToken: captchaResponse,
+                            concurso_id: concursoAtual.id,
                         }),
                         signal: controladorFn.signal,
                     });

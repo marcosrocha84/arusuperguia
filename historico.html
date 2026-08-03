@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>Histórico de Concursos - Belinzoni Dino Parque</title>
+    <title>Histórico de Concursos - AruSuperGuia</title>
     <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link rel="stylesheet" href="./styles.css?v=2.0">
@@ -145,7 +145,7 @@
 
             <!-- Cabeçalho -->
             <div class="text-center p-6 md:p-8">
-                <p class="eyebrow text-[var(--ember-dark)]">Belinzoni Dino Parque</p>
+                <p class="eyebrow text-[var(--ember-dark)]">AruSuperGuia</p>
                 <h1 class="font-display text-3xl md:text-4xl text-[var(--ink)] mt-1">📜 Histórico de concursos</h1>
                 <p class="text-sm md:text-base text-[var(--ink-soft)] mt-2 max-w-md mx-auto">
                     Relembre as fotos campeãs de cada edição do concurso.
@@ -161,12 +161,9 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 md:px-8 pb-6">
+            <div class="px-6 md:px-8 pb-6">
                 <a href="./index.html" class="btn btn-ghost btn-block">
                     🏠 Página inicial
-                </a>
-                <a href="./votacao.html" class="btn btn-ghost btn-block">
-                    ❤️ Ir para a votação atual
                 </a>
             </div>
 
@@ -299,7 +296,7 @@
             const { data, error } = await supabase
                 .from('concursos')
                 .select(`
-                    id, descricao, data, qtd_vencedores, regulamento_pdf_url,
+                    id, nome, descricao, data, qtd_vencedores, regulamento_pdf_url,
                     concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
                     concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
                 `)
@@ -362,7 +359,7 @@
             if (fotosExibidas.length === 0) {
                 gridHtml = `
                     <div class="text-center ticket-sm p-6 mx-4 md:mx-6 mb-5">
-                        <p class="text-[var(--ink)]">🦕 Este concurso encerrou sem nenhuma foto aprovada.</p>
+                        <p class="text-[var(--ink)]">📭 Este concurso encerrou sem nenhuma foto aprovada.</p>
                     </div>
                 `;
             } else {
@@ -408,7 +405,7 @@
             return `
                 <div class="ticket-sm overflow-hidden">
                     <div class="p-4 md:p-6 pb-2">
-                        <h2 class="font-display text-xl md:text-2xl text-[var(--ink)]">🏆 ${escapeHTML(concurso.descricao)}</h2>
+                        <h2 class="font-display text-xl md:text-2xl text-[var(--ink)]">🏆 ${escapeHTML(concurso.nome || concurso.descricao)}</h2>
                         <p class="text-sm text-[var(--ink-soft)] mt-1">Encerrado em ${dataFormatada}</p>
                     </div>
                     ${gridHtml}

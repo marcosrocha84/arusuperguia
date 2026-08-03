@@ -67,9 +67,14 @@ Deno.serve(async (req) => {
 
         const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+        // Traz o slug do concurso junto (join por concurso_id) — com
+        // múltiplos concursos ativos ao mesmo tempo (ver
+        // sql/022_concursos_multiplos_ativos.sql), a tela de status precisa
+        // saber pra qual concurso apontar o botão "Ir para a votação" em vez
+        // de assumir que existe só um.
         const { data: foto, error } = await supabaseAdmin
             .from("fotos_concurso")
-            .select("aprovada, reprovada, url_thumb")
+            .select("aprovada, reprovada, url_thumb, concursos ( slug )")
             .eq("id", codigoLimpo)
             .maybeSingle();
 
@@ -88,7 +93,11 @@ Deno.serve(async (req) => {
         }
 
         if (foto.aprovada) {
-            return new Response(JSON.stringify({ status: "aprovada", url_thumb: foto.url_thumb }), {
+            return new Response(JSON.stringify({
+                status: "aprovada",
+                url_thumb: foto.url_thumb,
+                concurso_slug: foto.concursos ? foto.concursos.slug : null,
+            }), {
                 status: 200,
                 headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
             });

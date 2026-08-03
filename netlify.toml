@@ -2,6 +2,11 @@
   publish = "."
 
 [[redirects]]
+  from = "/c/:slug"
+  to = "/concurso.html?c=:slug"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

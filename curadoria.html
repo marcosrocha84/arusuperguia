@@ -119,12 +119,24 @@
                     <form id="concurso-form" class="ticket-sm p-5 mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <input type="hidden" id="concurso-id">
                         <div class="md:col-span-2">
-                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Descrição</label>
-                            <input type="text" id="concurso-descricao" required maxlength="160" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Nome do concurso</label>
+                            <input type="text" id="concurso-nome" required maxlength="120" placeholder="Ex: Festival de Inverno" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">
+                                Slug (URL)
+                                <button type="button" id="concurso-slug-gerar-btn" class="text-xs font-normal underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">gerar a partir do nome</button>
+                            </label>
+                            <input type="text" id="concurso-slug" required maxlength="80" placeholder="festival-de-inverno" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)] font-mono text-sm">
+                            <p class="text-xs text-[var(--ink-soft)] mt-1">Usado na URL pública: /c/<span id="concurso-slug-preview">slug</span></p>
                         </div>
                         <div>
                             <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Data</label>
                             <input type="date" id="concurso-data" required class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Descrição / subtítulo interno</label>
+                            <input type="text" id="concurso-descricao" required maxlength="160" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
                         </div>
                         <div class="flex items-center gap-2 pb-2">
                             <input type="checkbox" id="concurso-ativo" checked class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
@@ -151,6 +163,54 @@
                                 <button type="button" data-qtd="3" class="trofeu-opcao ticket-sm px-4 py-2 text-sm font-semibold text-[var(--ink)] flex items-center gap-2 transition">
                                     <span class="text-lg">🏆🏆🏆</span> Primeiro, segundo e terceiro
                                 </button>
+                            </div>
+                        </div>
+                        <div class="md:col-span-5">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-2">
+                                Tema visual
+                                <span class="text-[var(--ink-soft)] font-normal">(aplicado na página do concurso, envio e votação — deixe em branco para usar o visual padrão do site)</span>
+                            </label>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                                <div>
+                                    <label for="concurso-tema-cor-primaria" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">Cor primária (botões, destaques)</label>
+                                    <input type="color" id="concurso-tema-cor-primaria" value="#3C8156" class="w-full h-9 border-2 border-[var(--ink)] rounded-lg cursor-pointer">
+                                </div>
+                                <div>
+                                    <label for="concurso-tema-cor-secundaria" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">Cor secundária (votação)</label>
+                                    <input type="color" id="concurso-tema-cor-secundaria" value="#C1452C" class="w-full h-9 border-2 border-[var(--ink)] rounded-lg cursor-pointer">
+                                </div>
+                                <div>
+                                    <label for="concurso-tema-cor-fundo" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">Cor de fundo</label>
+                                    <input type="color" id="concurso-tema-cor-fundo" value="#152A20" class="w-full h-9 border-2 border-[var(--ink)] rounded-lg cursor-pointer">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                                <div>
+                                    <label for="concurso-tema-logo" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">URL do logo</label>
+                                    <input type="text" id="concurso-tema-logo" placeholder="./logo-medio.jpg" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                </div>
+                                <div>
+                                    <label for="concurso-tema-favicon" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">URL do favicon</label>
+                                    <input type="text" id="concurso-tema-favicon" placeholder="./mini-logo.jpg" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                </div>
+                                <div>
+                                    <label for="concurso-tema-mascote" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">URL do mascote</label>
+                                    <input type="text" id="concurso-tema-mascote" placeholder="./logo-medio.jpg" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label for="concurso-tema-titulo" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">Título de destaque</label>
+                                    <input type="text" id="concurso-tema-titulo" maxlength="80" placeholder="Concurso Cultural" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                </div>
+                                <div>
+                                    <label for="concurso-tema-subtitulo" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">Subtítulo</label>
+                                    <input type="text" id="concurso-tema-subtitulo" maxlength="160" placeholder="Participe e concorra a prêmios!" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                </div>
+                                <div>
+                                    <label for="concurso-tema-cta" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">Texto do botão de participar</label>
+                                    <input type="text" id="concurso-tema-cta" maxlength="40" placeholder="Quero participar" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                </div>
                             </div>
                         </div>
                         <div class="md:col-span-5">

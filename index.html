@@ -5,14 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
     <title>AruSuperGuia - Início</title>
-    <meta name="description" content="Envie sua foto do Belinzoni Dino Parque e vote nos registros mais criativos da temporada.">
-    <meta property="og:title" content="AruSuperGuia - Concurso de Fotos Belinzoni Dino Parque">
-    <meta property="og:description" content="Envie sua foto do Belinzoni Dino Parque e vote nos registros mais criativos da temporada.">
+    <meta name="description" content="Envie sua foto e vote nos registros mais criativos dos concursos culturais em andamento.">
+    <meta property="og:title" content="AruSuperGuia - Concursos Culturais">
+    <meta property="og:description" content="Envie sua foto e vote nos registros mais criativos dos concursos culturais em andamento.">
     <meta property="og:image" content="https://arusuperguia.com.br/logo-medio.jpg">
     <meta property="og:type" content="website">
     <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link rel="stylesheet" href="./styles.css?v=2.0">
+    <style>
+        /* Mesmo padrão de partícula usado no botão de votar (votacao.html),
+           só que com ✨ em vez de ❤️ — dá um feedback visual ao clicar num
+           card de concurso, antes de navegar pra página de detalhe. */
+        @keyframes estrela-explodir {
+            0% {
+                transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(var(--scale)) rotate(var(--rot));
+                opacity: 0;
+            }
+        }
+        .estrela-particula {
+            position: fixed;
+            left: var(--x);
+            top: var(--y);
+            pointer-events: none;
+            z-index: 9999;
+            font-size: var(--size);
+            animation: estrela-explodir 0.6s ease-out forwards;
+            will-change: transform, opacity;
+        }
+    </style>
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
 </head>
@@ -23,85 +48,32 @@
         <div class="ticket">
             <!-- Cabeçalho do bilhete -->
             <div class="p-6 md:p-10 text-center">
-                <p class="eyebrow text-[var(--fern-dark)]"><b>Concurso Cultural &middot; Belinzoni Dino Parque</b></p>
+                <p class="eyebrow text-[var(--fern-dark)]"><b>Concursos Culturais</b></p>
                 <img src="./logo-medio.jpg" alt="AruSuperGuia" class="mx-auto w-24 h-24 md:w-28 md:h-28 mt-4 rounded-2xl border-2 border-[var(--ink)] shadow-md object-cover">
                 <h1 class="font-display text-3xl md:text-4xl text-[var(--ink)] mt-4">AruSuperGuia</h1>
                 <p class="text-sm md:text-base text-[var(--ink-soft)] mt-3 leading-relaxed max-w-lg mx-auto">
-                    O portal oficial dos exploradores do Belinzoni Dino Parque. Compartilhe sua jornada pré-histórica, acompanhe os cliques mais criativos e ajude a escolher as fotos campeãs da temporada<span id="concurso-nome-data"></span>.
+                    O portal oficial dos exploradores por trás de cada concurso cultural. Compartilhe sua jornada, acompanhe os cliques mais criativos e ajude a escolher as fotos campeãs da temporada.
                 </p>
             </div>
 
             <div class="ticket-tear"></div>
 
-            <!-- Estado: carregando informações do concurso -->
+            <!-- Estado: carregando lista de concursos -->
             <div id="conteudo-carregando" class="p-6 md:p-10 pt-8 text-center">
-                <span class="text-sm font-medium text-[var(--ink-soft)]">Carregando informações do concurso...</span>
+                <span class="text-sm font-medium text-[var(--ink-soft)]">Carregando concursos ativos...</span>
             </div>
 
             <!-- Estado: nenhum concurso ativo -->
             <div id="sem-concurso" class="hidden p-6 md:p-10 pt-8 text-center">
-                <div class="text-5xl mb-4">🦕😢</div>
+                <div class="text-5xl mb-4">😢</div>
                 <p class="font-display text-xl text-[var(--ink)]">Nenhum concurso ativo no momento</p>
                 <p class="text-sm text-[var(--ink-soft)] mt-2 max-w-sm mx-auto">
-                    Volte em breve! Assim que uma nova temporada do concurso começar, as arenas de envio e votação abrem por aqui.
+                    Volte em breve! Assim que uma nova temporada de concurso começar, ela aparece aqui.
                 </p>
             </div>
 
-            <!-- Corpo do bilhete: as duas etapas (só aparece com um concurso ativo) -->
-            <div id="conteudo-ativo" class="hidden p-6 md:p-10 pt-8">
-                <!-- Contagem regressiva até o encerramento do concurso ativo -->
-                <div class="ticket-sm p-4 mb-6 text-center">
-                    <p id="contador-dias-numero" class="font-display text-4xl text-[var(--ember-dark)] leading-none">–</p>
-                    <p id="contador-dias-texto" class="text-sm font-semibold text-[var(--ink)] mt-1">Calculando prazo do concurso...</p>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                    <div class="info-card p-4">
-                        <p class="eyebrow text-[var(--fern-dark)] mb-1">Etapa 1</p>
-                        <h3 class="font-display text-lg text-[var(--ink)] flex items-center gap-2">📸 Arena de envios</h3>
-                        <p class="text-sm text-[var(--ink-soft)] mt-1 leading-snug">
-                            Registrou um momento incrível ao lado dos dinossauros? Envie sua foto, aceite o termo de imagem e participe da seleção oficial.
-                        </p>
-                    </div>
-                    <div class="info-card p-4">
-                        <p class="eyebrow text-[var(--ember-dark)] mb-1">Etapa 2</p>
-                        <h3 class="font-display text-lg text-[var(--ink)] flex items-center gap-2">❤️ Arena de cliques</h3>
-                        <p class="text-sm text-[var(--ink-soft)] mt-1 leading-snug">
-                            Vote nos seus registros favoritos em tempo real. Para garantir uma disputa 100% justa, entre com sua conta Google para validar o voto.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                    <a id="btn-enviar-foto" href="./enviar.html" class="btn btn-fern btn-block">
-                        📸 Enviar minha foto
-                    </a>
-                    <a href="./votacao.html" class="btn btn-ember btn-block">
-                        ❤️ Ir para a votação
-                    </a>
-                </div>
-                <p id="texto-prazo-encerrado" class="hidden text-xs text-[var(--ember-dark)] font-semibold mt-2 text-center">
-                    ⏰ O prazo para envio de fotos já encerrou.
-                </p>
-
-                <p class="text-xs text-[var(--ink-soft)] mt-5 italic text-center">
-                    Todos os envios passam pela curadoria da nossa equipe antes de entrarem na Arena de Cliques.
-                </p>
-            </div>
-
-            <div id="separador-premiacoes-patrocinadores" class="hidden ticket-tear"></div>
-
-            <!-- Premiações e patrocinadores do concurso ativo -->
-            <div id="secao-premiacoes-patrocinadores" class="hidden px-6 md:px-10 pb-8">
-                <div id="bloco-premiacoes" class="hidden mb-6">
-                    <p class="eyebrow text-[var(--ember-dark)] mb-3 text-center"><br>🏅 Premiações</p>
-                    <div id="lista-premiacoes" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-                </div>
-                <div id="bloco-patrocinadores" class="hidden">
-                    <p class="eyebrow text-[var(--fern-dark)] mb-3 text-center">Realização e patrocínio</p>
-                    <div id="lista-patrocinadores" class="flex flex-wrap items-center justify-center gap-4"></div>
-                </div>
-            </div>
+            <!-- Grade de concursos ativos -->
+            <div id="grid-concursos" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-6 md:p-10 pt-8"></div>
 
             <div class="ticket-tear"></div>
 
@@ -116,10 +88,6 @@
                     <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
                     <span class="divider-dot"></span>
                     <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
-                    <span id="regulamento-link-wrap" style="display: none;">
-                        <span class="divider-dot"></span>
-                        <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">📄 Regulamento do concurso</a>
-                    </span>
                     <span class="divider-dot"></span>
                     <a href="./historico.html" class="underline underline-offset-2 hover:text-[var(--ink)]">📜 Histórico de concursos</a>
                     <span class="divider-dot"></span>
@@ -127,7 +95,7 @@
                     <span class="divider-dot"></span>
                     <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
                 </div>
-                <p class="text-xs opacity-60 mt-3">v1.12.5</p>
+                <p class="text-xs opacity-60 mt-3">v1.13.0</p>
             </footer>
         </div>
     </main>
@@ -136,62 +104,53 @@
         // Configuração do Supabase vem de supabase-client.js
         (async () => {
             const conteudoCarregando = document.getElementById('conteudo-carregando');
-            const conteudoAtivo = document.getElementById('conteudo-ativo');
             const semConcurso = document.getElementById('sem-concurso');
-            const concursoNomeData = document.getElementById('concurso-nome-data');
-            const contadorNumero = document.getElementById('contador-dias-numero');
-            const contadorTexto = document.getElementById('contador-dias-texto');
-            const btnEnviarFoto = document.getElementById('btn-enviar-foto');
-            const textoPrazoEncerrado = document.getElementById('texto-prazo-encerrado');
-            const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
-            const linkRegulamento = document.getElementById('link-regulamento');
-            const separadorPremiacoesPatrocinadores = document.getElementById('separador-premiacoes-patrocinadores');
-            const secaoPremiacoesPatrocinadores = document.getElementById('secao-premiacoes-patrocinadores');
-            const blocoPremiacoes = document.getElementById('bloco-premiacoes');
-            const listaPremiacoes = document.getElementById('lista-premiacoes');
-            const blocoPatrocinadores = document.getElementById('bloco-patrocinadores');
-            const listaPatrocinadores = document.getElementById('lista-patrocinadores');
+            const gridConcursos = document.getElementById('grid-concursos');
 
-            // Desenha as premiações e os patrocinadores vinculados ao
-            // concurso ativo (só os que estiverem marcados como "Ativo" no
-            // painel de curadoria). A seção inteira some se não houver nada
-            // cadastrado, pra não deixar um espaço vazio na página.
-            function exibirPremiacoesEPatrocinadores(concurso) {
-                const medalhaPorPosicao = { 1: '🥇', 2: '🥈', 3: '🥉' };
-                const premiacoes = (concurso.concursos_premiacoes || [])
-                    .filter(v => v.premiacoes && v.premiacoes.ativo)
-                    .sort((a, b) => a.posicao - b.posicao);
-                const patrocinadores = (concurso.concursos_patrocinadores || [])
-                    .map(v => v.patrocinadores)
-                    .filter(p => p && p.ativo);
+            // Efeito visual de estrelas explodindo a partir do card clicado
+            // (mesmo padrão de explodirCoracoes em votacao.html).
+            function explodirEstrelas(elemento) {
+                const rect = elemento.getBoundingClientRect();
+                const centroX = rect.left + rect.width / 2;
+                const centroY = rect.top + rect.height / 2;
+                const totalParticulas = 12;
 
-                if (premiacoes.length > 0) {
-                    listaPremiacoes.innerHTML = premiacoes.map(v => `
-                        <div class="info-card p-3 text-sm text-[var(--ink)] text-center">${medalhaPorPosicao[v.posicao] || '🏅'} ${escapeHTML(v.premiacoes.descricao)}</div>
-                    `).join('');
-                    blocoPremiacoes.classList.remove('hidden');
-                }
+                for (let i = 0; i < totalParticulas; i++) {
+                    const particula = document.createElement('span');
+                    particula.className = 'estrela-particula';
+                    particula.textContent = '✨';
 
-                if (patrocinadores.length > 0) {
-                    listaPatrocinadores.innerHTML = patrocinadores.map(p => {
-                        const nomeHtml = p.url_rede_social
-                            ? `<a href="${escapeHTML(p.url_rede_social)}" target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--ink-soft)] text-center leading-tight underline underline-offset-2 hover:text-[var(--ink)]">${escapeHTML(p.nome)}</a>`
-                            : `<span class="text-xs text-[var(--ink-soft)] text-center leading-tight">${escapeHTML(p.nome)}</span>`;
-                        return `
-                            <div class="flex flex-col items-center gap-1.5 max-w-[7rem]">
-                                ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}" class="h-14 object-contain">` : ''}
-                                ${nomeHtml}
-                            </div>
-                        `;
-                    }).join('');
-                    blocoPatrocinadores.classList.remove('hidden');
-                }
+                    const angulo = (Math.PI * 2 * i) / totalParticulas + (Math.random() * 0.5 - 0.25);
+                    const distancia = 50 + Math.random() * 60;
+                    const tx = Math.cos(angulo) * distancia;
+                    const ty = Math.sin(angulo) * distancia;
 
-                if (premiacoes.length > 0 || patrocinadores.length > 0) {
-                    separadorPremiacoesPatrocinadores.classList.remove('hidden');
-                    secaoPremiacoesPatrocinadores.classList.remove('hidden');
+                    particula.style.setProperty('--x', `${centroX}px`);
+                    particula.style.setProperty('--y', `${centroY}px`);
+                    particula.style.setProperty('--tx', `${tx}px`);
+                    particula.style.setProperty('--ty', `${ty}px`);
+                    particula.style.setProperty('--rot', `${Math.random() * 360 - 180}deg`);
+                    particula.style.setProperty('--scale', `${0.8 + Math.random() * 0.8}`);
+                    particula.style.setProperty('--size', `${14 + Math.random() * 12}px`);
+
+                    document.body.appendChild(particula);
+                    particula.addEventListener('animationend', () => particula.remove());
                 }
             }
+
+            // Dispara a explosão de estrelas antes de navegar pro concurso
+            // clicado — cliques com modificador (nova aba/janela) ou o botão
+            // do meio seguem o comportamento padrão do navegador, sem
+            // animação nem atraso, pra não quebrar essa expectativa do
+            // usuário.
+            window.navegarParaConcurso = function(event, elemento) {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return true;
+                event.preventDefault();
+                explodirEstrelas(elemento);
+                const destino = elemento.getAttribute('href');
+                setTimeout(() => { window.location.href = destino; }, 350);
+                return false;
+            };
 
             // Diferença em dias de calendário (não em horas) entre hoje e a
             // data de encerramento do concurso.
@@ -202,48 +161,53 @@
                 return Math.round((dataFim - hoje) / (1000 * 60 * 60 * 24));
             }
 
+            // Monta o card de um concurso ativo, com as cores do seu próprio
+            // theme_config aplicadas só naquele card (via style inline) — o
+            // resto da página (index.html) mantém a paleta neutra padrão,
+            // já que ela lista vários concursos ao mesmo tempo e não faz
+            // sentido "vestir" a página inteira com o tema de um só deles.
+            function montarCardConcurso(concurso) {
+                const cores = (concurso.theme_config && concurso.theme_config.cores) || {};
+                const icones = (concurso.theme_config && concurso.theme_config.icones) || {};
+                const textos = (concurso.theme_config && concurso.theme_config.textos) || {};
+                const corPrimaria = cores.primaria || 'var(--fern)';
+                const logo = icones.logo || './mini-logo.jpg';
+                const nome = concurso.nome || concurso.descricao;
+                const dias = calcularDiasRestantes(concurso.data);
+
+                let textoPrazo;
+                if (dias > 0) textoPrazo = `📸 ${dias} dia${dias === 1 ? '' : 's'} restante${dias === 1 ? '' : 's'}`;
+                else if (dias === 0) textoPrazo = '🔥 Último dia!';
+                else textoPrazo = '⏰ Prazo encerrado';
+
+                const cta = textos.cta_participar || 'Ver concurso';
+
+                return `
+                    <a href="./concurso.html?c=${encodeURIComponent(concurso.slug)}" onclick="return navegarParaConcurso(event, this)" class="info-card p-4 flex flex-col gap-2 hover:-translate-y-1 transition duration-200" style="box-shadow: inset 0 0 0 3px ${escapeHTML(corPrimaria)};">
+                        <div class="flex items-center gap-3">
+                            <img src="${escapeHTML(logo)}" alt="${escapeHTML(nome)}" class="w-12 h-12 rounded-xl object-cover border-2 border-[var(--ink)]">
+                            <div class="min-w-0">
+                                <h3 class="font-display text-base text-[var(--ink)] truncate">${escapeHTML(nome)}</h3>
+                                <p class="text-xs text-[var(--ink-soft)]">${escapeHTML(textoPrazo)}</p>
+                            </div>
+                        </div>
+                        <span class="btn btn-fern btn-block text-sm !py-2 mt-1">${escapeHTML(cta)}</span>
+                    </a>
+                `;
+            }
+
             try {
                 const { data, error } = await supabase
                     .from('concursos')
-                    .select(`
-                        id, descricao, data, regulamento_pdf_url,
-                        concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
-                        concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
-                    `)
-                    .eq('ativo', true);
+                    .select('id, slug, nome, descricao, data, theme_config')
+                    .eq('ativo', true)
+                    .order('data', { ascending: true });
 
                 if (error) throw error;
 
                 if (data && data.length > 0) {
-                    const concurso = data[0];
-                    const dataFormatada = new Date(concurso.data + 'T00:00:00').toLocaleDateString('pt-BR');
-                    concursoNomeData.textContent = ` ${concurso.descricao} que se encerra em ${dataFormatada}`;
-
-                    if (concurso.regulamento_pdf_url) {
-                        linkRegulamento.href = concurso.regulamento_pdf_url;
-                        regulamentoLinkWrap.style.display = 'contents';
-                    }
-
-                    exibirPremiacoesEPatrocinadores(concurso);
-
-                    const dias = calcularDiasRestantes(concurso.data);
-                    if (dias > 0) {
-                        contadorNumero.textContent = dias;
-                        contadorTexto.textContent = `🦕 Você ainda tem ${dias} dia${dias === 1 ? '' : 's'} para participar!`;
-                    } else if (dias === 0) {
-                        contadorNumero.textContent = '🔥';
-                        contadorTexto.textContent = '🦕 Hoje é o último dia para participar!';
-                    } else {
-                        contadorNumero.textContent = '⏰';
-                        contadorTexto.textContent = 'O prazo para participar já encerrou.';
-
-                        btnEnviarFoto.removeAttribute('href');
-                        btnEnviarFoto.setAttribute('aria-disabled', 'true');
-                        btnEnviarFoto.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
-                        textoPrazoEncerrado.classList.remove('hidden');
-                    }
-
-                    conteudoAtivo.classList.remove('hidden');
+                    gridConcursos.innerHTML = data.map(montarCardConcurso).join('');
+                    gridConcursos.classList.remove('hidden');
                 } else {
                     semConcurso.classList.remove('hidden');
                 }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>Acompanhar Foto - Concurso Dino Parque</title>
+    <title>Acompanhar Foto - AruSuperGuia</title>
     <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link rel="stylesheet" href="./styles.css?v=2.0">
@@ -29,7 +29,7 @@
 
             <!-- Cabeçalho -->
             <div class="text-center p-6 md:p-8">
-                <p class="eyebrow text-[var(--ember-dark)]">Belinzoni Dino Parque</p>
+                <p class="eyebrow text-[var(--ember-dark)]">AruSuperGuia</p>
                 <h1 class="font-display text-2xl md:text-3xl text-[var(--ink)] mt-1">🔎 Acompanhar minha foto</h1>
                 <p class="text-sm text-[var(--ink-soft)] mt-2">
                     Cole abaixo o código que você recebeu na tela de envio pra ver o status da sua foto.
@@ -95,6 +95,16 @@
         const btnVoltar = document.getElementById('btn-voltar');
         const erroMensagem = document.getElementById('erro-mensagem');
 
+        // Monta o link "Ir para a votação" pro concurso específico da foto
+        // aprovada (a Edge Function status-foto traz o slug desse concurso
+        // via join — ver supabase/functions/status-foto/index.ts). Sem
+        // slug (foto antiga de antes da migração para múltiplos concursos,
+        // ou concurso excluído nesse meio-tempo), cai pra página inicial em
+        // vez de gerar um link quebrado.
+        function hrefVotacao(concursoSlug) {
+            return concursoSlug ? `./votacao.html?c=${encodeURIComponent(concursoSlug)}` : './index.html';
+        }
+
         // Um bloco de HTML por status possível devolvido pela Edge Function
         // status-foto — "nao_encontrado" também cobre código malformado ou
         // digitado errado, sem expor detalhe técnico nenhum pro visitante.
@@ -113,9 +123,9 @@
                 ${dados.url_thumb ? `<img src="${escapeHTML(dados.url_thumb)}" alt="Sua foto aprovada" class="w-32 h-32 object-cover rounded-lg border-2 border-[var(--ink)] mx-auto mb-3">` : ''}
                 <span class="stamp stamp-fern mb-2">Aprovada</span>
                 <p class="text-[var(--ink-soft)] text-sm mt-3">
-                    Sua foto foi aprovada! Procure por ela na área de votação 🦖
+                    Sua foto foi aprovada! Procure por ela na área de votação ❤️
                 </p>
-                <a href="./votacao.html" class="btn btn-ember btn-block mt-4">❤️ Ir para a votação</a>
+                <a href="${hrefVotacao(dados.concurso_slug)}" class="btn btn-ember btn-block mt-4">❤️ Ir para a votação</a>
             `,
             reprovada: () => `
                 <div class="text-5xl mb-3">❌</div>

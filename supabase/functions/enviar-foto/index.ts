@@ -1,8 +1,9 @@
 // Edge Function: enviar-foto
 //
-// Recebe { nome, url_foto, url_thumb, captchaToken }, valida o captchaToken direto com a
-// Cloudflare (servidor a servidor — não dá pra falsificar via DevTools) e só
-// então insere a linha em fotos_concurso, usando a Service Role Key.
+// Recebe { nome, url_foto, url_thumb, captchaToken, concurso_id }, valida o
+// captchaToken direto com a Cloudflare (servidor a servidor — não dá pra
+// falsificar via DevTools) e só então insere a linha em fotos_concurso,
+// usando a Service Role Key.
 //
 // Por que isso é necessário: hoje o front-end insere direto na tabela com a
 // chave anônima, então qualquer pessoa pode abrir o DevTools, pular a
@@ -51,10 +52,17 @@ Deno.serve(async (req) => {
     }
 
     try {
-        const { nome, url_foto, url_thumb, captchaToken } = await req.json();
+        const { nome, url_foto, url_thumb, captchaToken, concurso_id } = await req.json();
 
-        if (!nome || !url_foto || !url_thumb || !captchaToken) {
+        if (!nome || !url_foto || !url_thumb || !captchaToken || !concurso_id) {
             return new Response(JSON.stringify({ error: "Campos obrigatórios ausentes." }), {
+                status: 400,
+                headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+            });
+        }
+
+        if (typeof concurso_id !== "string") {
+            return new Response(JSON.stringify({ error: "Concurso inválido." }), {
                 status: 400,
                 headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
             });
@@ -96,15 +104,18 @@ Deno.serve(async (req) => {
 
         const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-        // 2) Descobre o concurso ativo no momento do envio. Só pode existir
-        // exatamente um concurso com "ativo = true" por vez — se não houver
-        // nenhum, ou houver mais de um, o envio é bloqueado (é um erro de
-        // configuração no painel de curadoria, não algo pro participante
-        // resolver sozinho).
-        const { data: concursosAtivos, error: concursoError } = await supabaseAdmin
+        // 2) Agora que múltiplos concursos podem estar ativos ao mesmo tempo
+        // (ver sql/022_concursos_multiplos_ativos.sql), a function não descobre
+        // mais sozinha "o" concurso ativo — quem envia a foto já sabe em qual
+        // concurso está participando (veio da URL/tema daquela página) e manda
+        // o id explicitamente. Só validamos aqui que esse concurso existe e
+        // que ainda está aceitando envios, pra não confiar em nada que o
+        // front-end tenha decidido sozinho.
+        const { data: concurso, error: concursoError } = await supabaseAdmin
             .from("concursos")
-            .select("id")
-            .eq("ativo", true);
+            .select("id, ativo")
+            .eq("id", concurso_id)
+            .maybeSingle();
 
         if (concursoError) {
             return new Response(JSON.stringify({ error: concursoError.message }), {
@@ -113,21 +124,21 @@ Deno.serve(async (req) => {
             });
         }
 
-        if (!concursosAtivos || concursosAtivos.length === 0) {
-            return new Response(JSON.stringify({ error: "Nenhum concurso ativo no momento. Os envios estão temporariamente indisponíveis." }), {
+        if (!concurso) {
+            return new Response(JSON.stringify({ error: "Concurso não encontrado." }), {
+                status: 404,
+                headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+            });
+        }
+
+        if (!concurso.ativo) {
+            return new Response(JSON.stringify({ error: "Este concurso não está mais aceitando envios." }), {
                 status: 409,
                 headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
             });
         }
 
-        if (concursosAtivos.length > 1) {
-            return new Response(JSON.stringify({ error: "Configuração inválida: existe mais de um concurso ativo simultaneamente. Contate o suporte." }), {
-                status: 409,
-                headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-            });
-        }
-
-        const concursoId = concursosAtivos[0].id;
+        const concursoId = concurso.id;
 
         // 3) Grava no banco com a Service Role (ignora RLS, pois já validamos tudo aqui)
         // .select("id").single() devolve o id gerado — reaproveitado pelo
