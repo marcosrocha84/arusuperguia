@@ -1509,7 +1509,7 @@ const ROTULOS_EVENTO_EMAIL = {
 async function carregarOpcoesCampanha() {
     const [patrocinadoresRes, concursosRes] = await Promise.all([
         supabase.from('patrocinadores').select('id, nome').eq('ativo', true).order('nome', { ascending: true }),
-        supabase.from('concursos').select('id, descricao').order('criado_em', { ascending: false }),
+        supabase.from('concursos').select('id, nome, descricao').order('criado_em', { ascending: false }),
     ]);
 
     if (campanhaPatrocinadorInput) {
@@ -1524,7 +1524,7 @@ async function carregarOpcoesCampanha() {
         const selecionado = campanhaConcursoInput.value;
         campanhaConcursoInput.innerHTML = '<option value="">Toda a base (opt-in)</option>' +
             (concursosRes.data || [])
-                .map(c => `<option value="${c.id}">${escapeHTML(c.descricao)}</option>`)
+                .map(c => `<option value="${c.id}">${escapeHTML(c.nome || c.descricao)}</option>`)
                 .join('');
         campanhaConcursoInput.value = selecionado;
     }
@@ -1536,7 +1536,7 @@ async function carregarCampanhas() {
 
     const { data, error } = await supabase
         .from('campanhas_marketing')
-        .select('*, patrocinadores(nome), concursos(descricao)')
+        .select('*, patrocinadores(nome), concursos(nome, descricao)')
         .order('criado_em', { ascending: false });
 
     if (error) {
@@ -1584,7 +1584,7 @@ function renderizarCampanhas() {
                 <div class="flex flex-wrap items-center gap-2 mt-1">
                     <span class="stamp ${STAMP_POR_STATUS_CAMPANHA[campanha.status] || 'stamp-amber'}">${ROTULO_POR_STATUS_CAMPANHA[campanha.status] || campanha.status}</span>
                     <span class="text-sm text-[var(--ink-soft)]">${escapeHTML(campanha.patrocinadores?.nome || 'Patrocinador removido')}</span>
-                    <span class="text-sm text-[var(--ink-soft)]">· ${campanha.concursos?.descricao ? 'Votantes de ' + escapeHTML(campanha.concursos.descricao) : 'Toda a base'}</span>
+                    <span class="text-sm text-[var(--ink-soft)]">· ${campanha.concursos ? 'Votantes de ' + escapeHTML(campanha.concursos.nome || campanha.concursos.descricao) : 'Toda a base'}</span>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -1777,7 +1777,7 @@ window.verRelatorioCampanha = async function (id) {
     if (!campanha) {
         const { data: campanhaAvulsa } = await supabase
             .from('campanhas_marketing')
-            .select('*, patrocinadores(nome), concursos(descricao)')
+            .select('*, patrocinadores(nome), concursos(nome, descricao)')
             .eq('id', id)
             .maybeSingle();
         campanha = campanhaAvulsa;
@@ -1817,7 +1817,7 @@ if (campanhaRelatorioPdfBtn) {
         const linhasInfo = [
             ['Patrocinador', campanha.patrocinadores?.nome || '—'],
             ['Assunto', campanha.assunto],
-            ['Público-alvo', campanha.concursos?.descricao ? `Votantes de "${campanha.concursos.descricao}"` : 'Toda a base opt-in'],
+            ['Público-alvo', campanha.concursos ? `Votantes de "${campanha.concursos.nome || campanha.concursos.descricao}"` : 'Toda a base opt-in'],
             ['Status', ROTULO_POR_STATUS_CAMPANHA[campanha.status] || campanha.status],
             ['Enviada em', campanha.enviado_em ? new Date(campanha.enviado_em).toLocaleString('pt-BR') : '—'],
             ['Relatório gerado em', new Date().toLocaleString('pt-BR')],
