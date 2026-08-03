@@ -84,9 +84,14 @@ const concursoQtdVencedoresInput = document.getElementById('concurso-qtd-vencedo
 const concursoTemaCorPrimariaInput = document.getElementById('concurso-tema-cor-primaria');
 const concursoTemaCorSecundariaInput = document.getElementById('concurso-tema-cor-secundaria');
 const concursoTemaCorFundoInput = document.getElementById('concurso-tema-cor-fundo');
-const concursoTemaLogoInput = document.getElementById('concurso-tema-logo');
-const concursoTemaFaviconInput = document.getElementById('concurso-tema-favicon');
-const concursoTemaMascoteInput = document.getElementById('concurso-tema-mascote');
+const CONFIGS_TEMA_IMAGEM = ['logo', 'favicon', 'mascote'].map(chave => ({
+    chave,
+    urlInput: document.getElementById(`concurso-tema-${chave}-url`),
+    arquivoInput: document.getElementById(`concurso-tema-${chave}-arquivo`),
+    atualDiv: document.getElementById(`concurso-tema-${chave}-atual`),
+    previewImg: document.getElementById(`concurso-tema-${chave}-preview`),
+    removerInput: document.getElementById(`concurso-tema-${chave}-remover`),
+}));
 const concursoTemaTituloInput = document.getElementById('concurso-tema-titulo');
 const concursoTemaSubtituloInput = document.getElementById('concurso-tema-subtitulo');
 const concursoTemaCtaInput = document.getElementById('concurso-tema-cta');
@@ -924,6 +929,11 @@ function resetConcursoForm() {
     concursoTemaCorPrimariaInput.value = '#3C8156';
     concursoTemaCorSecundariaInput.value = '#C1452C';
     concursoTemaCorFundoInput.value = '#152A20';
+    CONFIGS_TEMA_IMAGEM.forEach(({ urlInput, atualDiv, removerInput }) => {
+        urlInput.value = '';
+        removerInput.checked = false;
+        atualDiv.classList.add('hidden');
+    });
     if (concursoSlugPreview) concursoSlugPreview.textContent = 'slug';
     selecionarQtdVencedores(3);
     marcarSelecionadosLista(concursoPatrocinadoresLista, []);
@@ -956,9 +966,18 @@ window.editarConcurso = function(id) {
     concursoTemaCorPrimariaInput.value = cores.primaria || '#3C8156';
     concursoTemaCorSecundariaInput.value = cores.secundaria || '#C1452C';
     concursoTemaCorFundoInput.value = cores.fundo || '#152A20';
-    concursoTemaLogoInput.value = icones.logo || '';
-    concursoTemaFaviconInput.value = icones.favicon || '';
-    concursoTemaMascoteInput.value = icones.mascote || '';
+    CONFIGS_TEMA_IMAGEM.forEach(({ chave, urlInput, atualDiv, previewImg, removerInput, arquivoInput }) => {
+        const urlAtual = icones[chave] || '';
+        urlInput.value = urlAtual;
+        removerInput.checked = false;
+        arquivoInput.value = '';
+        if (urlAtual) {
+            previewImg.src = urlAtual;
+            atualDiv.classList.remove('hidden');
+        } else {
+            atualDiv.classList.add('hidden');
+        }
+    });
     concursoTemaTituloInput.value = textos.titulo || '';
     concursoTemaSubtituloInput.value = textos.subtitulo || '';
     concursoTemaCtaInput.value = textos.cta_participar || '';
@@ -1017,11 +1036,10 @@ if (concursoForm) {
                     secundaria: concursoTemaCorSecundariaInput.value,
                     fundo: concursoTemaCorFundoInput.value,
                 },
-                icones: {
-                    logo: concursoTemaLogoInput.value.trim(),
-                    favicon: concursoTemaFaviconInput.value.trim(),
-                    mascote: concursoTemaMascoteInput.value.trim(),
-                },
+                // Valores atuais (já salvos) por padrão — o loop de upload
+                // logo abaixo substitui pela URL nova, se um arquivo tiver
+                // sido escolhido, ou limpa se "Remover" estiver marcado.
+                icones: Object.fromEntries(CONFIGS_TEMA_IMAGEM.map(({ chave, urlInput }) => [chave, urlInput.value.trim()])),
                 textos: {
                     titulo: concursoTemaTituloInput.value.trim(),
                     subtitulo: concursoTemaSubtituloInput.value.trim(),
@@ -1055,6 +1073,33 @@ if (concursoForm) {
         concursoSubmitBtn.disabled = true;
 
         try {
+            // Envia pro Storage cada imagem de tema (logo/favicon/mascote)
+            // que tiver um arquivo novo selecionado — mesmo princípio do
+            // regulamento em PDF logo abaixo, mas num bucket próprio de
+            // imagens de tema. Sem arquivo novo, mantém a URL já salva
+            // (ou limpa, se "Remover" foi marcado) — já resolvido no
+            // valor default de payload.theme_config.icones acima.
+            for (const { chave, arquivoInput, removerInput } of CONFIGS_TEMA_IMAGEM) {
+                const arquivo = arquivoInput.files[0];
+                if (arquivo) {
+                    const extensao = (arquivo.name.split('.').pop() || 'jpg').toLowerCase();
+                    const nomeArquivoUnico = `${chave}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${extensao}`;
+                    const { error: storageError } = await supabase.storage
+                        .from('arusuperguia-temas')
+                        .upload(nomeArquivoUnico, arquivo, { contentType: arquivo.type || 'image/jpeg' });
+
+                    if (storageError) throw storageError;
+
+                    const { data: urlData } = supabase.storage
+                        .from('arusuperguia-temas')
+                        .getPublicUrl(nomeArquivoUnico);
+
+                    payload.theme_config.icones[chave] = urlData.publicUrl;
+                } else if (id && removerInput.checked) {
+                    payload.theme_config.icones[chave] = '';
+                }
+            }
+
             // Envia o PDF do regulamento para o Storage, se um novo arquivo
             // foi selecionado. Sempre gera um nome único pra não colidir com
             // regulamentos de outros concursos.

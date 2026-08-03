@@ -186,16 +186,40 @@
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                                 <div>
-                                    <label for="concurso-tema-logo" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">URL do logo</label>
-                                    <input type="text" id="concurso-tema-logo" placeholder="./logo-medio.jpg" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                    <label for="concurso-tema-logo-arquivo" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">Logo</label>
+                                    <input type="hidden" id="concurso-tema-logo-url">
+                                    <input type="file" id="concurso-tema-logo-arquivo" accept="image/*" class="w-full text-xs text-[var(--ink-soft)] file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-2 file:border-[var(--ink)] file:text-xs file:font-semibold file:bg-[var(--fern-light)] file:text-[var(--ink)] hover:file:bg-[var(--fern)] hover:file:text-white file:cursor-pointer">
+                                    <div id="concurso-tema-logo-atual" class="hidden mt-2 flex items-center gap-2">
+                                        <img id="concurso-tema-logo-preview" src="" alt="Logo atual" class="w-10 h-10 rounded-lg object-cover border-2 border-[var(--ink)]">
+                                        <label class="flex items-center gap-1.5 text-xs text-[var(--ink-soft)] cursor-pointer">
+                                            <input type="checkbox" id="concurso-tema-logo-remover" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                                            Remover
+                                        </label>
+                                    </div>
                                 </div>
                                 <div>
-                                    <label for="concurso-tema-favicon" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">URL do favicon</label>
-                                    <input type="text" id="concurso-tema-favicon" placeholder="./mini-logo.jpg" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                    <label for="concurso-tema-favicon-arquivo" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">Favicon</label>
+                                    <input type="hidden" id="concurso-tema-favicon-url">
+                                    <input type="file" id="concurso-tema-favicon-arquivo" accept="image/*" class="w-full text-xs text-[var(--ink-soft)] file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-2 file:border-[var(--ink)] file:text-xs file:font-semibold file:bg-[var(--fern-light)] file:text-[var(--ink)] hover:file:bg-[var(--fern)] hover:file:text-white file:cursor-pointer">
+                                    <div id="concurso-tema-favicon-atual" class="hidden mt-2 flex items-center gap-2">
+                                        <img id="concurso-tema-favicon-preview" src="" alt="Favicon atual" class="w-10 h-10 rounded-lg object-cover border-2 border-[var(--ink)]">
+                                        <label class="flex items-center gap-1.5 text-xs text-[var(--ink-soft)] cursor-pointer">
+                                            <input type="checkbox" id="concurso-tema-favicon-remover" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                                            Remover
+                                        </label>
+                                    </div>
                                 </div>
                                 <div>
-                                    <label for="concurso-tema-mascote" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">URL do mascote</label>
-                                    <input type="text" id="concurso-tema-mascote" placeholder="./logo-medio.jpg" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                    <label for="concurso-tema-mascote-arquivo" class="block text-[var(--ink-soft)] text-xs font-semibold mb-1">Mascote</label>
+                                    <input type="hidden" id="concurso-tema-mascote-url">
+                                    <input type="file" id="concurso-tema-mascote-arquivo" accept="image/*" class="w-full text-xs text-[var(--ink-soft)] file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-2 file:border-[var(--ink)] file:text-xs file:font-semibold file:bg-[var(--fern-light)] file:text-[var(--ink)] hover:file:bg-[var(--fern)] hover:file:text-white file:cursor-pointer">
+                                    <div id="concurso-tema-mascote-atual" class="hidden mt-2 flex items-center gap-2">
+                                        <img id="concurso-tema-mascote-preview" src="" alt="Mascote atual" class="w-10 h-10 rounded-lg object-cover border-2 border-[var(--ink)]">
+                                        <label class="flex items-center gap-1.5 text-xs text-[var(--ink-soft)] cursor-pointer">
+                                            <input type="checkbox" id="concurso-tema-mascote-remover" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                                            Remover
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
