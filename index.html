@@ -131,6 +131,18 @@
             color: var(--orbita-ink-soft);
             margin: 0 0 14px;
         }
+        /* Explica o que a Órbita é/faz de forma fixa, independente de ter
+           concurso ativo no momento — sem isso, um visitante (ou o crawler
+           de verificação do Google OAuth) que caísse aqui num período sem
+           nenhum concurso ativo só via "Nenhum concurso ativo", sem
+           entender do que se trata a plataforma. */
+        .orbita-intro {
+            max-width: 42rem;
+            margin: 0 0 28px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--orbita-ink-soft);
+        }
         .orbita-status-msg {
             font-size: 0.9rem;
             color: var(--orbita-ink-soft);
@@ -387,6 +399,12 @@
     </header>
 
     <main class="orbita-main">
+        <p class="orbita-intro">
+            Órbita é a plataforma por trás de concursos culturais de fotografia:
+            participantes enviam suas fotos, o público vota nas favoritas, e os
+            vencedores de cada edição entram para o histórico de concursos.
+        </p>
+
         <p class="orbita-section-label">concursos ativos</p>
 
         <!-- Estado: carregando lista de concursos -->
