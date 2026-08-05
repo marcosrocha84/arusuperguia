@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" width="300" height="64" role="img" aria-label="Órbita">
+    <!-- Versão "lockup" (marca + nome) do orbita-marca.svg, pra contextos
+         onde só o anel sozinho não deixa claro que é a marca Órbita (ex:
+         cabeçalho de e-mail de campanha, imagem de compartilhamento
+         social). O texto usa Inter (mesma fonte do site, via Google
+         Fonts); em ambientes sem Inter instalada, cai pro sans-serif do
+         sistema — some sans-serif, não trocar por serifada. -->
+    <circle cx="32" cy="32" r="22" fill="none" stroke="#1f2430" stroke-width="6"/>
+    <circle cx="32" cy="32" r="6.4" fill="#1f2430"/>
+    <text x="72" y="42" font-family="'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.5" fill="#1f2430">Órbita</text>
+</svg>

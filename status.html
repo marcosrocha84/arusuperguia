@@ -4,84 +4,201 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>Acompanhar Foto - AruSuperGuia</title>
-    <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <title>Acompanhar Foto | Órbita</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f2430' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%231f2430'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="./supabase-client.js?v=1.0"></script>
+
+    <!-- Identidade "Órbita" — mesmo sistema visual de index.html/concurso.html,
+         duplicado aqui até o resto do site também migrar (ver comentário
+         equivalente em concurso.html). -->
     <style>
+        :root {
+            --orbita-bg: #f4f5f7;
+            --orbita-surface: #ffffff;
+            --orbita-surface-2: #eef0f3;
+            --orbita-border: #e2e5ea;
+            --orbita-ink: #1f2430;
+            --orbita-ink-soft: #6b7280;
+            /* Esta página não pertence a nenhum concurso específico (não
+               chama aplicarTema), então usa sempre os tons padrão do site
+               em vez de receber cor de um theme_config. */
+            --accent-primaria: #3C8156;
+            --accent-secundaria: #C1452C;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--orbita-ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            /* Mesmo fundo sutil de "planetas" do index.html — ver comentário
+               lá pra detalhes de por que o alpha fica embutido no SVG em vez
+               de usar opacity no body. */
+            background-color: var(--orbita-bg);
+            background-repeat: no-repeat, no-repeat;
+            background-position: right -60px top 30px, left -50px bottom 40px;
+            background-image:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Ccircle cx='340' cy='90' r='55' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='340' cy='90' r='115' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='372' cy='30' r='5' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='255' cy='165' r='7' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E"),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='380' height='380'%3E%3Ccircle cx='65' cy='300' r='45' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='65' cy='300' r='95' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='25' cy='352' r='4' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='132' cy='248' r='6' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E");
+        }
+
+        /* ---------- Cabeçalho / rodapé ---------- */
+        .orbita-header { background: var(--orbita-surface-2); border-bottom: 1px solid var(--orbita-border); }
+        .orbita-header-inner { max-width: 480px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .orbita-brand { display: flex; align-items: center; gap: 10px; }
+        .orbita-logo-mark { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--orbita-ink); position: relative; flex-shrink: 0; }
+        .orbita-logo-mark::after { content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--orbita-ink); transform: translate(-50%, -50%); }
+        .orbita-brand-name { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; color: var(--orbita-ink); }
+        .orbita-tagline { margin: 0; font-size: 0.8rem; color: var(--orbita-ink-soft); }
+        .orbita-footer { background: var(--orbita-surface-2); border-top: 1px solid var(--orbita-border); padding: 24px 20px; text-align: center; }
+        .orbita-footer-slogan { margin: 0 0 10px; font-size: 0.85rem; color: var(--orbita-ink-soft); }
+        .orbita-footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; }
+        .orbita-footer-links a { font-size: 0.78rem; color: var(--orbita-ink-soft); text-decoration: none; }
+        .orbita-footer-links a:hover { color: var(--orbita-ink); text-decoration: underline; text-underline-offset: 2px; }
+
+        /* ---------- Corpo ---------- */
+        .orbita-main { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; padding: 32px 20px 48px; }
+        .orbita-card-page { background: var(--orbita-surface); border: 1px solid var(--orbita-border); border-radius: 12px; padding: 28px 24px; }
+        .orbita-card-page-header { text-align: center; margin-bottom: 20px; }
+        .orbita-eyebrow { margin: 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--orbita-ink-soft); }
+        .orbita-card-page-titulo { margin: 8px 0 0; font-size: 1.4rem; font-weight: 700; color: var(--orbita-ink); }
+        .orbita-card-page-subtitulo { margin: 8px 0 0; font-size: 0.88rem; color: var(--orbita-ink-soft); }
+
+        /* ---------- Formulário ---------- */
+        .orbita-form { display: flex; flex-direction: column; gap: 16px; }
+        .orbita-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--orbita-ink); margin-bottom: 6px; }
+        .orbita-input { width: 100%; padding: 10px 14px; border: 1px solid var(--orbita-border); border-radius: 8px; background: var(--orbita-surface); font-size: 0.85rem; font-family: monospace; color: var(--orbita-ink); }
+        .orbita-input:focus { outline: none; border-color: var(--orbita-ink-soft); box-shadow: 0 0 0 3px rgba(31, 36, 48, 0.08); }
+
+        /* ---------- Botões ---------- */
+        .orbita-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 18px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease; width: 100%; }
+        .orbita-btn:hover { transform: translateY(-1px); }
+        .orbita-btn-primaria { background: var(--accent-primaria); color: #fff; }
+        .orbita-btn-secundaria { background: var(--accent-secundaria); color: #fff; }
+        .orbita-btn-ghost { background: var(--orbita-surface); color: var(--orbita-ink); border-color: var(--orbita-border); }
+        .orbita-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .orbita-btn-margem { margin-top: 20px; }
+
+        /* ---------- Resultado da consulta ---------- */
+        .orbita-resultado { text-align: center; }
+        .orbita-resultado-icone { font-size: 2.5rem; margin-bottom: 10px; }
+        .orbita-resultado-icone-relogio {
+            display: block;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            animation: status-relogio-balancar 1s ease-in-out infinite;
+        }
         @keyframes status-relogio-balancar {
             0%, 100% { transform: rotate(-10deg); }
             50% { transform: rotate(10deg); }
         }
-        .status-relogio {
+        .orbita-resultado-foto { width: 128px; height: 128px; object-fit: cover; border-radius: 10px; border: 1px solid var(--orbita-border); margin: 0 auto 12px; display: block; }
+        .orbita-resultado-titulo { margin: 0; font-weight: 600; color: var(--orbita-ink); }
+        .orbita-resultado-texto { margin: 10px 0 0; font-size: 0.88rem; color: var(--orbita-ink-soft); }
+        .orbita-badge { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
+        .orbita-badge-pendente { background: #fef3c7; color: #92400e; }
+        .orbita-badge-aprovada { background: var(--orbita-surface-2); color: var(--orbita-ink); background: color-mix(in srgb, var(--accent-primaria) 16%, white); color: color-mix(in srgb, var(--accent-primaria) 55%, black); }
+        .orbita-badge-reprovada { background: var(--orbita-surface-2); color: var(--orbita-ink); background: color-mix(in srgb, var(--accent-secundaria) 16%, white); color: color-mix(in srgb, var(--accent-secundaria) 55%, black); }
+        .orbita-disclaimer-erro { margin-top: 16px; font-size: 0.85rem; text-align: center; font-weight: 600; color: var(--orbita-ink); }
+        .orbita-disclaimer-erro { margin-top: 16px; font-size: 0.85rem; text-align: center; font-weight: 600; color: color-mix(in srgb, var(--accent-secundaria) 80%, black); }
+
+        /* Garante que "hidden" (Tailwind) sempre vença classes próprias que
+           definem "display" — ver comentário equivalente em enviar.html
+           pra detalhes da causa. */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ---------- Ícones de linha (substituem emoji colorido por SVG
+           monocromático, herdando cor via currentColor) ---------- */
+        .icon-inline {
             display: inline-block;
-            font-size: 2.5rem;
-            animation: status-relogio-balancar 1s ease-in-out infinite;
+            width: 15px;
+            height: 15px;
+            vertical-align: -3px;
+            margin-right: 3px;
+            stroke: currentColor;
+        }
+        /* Variante maior, pro ícone acompanhar o tamanho do título (1.4rem
+           de fonte fica desproporcional ao lado de um ícone de 15px). */
+        .icon-inline--titulo {
+            width: 24px;
+            height: 24px;
+            vertical-align: -5px;
+            margin-right: 6px;
+            stroke: currentColor;
+        }
+        .icon-banner-lg {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            stroke: currentColor;
         }
     </style>
-    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
-    <script src="./supabase-client.js?v=1.0"></script>
 </head>
-<body class="bg-canopy min-h-screen flex flex-col justify-between items-center p-4">
+<body>
 
-    <main class="w-full max-w-md relative z-10 my-auto py-6">
-        <div class="ticket">
+    <header class="orbita-header">
+        <div class="orbita-header-inner">
+            <div class="orbita-brand">
+                <span class="orbita-logo-mark" aria-hidden="true"></span>
+                <span class="orbita-brand-name">Órbita</span>
+            </div>
+            <p class="orbita-tagline">plataforma de concursos culturais</p>
+        </div>
+    </header>
 
-            <!-- Cabeçalho -->
-            <div class="text-center p-6 md:p-8">
-                <p class="eyebrow text-[var(--ember-dark)]">AruSuperGuia</p>
-                <h1 class="font-display text-2xl md:text-3xl text-[var(--ink)] mt-1">🔎 Acompanhar minha foto</h1>
-                <p class="text-sm text-[var(--ink-soft)] mt-2">
+    <main class="orbita-main">
+        <div class="orbita-card-page">
+
+            <div class="orbita-card-page-header">
+                <p class="orbita-eyebrow">Órbita</p>
+                <h1 class="orbita-card-page-titulo"><svg class="icon-inline icon-inline--titulo" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Acompanhar minha foto</h1>
+                <p class="orbita-card-page-subtitulo">
                     Cole abaixo o código que você recebeu na tela de envio pra ver o status da sua foto.
                 </p>
             </div>
 
-            <div class="ticket-tear"></div>
-
             <!-- Busca por código -->
-            <div id="busca-container" class="p-6 md:p-8">
-                <form id="status-form" class="space-y-4">
+            <div id="busca-container">
+                <form id="status-form" class="orbita-form">
                     <div>
-                        <label for="codigo-input" class="block text-[var(--ink)] text-sm font-semibold mb-1">Código de acompanhamento</label>
-                        <input type="text" id="codigo-input" required placeholder="Ex: 5ea4fa96-95f2-4aa3-adba-9bc84897a06b" class="w-full px-4 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)] bg-white font-mono text-sm">
+                        <label for="codigo-input" class="orbita-label">Código de acompanhamento</label>
+                        <input type="text" id="codigo-input" required placeholder="Ex: 5ea4fa96-95f2-4aa3-adba-9bc84897a06b" class="orbita-input">
                     </div>
-                    <button type="submit" id="btn-verificar" class="btn btn-fern btn-block">Verificar status</button>
+                    <button type="submit" id="btn-verificar" class="orbita-btn orbita-btn-primaria"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span id="texto-btn-verificar">Verificar status</span></button>
                 </form>
             </div>
 
             <!-- Resultado da consulta -->
-            <div id="resultado-container" class="hidden p-6 md:p-8 pt-0 text-center">
+            <div id="resultado-container" class="hidden orbita-resultado">
                 <div id="resultado-conteudo"></div>
-                <button id="btn-voltar" type="button" class="btn btn-ghost btn-block mt-5">🔄 Consultar outro código</button>
+                <button id="btn-voltar" type="button" class="orbita-btn orbita-btn-primaria orbita-btn-margem"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Consultar outro código</button>
             </div>
 
-            <p id="erro-mensagem" class="text-[var(--ember-dark)] text-sm text-center font-semibold px-6 pb-6 hidden"></p>
+            <p id="erro-mensagem" class="hidden orbita-disclaimer-erro"></p>
 
-            <div class="text-center px-6 md:px-8 pb-6">
-                <a href="./index.html" class="btn btn-ghost btn-block">
-                    🏠 Página inicial
-                </a>
-            </div>
-
-            <div class="ticket-tear"></div>
-
-            <!-- Rodapé -->
-            <footer class="text-center p-6 md:p-10 pt-8 text-[var(--ink-soft)]">
-                <p class="text-sm font-semibold">
-                    Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
-                </p>
-                <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
-                    © AruSuperGuia
-                    <span class="divider-dot"></span>
-                    <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
-                    <span class="divider-dot"></span>
-                    <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
-                    <span class="divider-dot"></span>
-                    <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
-                </div>
-            </footer>
+            <a href="./index.html" class="orbita-btn orbita-btn-ghost orbita-btn-margem">
+                <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Página inicial
+            </a>
         </div>
     </main>
+
+    <footer class="orbita-footer">
+        <p class="orbita-footer-slogan">Órbita — a plataforma por trás do seu concurso cultural</p>
+        <nav class="orbita-footer-links">
+            <a href="mailto:arusuperguia@outlook.com">Contato</a>
+            <a href="./privacy.html">Privacidade</a>
+            <a href="./terms.html">Termos</a>
+            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
+        </nav>
+    </footer>
 
     <script>
         // Configuração do Supabase vem de supabase-client.js
@@ -89,6 +206,7 @@
         const statusForm = document.getElementById('status-form');
         const codigoInput = document.getElementById('codigo-input');
         const btnVerificar = document.getElementById('btn-verificar');
+        const textoBtnVerificar = document.getElementById('texto-btn-verificar');
         const buscaContainer = document.getElementById('busca-container');
         const resultadoContainer = document.getElementById('resultado-container');
         const resultadoConteudo = document.getElementById('resultado-conteudo');
@@ -110,35 +228,33 @@
         // digitado errado, sem expor detalhe técnico nenhum pro visitante.
         const CONTEUDO_POR_STATUS = {
             pendente: () => `
-                <div class="flex flex-col items-center gap-2 mb-2">
-                    <div class="status-relogio">🕐</div>
-                    <span class="stamp stamp-amber">Em análise</span>
-                </div>
-                <p class="text-[var(--ink-soft)] text-sm mt-3">
+                <div class="orbita-resultado-icone-relogio"><svg class="icon-banner-lg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                <span class="orbita-badge orbita-badge-pendente">Em análise</span>
+                <p class="orbita-resultado-texto">
                     Sua foto foi recebida e ainda está sendo avaliada pela nossa curadoria. Volte aqui mais tarde pra conferir o resultado.
                 </p>
             `,
             aprovada: (dados) => `
-                <div class="text-5xl mb-3">✅</div>
-                ${dados.url_thumb ? `<img src="${escapeHTML(dados.url_thumb)}" alt="Sua foto aprovada" class="w-32 h-32 object-cover rounded-lg border-2 border-[var(--ink)] mx-auto mb-3">` : ''}
-                <span class="stamp stamp-fern mb-2">Aprovada</span>
-                <p class="text-[var(--ink-soft)] text-sm mt-3">
-                    Sua foto foi aprovada! Procure por ela na área de votação ❤️
+                <div class="orbita-resultado-icone"><svg class="icon-banner-lg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                ${dados.url_thumb ? `<img src="${escapeHTML(dados.url_thumb)}" alt="Sua foto aprovada" class="orbita-resultado-foto">` : ''}
+                <span class="orbita-badge orbita-badge-aprovada">Aprovada</span>
+                <p class="orbita-resultado-texto">
+                    Sua foto foi aprovada! Procure por ela na área de votação <svg class="icon-inline icon-inline--tight" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </p>
-                <a href="${hrefVotacao(dados.concurso_slug)}" class="btn btn-ember btn-block mt-4">❤️ Ir para a votação</a>
+                <a href="${hrefVotacao(dados.concurso_slug)}" class="orbita-btn orbita-btn-secundaria orbita-btn-margem"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Ir para a votação</a>
             `,
             reprovada: () => `
-                <div class="text-5xl mb-3">❌</div>
-                <span class="stamp stamp-ember mb-2">Reprovada</span>
-                <p class="text-[var(--ink-soft)] text-sm mt-3">
+                <div class="orbita-resultado-icone"><svg class="icon-banner-lg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+                <span class="orbita-badge orbita-badge-reprovada">Reprovada</span>
+                <p class="orbita-resultado-texto">
                     Sua foto não atendeu aos critérios do regulamento. Você pode enviar uma nova foto se desejar.
                 </p>
-                <a href="./enviar.html" class="btn btn-fern btn-block mt-4">📸 Enviar outra foto</a>
+                <a href="./enviar.html" class="orbita-btn orbita-btn-primaria orbita-btn-margem"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Enviar outra foto</a>
             `,
             nao_encontrado: () => `
-                <div class="text-5xl mb-3">🔍</div>
-                <p class="text-[var(--ink)] font-semibold">Código não encontrado</p>
-                <p class="text-[var(--ink-soft)] text-sm mt-2">
+                <div class="orbita-resultado-icone"><svg class="icon-banner-lg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+                <p class="orbita-resultado-titulo">Código não encontrado</p>
+                <p class="orbita-resultado-texto">
                     Confira se copiou o código certinho, sem espaços extras, e tente de novo.
                 </p>
             `,
@@ -159,7 +275,7 @@
             if (!codigo) return;
 
             btnVerificar.disabled = true;
-            btnVerificar.textContent = 'Verificando...';
+            textoBtnVerificar.textContent = 'Verificando...';
 
             try {
                 const resposta = await fetch(`${SUPABASE_URL}/functions/v1/status-foto`, {
@@ -181,7 +297,7 @@
                 erroMensagem.classList.remove('hidden');
             } finally {
                 btnVerificar.disabled = false;
-                btnVerificar.textContent = 'Verificar status';
+                textoBtnVerificar.textContent = 'Verificar status';
             }
         });
 

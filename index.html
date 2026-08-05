@@ -4,19 +4,330 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>AruSuperGuia - Início</title>
-    <meta name="description" content="Envie sua foto e vote nos registros mais criativos dos concursos culturais em andamento.">
-    <meta property="og:title" content="AruSuperGuia - Concursos Culturais">
-    <meta property="og:description" content="Envie sua foto e vote nos registros mais criativos dos concursos culturais em andamento.">
-    <meta property="og:image" content="https://arusuperguia.com.br/logo-medio.jpg">
+    <title>Órbita — Plataforma de Concursos Culturais</title>
+    <meta name="description" content="Órbita é a plataforma por trás de concursos culturais fotográficos de múltiplos patrocinadores. Envie sua foto e vote nos registros mais criativos dos concursos em andamento.">
+    <meta property="og:title" content="Órbita — Plataforma de Concursos Culturais">
+    <meta property="og:description" content="Órbita — a plataforma por trás do seu concurso cultural.">
     <meta property="og:type" content="website">
-    <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <!-- TODO: substituir por um asset de imagem real assim que a marca Órbita
+         tiver um logo definitivo hospedado — evitei apontar pro logo antigo
+         do Dino Parque aqui pra não misturar marcas no preview de compartilhamento. -->
+    <!-- Favicon provisório: o mesmo círculo+ponto do logo do cabeçalho, como
+         SVG embutido (sem depender de um arquivo de imagem novo nesta etapa
+         só-frontend). -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f2430' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%231f2430'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="./supabase-client.js?v=1.0"></script>
+
+    <!--
+        Identidade visual "Órbita" — escopo desta etapa é validar SÓ o
+        index.html com um conceito visual novo (cards neutros/modulares,
+        paleta sóbria), então todo o CSS fica local aqui em vez de em
+        styles.css (que é compartilhado com o resto do site, ainda na
+        identidade "bilhete" antiga — não deve ser tocado agora).
+    -->
     <style>
-        /* Mesmo padrão de partícula usado no botão de votar (votacao.html),
-           só que com ✨ em vez de ❤️ — dá um feedback visual ao clicar num
-           card de concurso, antes de navegar pra página de detalhe. */
+        :root {
+            --orbita-bg: #f4f5f7;
+            --orbita-surface: #ffffff;
+            --orbita-surface-2: #eef0f3;
+            --orbita-border: #e2e5ea;
+            --orbita-ink: #1f2430;
+            --orbita-ink-soft: #6b7280;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--orbita-ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            /* Planetas/órbitas de fundo, bem sutis (alpha baixo já embutido
+               no SVG, não usamos opacity no body pra não desbotar o
+               conteúdo). Header e rodapé têm fundo opaco próprio, então o
+               padrão só aparece atrás da área principal. */
+            background-color: var(--orbita-bg);
+            background-repeat: no-repeat, no-repeat;
+            background-position: right -60px top 30px, left -50px bottom 40px;
+            background-image:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Ccircle cx='340' cy='90' r='55' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='340' cy='90' r='115' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='372' cy='30' r='5' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='255' cy='165' r='7' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E"),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='380' height='380'%3E%3Ccircle cx='65' cy='300' r='45' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='65' cy='300' r='95' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='25' cy='352' r='4' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='132' cy='248' r='6' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E");
+        }
+
+        /* ---------- Cabeçalho ---------- */
+        .orbita-header {
+            background: var(--orbita-surface-2);
+            border-bottom: 1px solid var(--orbita-border);
+        }
+        .orbita-header-inner {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .orbita-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        /* Marca do logo: círculo com contorno + ponto central, remetendo a
+           uma órbita — desenhado só em CSS, sem depender de imagem. A marca
+           em si é neutra (tom "ink"), sem usar a cor de destaque de nenhum
+           concurso específico. */
+        .orbita-logo-mark {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid var(--orbita-ink);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .orbita-logo-mark::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--orbita-ink);
+            transform: translate(-50%, -50%);
+        }
+        .orbita-brand-name {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--orbita-ink);
+        }
+        .orbita-tagline {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--orbita-ink-soft);
+        }
+
+        /* ---------- Corpo ---------- */
+        .orbita-main {
+            flex: 1;
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+        .orbita-section-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--orbita-ink-soft);
+            margin: 0 0 14px;
+        }
+        .orbita-status-msg {
+            font-size: 0.9rem;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-empty {
+            background: var(--orbita-surface);
+            border: 1px solid var(--orbita-border);
+            border-radius: 12px;
+            padding: 28px 20px;
+            text-align: center;
+        }
+        .orbita-empty-title {
+            margin: 0;
+            font-weight: 600;
+            color: var(--orbita-ink);
+        }
+        .orbita-empty-text {
+            margin: 6px 0 0;
+            font-size: 0.85rem;
+            color: var(--orbita-ink-soft);
+            max-width: 26rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ---------- Grade de cards ---------- */
+        .orbita-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .orbita-card {
+            display: block;
+            background: var(--orbita-surface);
+            border: 1px solid var(--orbita-border);
+            border-radius: 12px;
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            transition: box-shadow 0.18s ease, transform 0.18s ease;
+        }
+        .orbita-card:hover {
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+            transform: translateY(-2px);
+        }
+        .orbita-card-banner {
+            height: 216px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            position: relative;
+            /* Fallback pra navegadores sem suporte a color-mix() — a
+               declaração seguinte sobrescreve quando suportado. Nunca preto
+               puro sobre o fundo colorido, sempre a própria cor de destaque
+               do concurso escurecida. */
+            background: var(--orbita-surface-2);
+            color: var(--orbita-ink-soft);
+            background: color-mix(in srgb, var(--accent, #3C8156) 16%, white);
+            color: color-mix(in srgb, var(--accent, #3C8156) 55%, black);
+        }
+        .orbita-card-logo {
+            width: 112px;
+            height: 112px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--orbita-surface);
+            position: relative;
+            z-index: 1;
+        }
+        /* Anel orbital que aparece ao redor do ícone no hover — reforça o
+           motivo "órbita" no card sem exigir nenhum asset novo, só um
+           círculo tracejado na mesma cor de destaque já usada no banner. */
+        .orbita-card-banner::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 136px;
+            height: 136px;
+            border-radius: 50%;
+            border: 3px dashed currentColor;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.6);
+            transition: opacity 0.22s ease, transform 0.22s ease;
+            pointer-events: none;
+        }
+        .orbita-card:hover .orbita-card-banner::after {
+            opacity: 0.8;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        /* "Planeta" que percorre o anel no hover — um ponto preto girando
+           ao redor do centro do banner na mesma distância do raio do anel
+           (58px = metade dos 116px do ::after acima). A técnica é
+           rotate() seguido de translateX(): rotate() gira o eixo local, e
+           o translateX() subsequente desloca o ponto ao longo desse eixo já
+           girado, resultando numa órbita circular perfeita. */
+        .orbita-card-banner::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 9px;
+            height: 9px;
+            margin-top: -4.5px;
+            margin-left: -4.5px;
+            border-radius: 50%;
+            background: #000;
+            opacity: 0;
+            transform: rotate(0deg) translateX(68px);
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .orbita-card:hover .orbita-card-banner::before {
+            opacity: 0.85;
+            animation: orbita-planeta 3s linear infinite;
+            /* Delay negativo aleatório (definido via JS no mouseenter, ver
+               script no fim da página) faz a animação "começar" já no meio
+               do ciclo — na prática, o ponto entra em posições diferentes
+               do anel a cada hover, em vez de sempre no mesmo lugar. */
+            animation-delay: var(--orbit-delay, 0s);
+        }
+        @keyframes orbita-planeta {
+            from { transform: rotate(0deg) translateX(68px); }
+            to { transform: rotate(360deg) translateX(68px); }
+        }
+        .orbita-card-body {
+            padding: 12px 14px 14px;
+        }
+        .orbita-card-title {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--orbita-ink);
+            line-height: 1.3;
+        }
+        .orbita-card-status {
+            margin: 6px 0 0;
+            font-size: 0.75rem;
+            color: var(--orbita-ink-soft);
+        }
+
+        /* Variante "em breve" — card estático (não vem do banco, já que
+           ainda não existe campo pra "concurso não começou", só
+           ativo/encerrado). Reduz a opacidade, neutraliza o banner colorido
+           e desativa toda a interação de hover (sem elevação, sem anel,
+           sem ponto orbitando) pra deixar claro que é só um indicador
+           visual, não um link clicável. */
+        .orbita-card--em-breve {
+            opacity: 0.6;
+            cursor: default;
+        }
+        .orbita-card--em-breve:hover {
+            box-shadow: none;
+            transform: none;
+        }
+        .orbita-card--em-breve .orbita-card-banner {
+            background: var(--orbita-surface-2);
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-card--em-breve .orbita-card-banner::before,
+        .orbita-card--em-breve .orbita-card-banner::after {
+            display: none;
+        }
+
+        /* ---------- Rodapé ---------- */
+        .orbita-footer {
+            background: var(--orbita-surface-2);
+            border-top: 1px solid var(--orbita-border);
+            padding: 24px 20px;
+            text-align: center;
+        }
+        .orbita-footer-slogan {
+            margin: 0 0 10px;
+            font-size: 0.85rem;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px 16px;
+        }
+        .orbita-footer-links a {
+            font-size: 0.78rem;
+            color: var(--orbita-ink-soft);
+            text-decoration: none;
+        }
+        .orbita-footer-links a:hover {
+            color: var(--orbita-ink);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        /* ---------- Explosão de partículas ao clicar num card ---------- */
         @keyframes estrela-explodir {
             0% {
                 transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
@@ -37,68 +348,73 @@
             animation: estrela-explodir 0.6s ease-out forwards;
             will-change: transform, opacity;
         }
+
+        /* Garante que "hidden" (Tailwind) sempre vença classes próprias que
+           definem "display" (ex: .orbita-grid usa display:grid) — ver
+           comentário equivalente em enviar.html pra detalhes da causa. */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ---------- Ícones de linha (substituem emoji colorido por SVG
+           monocromático, herdando cor via currentColor) ---------- */
+        .icon-inline {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            vertical-align: -3px;
+            margin-right: 3px;
+            stroke: currentColor;
+        }
+        .icon-banner {
+            display: inline-block;
+            width: 44px;
+            height: 44px;
+            stroke: currentColor;
+        }
     </style>
-    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
-    <script src="./supabase-client.js?v=1.0"></script>
 </head>
-<body class="bg-canopy min-h-screen flex items-center justify-center p-4 md:p-8">
+<body>
 
-    <main class="relative z-10 w-full max-w-3xl py-10">
-
-        <div class="ticket">
-            <!-- Cabeçalho do bilhete -->
-            <div class="p-6 md:p-10 text-center">
-                <p class="eyebrow text-[var(--fern-dark)]"><b>Concursos Culturais</b></p>
-                <img src="./logo-medio.jpg" alt="AruSuperGuia" class="mx-auto w-24 h-24 md:w-28 md:h-28 mt-4 rounded-2xl border-2 border-[var(--ink)] shadow-md object-cover">
-                <h1 class="font-display text-3xl md:text-4xl text-[var(--ink)] mt-4">AruSuperGuia</h1>
-                <p class="text-sm md:text-base text-[var(--ink-soft)] mt-3 leading-relaxed max-w-lg mx-auto">
-                    O portal oficial dos exploradores por trás de cada concurso cultural. Compartilhe sua jornada, acompanhe os cliques mais criativos e ajude a escolher as fotos campeãs da temporada.
-                </p>
+    <header class="orbita-header">
+        <div class="orbita-header-inner">
+            <div class="orbita-brand">
+                <span class="orbita-logo-mark" aria-hidden="true"></span>
+                <span class="orbita-brand-name">Órbita</span>
             </div>
-
-            <div class="ticket-tear"></div>
-
-            <!-- Estado: carregando lista de concursos -->
-            <div id="conteudo-carregando" class="p-6 md:p-10 pt-8 text-center">
-                <span class="text-sm font-medium text-[var(--ink-soft)]">Carregando concursos ativos...</span>
-            </div>
-
-            <!-- Estado: nenhum concurso ativo -->
-            <div id="sem-concurso" class="hidden p-6 md:p-10 pt-8 text-center">
-                <div class="text-5xl mb-4">😢</div>
-                <p class="font-display text-xl text-[var(--ink)]">Nenhum concurso ativo no momento</p>
-                <p class="text-sm text-[var(--ink-soft)] mt-2 max-w-sm mx-auto">
-                    Volte em breve! Assim que uma nova temporada de concurso começar, ela aparece aqui.
-                </p>
-            </div>
-
-            <!-- Grade de concursos ativos -->
-            <div id="grid-concursos" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-6 md:p-10 pt-8"></div>
-
-            <div class="ticket-tear"></div>
-
-            <!-- Rodapé -->
-            <footer class="text-center p-6 md:p-10 pt-8 text-[var(--ink-soft)]">
-                <p class="text-sm font-semibold">
-                    Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
-                </p>
-                <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
-                    © AruSuperGuia
-                    <span class="divider-dot"></span>
-                    <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
-                    <span class="divider-dot"></span>
-                    <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
-                    <span class="divider-dot"></span>
-                    <a href="./historico.html" class="underline underline-offset-2 hover:text-[var(--ink)]">📜 Histórico de concursos</a>
-                    <span class="divider-dot"></span>
-                    <a href="./status.html" class="underline underline-offset-2 hover:text-[var(--ink)]">🔎 Acompanhar minha foto</a>
-                    <span class="divider-dot"></span>
-                    <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
-                </div>
-                <p class="text-xs opacity-60 mt-3">v1.13.0</p>
-            </footer>
+            <p class="orbita-tagline">plataforma de concursos culturais</p>
         </div>
+    </header>
+
+    <main class="orbita-main">
+        <p class="orbita-section-label">concursos ativos</p>
+
+        <!-- Estado: carregando lista de concursos -->
+        <p id="conteudo-carregando" class="orbita-status-msg">Carregando concursos ativos...</p>
+
+        <!-- Estado: nenhum concurso ativo -->
+        <div id="sem-concurso" class="orbita-empty hidden">
+            <p class="orbita-empty-title">Nenhum concurso ativo no momento</p>
+            <p class="orbita-empty-text">
+                Volte em breve! Assim que uma nova temporada de concurso começar, ela aparece aqui.
+            </p>
+        </div>
+
+        <!-- Grade de concursos ativos -->
+        <div id="grid-concursos" class="orbita-grid hidden"></div>
     </main>
+
+    <footer class="orbita-footer">
+        <p class="orbita-footer-slogan">Órbita — a plataforma por trás do seu concurso cultural</p>
+        <nav class="orbita-footer-links">
+            <a href="mailto:arusuperguia@outlook.com">Contato</a>
+            <a href="./privacy.html">Privacidade</a>
+            <a href="./terms.html">Termos</a>
+            <a href="./historico.html">Histórico de concursos</a>
+            <a href="./status.html">Acompanhar minha foto</a>
+            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
+        </nav>
+    </footer>
 
     <script>
         // Configuração do Supabase vem de supabase-client.js
@@ -107,8 +423,7 @@
             const semConcurso = document.getElementById('sem-concurso');
             const gridConcursos = document.getElementById('grid-concursos');
 
-            // Efeito visual de estrelas explodindo a partir do card clicado
-            // (mesmo padrão de explodirCoracoes em votacao.html).
+            // Efeito visual de estrelas explodindo a partir do card clicado.
             function explodirEstrelas(elemento) {
                 const rect = elemento.getBoundingClientRect();
                 const centroX = rect.left + rect.width / 2;
@@ -152,6 +467,19 @@
                 return false;
             };
 
+            // Sorteia um novo ponto de partida pro "planeta" que orbita o
+            // banner (ver .orbita-card-banner::before no CSS) toda vez que
+            // o mouse entra num card — um delay negativo aleatório entre 0
+            // e -3s (duração total do ciclo) faz a animação parecer já
+            // estar "em andamento" nesse ponto, em vez de sempre começar do
+            // mesmo lugar. mouseenter não borbulha, então a delegação usa a
+            // fase de captura (terceiro argumento "true") pra funcionar com
+            // os cards, que são recriados a cada carregamento da grade.
+            gridConcursos.addEventListener('mouseenter', (evento) => {
+                if (!evento.target.classList || !evento.target.classList.contains('orbita-card')) return;
+                evento.target.style.setProperty('--orbit-delay', `-${(Math.random() * 3).toFixed(2)}s`);
+            }, true);
+
             // Diferença em dias de calendário (não em horas) entre hoje e a
             // data de encerramento do concurso.
             function calcularDiasRestantes(dataStr) {
@@ -161,40 +489,55 @@
                 return Math.round((dataFim - hoje) / (1000 * 60 * 60 * 24));
             }
 
-            // Monta o card de um concurso ativo, com as cores do seu próprio
-            // theme_config aplicadas só naquele card (via style inline) — o
-            // resto da página (index.html) mantém a paleta neutra padrão,
-            // já que ela lista vários concursos ao mesmo tempo e não faz
-            // sentido "vestir" a página inteira com o tema de um só deles.
+            // Monta o card de um concurso ativo, com o ícone/banner colorido
+            // no tom de destaque do próprio theme_config — o resto do card
+            // (marca Órbita no cabeçalho/rodapé) permanece neutro, já que a
+            // página lista vários concursos ao mesmo tempo.
             function montarCardConcurso(concurso) {
                 const cores = (concurso.theme_config && concurso.theme_config.cores) || {};
                 const icones = (concurso.theme_config && concurso.theme_config.icones) || {};
-                const textos = (concurso.theme_config && concurso.theme_config.textos) || {};
-                const corPrimaria = cores.primaria || 'var(--fern)';
-                const logo = icones.logo || './mini-logo.jpg';
+                const corPrimaria = cores.primaria || '#3C8156';
                 const nome = concurso.nome || concurso.descricao;
                 const dias = calcularDiasRestantes(concurso.data);
 
                 let textoPrazo;
-                if (dias > 0) textoPrazo = `📸 ${dias} dia${dias === 1 ? '' : 's'} restante${dias === 1 ? '' : 's'}`;
-                else if (dias === 0) textoPrazo = '🔥 Último dia!';
-                else textoPrazo = '⏰ Prazo encerrado';
+                if (dias > 0) textoPrazo = `${dias} dia${dias === 1 ? '' : 's'} restante${dias === 1 ? '' : 's'}`;
+                else if (dias === 0) textoPrazo = 'Último dia';
+                else textoPrazo = 'Prazo encerrado';
 
-                const cta = textos.cta_participar || 'Ver concurso';
+                // O logo já vem no theme_config (nenhuma busca nova) —
+                // concursos sem logo próprio cadastrado caem no ícone
+                // genérico de câmera, igual antes.
+                const conteudoBanner = icones.logo
+                    ? `<img src="${escapeHTML(icones.logo)}" alt="${escapeHTML(nome)}" class="orbita-card-logo">`
+                    : `<svg class="icon-banner" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
 
                 return `
-                    <a href="./concurso.html?c=${encodeURIComponent(concurso.slug)}" onclick="return navegarParaConcurso(event, this)" class="info-card p-4 flex flex-col gap-2 hover:-translate-y-1 transition duration-200" style="box-shadow: inset 0 0 0 3px ${escapeHTML(corPrimaria)};">
-                        <div class="flex items-center gap-3">
-                            <img src="${escapeHTML(logo)}" alt="${escapeHTML(nome)}" class="w-12 h-12 rounded-xl object-cover border-2 border-[var(--ink)]">
-                            <div class="min-w-0">
-                                <h3 class="font-display text-base text-[var(--ink)] truncate">${escapeHTML(nome)}</h3>
-                                <p class="text-xs text-[var(--ink-soft)]">${escapeHTML(textoPrazo)}</p>
-                            </div>
+                    <a href="./concurso.html?c=${encodeURIComponent(concurso.slug)}" onclick="return navegarParaConcurso(event, this)" class="orbita-card" style="--accent: ${escapeHTML(corPrimaria)};">
+                        <div class="orbita-card-banner">${conteudoBanner}</div>
+                        <div class="orbita-card-body">
+                            <h3 class="orbita-card-title">${escapeHTML(nome)}</h3>
+                            <p class="orbita-card-status">${escapeHTML(textoPrazo)}</p>
                         </div>
-                        <span class="btn btn-fern btn-block text-sm !py-2 mt-1">${escapeHTML(cta)}</span>
                     </a>
                 `;
             }
+
+            // Card estático "Em breve" — segue o mesmo HTML/estrutura dos
+            // cards reais, mas como <div> (não <a>, sem href/onclick) e com
+            // a classe --em-breve, que desliga a interação de hover no CSS.
+            // Não vem do banco (ver comentário no CSS acima).
+            const CARD_EM_BREVE = `
+                <div class="orbita-card orbita-card--em-breve" aria-disabled="true">
+                    <div class="orbita-card-banner">
+                        <svg class="icon-banner" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="orbita-card-body">
+                        <h3 class="orbita-card-title">Em breve</h3>
+                        <p class="orbita-card-status">Novo concurso a caminho</p>
+                    </div>
+                </div>
+            `;
 
             try {
                 const { data, error } = await supabase
@@ -206,7 +549,7 @@
                 if (error) throw error;
 
                 if (data && data.length > 0) {
-                    gridConcursos.innerHTML = data.map(montarCardConcurso).join('');
+                    gridConcursos.innerHTML = data.map(montarCardConcurso).join('') + CARD_EM_BREVE;
                     gridConcursos.classList.remove('hidden');
                 } else {
                     semConcurso.classList.remove('hidden');

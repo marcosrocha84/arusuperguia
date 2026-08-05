@@ -1,4 +1,4 @@
-# AruSuperGuia
+# Órbita
 
 Site estático (HTML + JS puro + Tailwind via CDN) com backend em Supabase, feito
 para o **Concurso Cultural Belinzoni Dino Parque**: visitantes enviam fotos,
@@ -23,7 +23,7 @@ README cobre só "o que existe" e "como rodar".
 
 ## Stack
 
-- **Frontend**: HTML + JavaScript vanilla (sem framework/bundler) + [Tailwind CSS via CDN](https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19) + `styles.css` próprio (identidade visual "ticket de expedição").
+- **Frontend**: HTML + JavaScript vanilla (sem framework/bundler) + [Tailwind CSS via CDN](https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19) + CSS próprio embutido em cada página (identidade visual "Órbita").
 - **Backend**: [Supabase](https://supabase.com) — Postgres (com Row Level Security), Auth (Google OAuth), Storage (fotos e thumbnails), e uma Edge Function.
 - **CAPTCHA**: Cloudflare Turnstile, validado servidor-a-servidor na Edge Function.
 - **Hospedagem**: Netlify, com deploy automático a partir do GitHub (`git push` já publica).

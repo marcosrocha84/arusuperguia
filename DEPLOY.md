@@ -1,6 +1,6 @@
 # Deploy & DNS Quick Guide
 
-Este documento resume passos práticos para publicar este site estático e apontar o domínio `arusuperguia.com.br`.
+Este documento resume passos práticos para publicar este site estático e apontar o domínio `orbita.art.br`.
 
 1) Escolher um provedor (recomendado)
 - Netlify — fácil, suporta `_redirects`, SSL automático e variáveis de ambiente.
@@ -17,14 +17,14 @@ Este documento resume passos práticos para publicar este site estático e apont
 3) Passo-a-passo (Netlify - exemplo rápido)
 - Acesse https://app.netlify.com/ e crie um site a partir do repositório (GitHub/GitLab/Bitbucket) ou arraste os arquivos.
 - Configure `Build command` vazio (é um site estático) e `Publish directory` como `/` (ou `.` se solicitado).
-- Em Settings → Domain management, adicione `arusuperguia.com.br` como Custom domain.
+- Em Settings → Domain management, adicione `orbita.art.br` como Custom domain.
 - Siga as instruções de DNS fornecidas pelo Netlify: normalmente adicionar registros A para os IPs do Netlify ou alterar Nameservers.
 - Em Site settings → Build & deploy → Environment, adicione `SUPABASE_URL` e `SUPABASE_ANON_KEY` (use as chaves da sua instância Supabase).
 
 4) Passo-a-passo (Vercel - resumo)
 - Crie um projeto no Vercel e aponte para o repositório ou envie os arquivos.
 - Escolha `Framework Preset` como `Other` (static) e `Output Directory` como `/`.
-- Em Settings → Domains, adicione `arusuperguia.com.br` e siga as instruções DNS.
+- Em Settings → Domains, adicione `orbita.art.br` e siga as instruções DNS.
 - Em Environment Variables, adicione `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
 
 5) Cloudflare Pages / GitHub Pages (resumo)
@@ -34,17 +34,17 @@ Este documento resume passos práticos para publicar este site estático e apont
 6) DNS e SSL
 - Para domínio gerenciado por registrador (ex: Registro.br), atualize os registros conforme o provedor escolhido:
   - Netlify/Vercel/Cloudflare Pages: normalmente adicionam Nameservers ou pedem um `A`/`CNAME` específico.
-  - Exemplo mínimo (quando pedido por CNAME): `www -> CNAME -> <provider>` e adicionar um redirecionamento no provedor para raiz (`arusuperguia.com.br`).
+  - Exemplo mínimo (quando pedido por CNAME): `www -> CNAME -> <provider>` e adicionar um redirecionamento no provedor para raiz (`orbita.art.br`).
 - Provedor cuidará do SSL (Let's Encrypt automático). Aguarde propagação (pode levar minutos/hours).
 
 7) Supabase — ajustes importantes
-- Em Supabase console → Authentication → Settings, configure `Site URL` para `https://arusuperguia.com.br`.
+- Em Supabase console → Authentication → Settings, configure `Site URL` para `https://orbita.art.br`.
 - Em Authentication → Providers, habilite o provedor OAuth (Google) se usar, e adicione o redirect URI:
-  `https://arusuperguia.com.br/auth/v1/callback`
+  `https://orbita.art.br/auth/v1/callback`
 - Se optar por magic link (recomendado), não precisará configurar Google Cloud.
 
 8) Google Cloud (se usar Google OAuth)
-- Em Google Cloud Console → APIs & Credentials, edite seu OAuth client e adicione `https://arusuperguia.com.br/auth/v1/callback` em Authorized redirect URIs.
+- Em Google Cloud Console → APIs & Credentials, edite seu OAuth client e adicione `https://orbita.art.br/auth/v1/callback` em Authorized redirect URIs.
 
 9) Variáveis de ambiente para frontend
 - Não comitar chaves secretas. No serviço de hospedagem, defina as env vars públicas:
@@ -52,7 +52,7 @@ Este documento resume passos práticos para publicar este site estático e apont
   - `SUPABASE_ANON_KEY` = `public anon key`
 
 10) Testes finais
-- Limpe cache do navegador e abra `https://arusuperguia.com.br`.
+- Limpe cache do navegador e abra `https://orbita.art.br`.
 - Teste upload, curadoria e votação (verifique CORS/Storage se houver erro 403).
 
 11) Checklist rápido

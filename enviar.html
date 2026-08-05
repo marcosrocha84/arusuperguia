@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>Enviar Foto - AruSuperGuia</title>
-    <link id="favicon-link" rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <title>Enviar Foto | Órbita</title>
+    <link id="favicon-link" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f2430' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%231f2430'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
 
@@ -17,7 +18,126 @@
     <!-- Conversor HEIC → JPEG (fotos de iPhone não abrem em <canvas> sem isso) -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 
+    <!-- Identidade "Órbita" — mesmo sistema visual de index.html/concurso.html,
+         duplicado aqui até o resto do site também migrar (ver comentário
+         equivalente em concurso.html). -->
     <style>
+        :root {
+            --orbita-bg: #f4f5f7;
+            --orbita-surface: #ffffff;
+            --orbita-surface-2: #eef0f3;
+            --orbita-border: #e2e5ea;
+            --orbita-ink: #1f2430;
+            --orbita-ink-soft: #6b7280;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--orbita-ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            /* Mesmo fundo sutil de "planetas" do index.html — ver comentário
+               lá pra detalhes de por que o alpha fica embutido no SVG em vez
+               de usar opacity no body. */
+            background-color: var(--orbita-bg);
+            background-repeat: no-repeat, no-repeat;
+            background-position: right -60px top 30px, left -50px bottom 40px;
+            background-image:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Ccircle cx='340' cy='90' r='55' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='340' cy='90' r='115' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='372' cy='30' r='5' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='255' cy='165' r='7' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E"),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='380' height='380'%3E%3Ccircle cx='65' cy='300' r='45' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='65' cy='300' r='95' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='25' cy='352' r='4' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='132' cy='248' r='6' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E");
+        }
+
+        /* ---------- Cabeçalho / rodapé ---------- */
+        .orbita-header { background: var(--orbita-surface-2); border-bottom: 1px solid var(--orbita-border); }
+        .orbita-header-inner { max-width: 560px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .orbita-brand { display: flex; align-items: center; gap: 10px; }
+        .orbita-logo-mark { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--orbita-ink); position: relative; flex-shrink: 0; }
+        .orbita-logo-mark::after { content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--orbita-ink); transform: translate(-50%, -50%); }
+        .orbita-brand-name { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; color: var(--orbita-ink); }
+        .orbita-tagline { margin: 0; font-size: 0.8rem; color: var(--orbita-ink-soft); }
+        .orbita-footer { background: var(--orbita-surface-2); border-top: 1px solid var(--orbita-border); padding: 24px 20px; text-align: center; }
+        .orbita-footer-slogan { margin: 0 0 10px; font-size: 0.85rem; color: var(--orbita-ink-soft); }
+        .orbita-footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; }
+        .orbita-footer-links a { font-size: 0.78rem; color: var(--orbita-ink-soft); text-decoration: none; }
+        .orbita-footer-links a:hover { color: var(--orbita-ink); text-decoration: underline; text-underline-offset: 2px; }
+
+        /* ---------- Corpo ---------- */
+        .orbita-main { flex: 1; max-width: 560px; width: 100%; margin: 0 auto; padding: 32px 20px 48px; }
+        .orbita-card-page { background: var(--orbita-surface); border: 1px solid var(--orbita-border); border-radius: 12px; padding: 28px 24px; }
+        .orbita-card-page-header { text-align: center; margin-bottom: 20px; }
+        .orbita-eyebrow { margin: 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--orbita-ink-soft); }
+        .orbita-card-page-titulo { margin: 8px 0 0; font-size: 1.4rem; font-weight: 700; color: var(--orbita-ink); }
+        .orbita-card-page-subtitulo { margin: 8px 0 0; font-size: 0.88rem; color: var(--orbita-ink-soft); }
+        .orbita-status-msg { text-align: center; font-size: 0.9rem; color: var(--orbita-ink-soft); }
+        .orbita-empty { text-align: center; }
+        .orbita-empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .orbita-empty-title { margin: 0; font-weight: 600; color: var(--orbita-ink); }
+        .orbita-empty-text { margin: 6px 0 0; font-size: 0.85rem; color: var(--orbita-ink-soft); max-width: 24rem; margin-left: auto; margin-right: auto; }
+
+        /* ---------- Formulário ---------- */
+        .orbita-form { display: flex; flex-direction: column; gap: 16px; }
+        .orbita-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--orbita-ink); margin-bottom: 6px; }
+        .orbita-input { width: 100%; padding: 10px 14px; border: 1px solid var(--orbita-border); border-radius: 8px; background: var(--orbita-surface); font-size: 0.9rem; color: var(--orbita-ink); }
+        .orbita-input:focus { outline: none; border-color: var(--orbita-ink-soft); box-shadow: 0 0 0 3px rgba(31, 36, 48, 0.08); }
+        .orbita-file-input { width: 100%; font-size: 0.85rem; color: var(--orbita-ink-soft); }
+        .orbita-file-input::file-selector-button {
+            margin-right: 12px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 1px solid var(--orbita-border);
+            background: var(--orbita-surface-2);
+            color: var(--orbita-ink);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .orbita-file-input::file-selector-button:hover { background: var(--orbita-border); }
+        .orbita-preview { border: 1px solid var(--orbita-border); border-radius: 10px; overflow: hidden; height: 200px; background: var(--orbita-surface-2); display: flex; align-items: center; justify-content: center; }
+        .orbita-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .orbita-consent { display: flex; align-items: flex-start; gap: 8px; background: var(--orbita-surface-2); border: 1px solid var(--orbita-border); border-radius: 10px; padding: 12px; }
+        .orbita-consent input[type="checkbox"] { margin-top: 2px; flex-shrink: 0; }
+        .orbita-consent label { font-size: 0.78rem; color: var(--orbita-ink-soft); line-height: 1.4; cursor: pointer; }
+        .orbita-disclaimer-erro { font-size: 0.85rem; text-align: center; font-weight: 600; color: color-mix(in srgb, var(--accent-secundaria, #C1452C) 80%, black); }
+
+        /* ---------- Botões ---------- */
+        .orbita-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 18px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease; width: 100%; }
+        .orbita-btn:hover { transform: translateY(-1px); }
+        .orbita-btn-primaria { background: var(--accent-primaria, #3C8156); color: #fff; }
+        .orbita-btn-secundaria { background: var(--accent-secundaria, #C1452C); color: #fff; }
+        .orbita-btn-neutro { background: var(--orbita-surface-2); color: var(--orbita-ink); border-color: var(--orbita-border); }
+        .orbita-btn-ghost { background: var(--orbita-surface); color: var(--orbita-ink); border-color: var(--orbita-border); }
+        .orbita-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .orbita-btn-sm { width: auto; padding: 8px 14px; font-size: 0.8rem; }
+        .orbita-empty-btn { max-width: 16rem; margin: 20px auto 0; }
+
+        /* ---------- Sucesso ---------- */
+        .orbita-badge-sucesso {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            background: var(--orbita-surface-2);
+            color: var(--orbita-ink);
+            background: color-mix(in srgb, var(--accent-primaria, #3C8156) 16%, white);
+            color: color-mix(in srgb, var(--accent-primaria, #3C8156) 55%, black);
+        }
+        .orbita-box { background: var(--orbita-surface-2); border: 1px solid var(--orbita-border); border-radius: 10px; padding: 16px; }
+        .orbita-box-esquerda { text-align: left; margin-bottom: 20px; }
+        .orbita-sucesso-texto { margin: 12px 0 16px; }
+        .orbita-box-legenda { margin: 0 0 6px; }
+        .orbita-codigo-linha { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+        .orbita-codigo { font-family: monospace; font-size: 0.8rem; font-weight: 600; color: var(--orbita-ink); word-break: break-all; }
+        .orbita-link-status { font-size: 0.78rem; color: var(--orbita-ink-soft); text-decoration: underline; text-underline-offset: 2px; margin-top: 8px; display: inline-block; }
+        .orbita-erro-mensagem { margin-top: 16px; }
+        .orbita-erro-download { text-align: center; margin-top: 12px; }
+        .orbita-erro-download p:first-child { font-size: 0.75rem; color: var(--orbita-ink-soft); margin-bottom: 4px; }
+        .orbita-erro-download-status { font-size: 0.85rem; font-weight: 600; color: var(--orbita-ink); word-break: break-all; }
+
+        /* ---------- Toast ---------- */
         @keyframes toast-entra-sai {
             0% { opacity: 0; transform: translate(-50%, 8px); }
             10%, 85% { opacity: 1; transform: translate(-50%, 0); }
@@ -28,8 +148,8 @@
             left: 50%;
             bottom: 24px;
             transform: translate(-50%, 0);
-            background: var(--ink);
-            color: var(--bone);
+            background: var(--orbita-ink);
+            color: var(--orbita-surface);
             padding: 10px 18px;
             border-radius: 999px;
             font-size: 0.85rem;
@@ -38,61 +158,95 @@
             animation: toast-entra-sai 2.2s ease forwards;
             pointer-events: none;
         }
+
+        /* Garante que a classe "hidden" do Tailwind sempre vença qualquer
+           classe própria que defina "display" (ex: .orbita-preview usa
+           display:flex) — como este <style> vem depois do link do Tailwind
+           no <head>, uma regra própria com a mesma especificidade (uma
+           classe) sobrescreveria "hidden" na ordem normal da cascata, e o
+           elemento apareceria mesmo com "hidden" na lista de classes. */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ---------- Ícones de linha (substituem emoji colorido por SVG
+           monocromático, herdando cor via currentColor) ---------- */
+        .icon-inline {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            vertical-align: -3px;
+            margin-right: 3px;
+            stroke: currentColor;
+        }
+        /* Variante maior, pro ícone acompanhar o tamanho do título (1.4rem
+           de fonte fica desproporcional ao lado de um ícone de 15px). */
+        .icon-inline--titulo {
+            width: 24px;
+            height: 24px;
+            vertical-align: -5px;
+            margin-right: 6px;
+            stroke: currentColor;
+        }
+        .icon-inline--tight { margin-right: 0; }
     </style>
 </head>
-<body class="bg-canopy min-h-screen flex flex-col justify-between items-center p-4">
+<body>
 
-    <!-- Div centralizadora -->
-    <div class="flex-1 flex items-center justify-center w-full relative z-10 py-8">
-
-        <!-- CONTAINER PRINCIPAL -->
-        <div class="ticket w-full max-w-md">
-
-            <div class="p-6 md:p-8 text-center">
-                <p class="eyebrow text-[var(--fern-dark)]">Arena de Envios</p>
-                <h2 id="titulo-enviar" class="font-display text-2xl md:text-3xl text-[var(--ink)] mt-1">📸 Participe do Concurso!</h2>
-                <p id="subtitulo-enviar" class="text-[var(--ink-soft)] text-sm mt-2">Envie sua melhor foto para concorrer a prêmios.</p>
+    <header class="orbita-header">
+        <div class="orbita-header-inner">
+            <div class="orbita-brand">
+                <span class="orbita-logo-mark" aria-hidden="true"></span>
+                <span class="orbita-brand-name">Órbita</span>
             </div>
+            <p class="orbita-tagline">plataforma de concursos culturais</p>
+        </div>
+    </header>
 
-            <div class="ticket-tear"></div>
+    <main class="orbita-main">
+        <div class="orbita-card-page">
+
+            <div class="orbita-card-page-header">
+                <p class="orbita-eyebrow">Envio de fotos</p>
+                <h2 id="titulo-enviar" class="orbita-card-page-titulo"><svg class="icon-inline icon-inline--titulo" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="texto-titulo-enviar">Participe do Concurso!</span></h2>
+                <p id="subtitulo-enviar" class="orbita-card-page-subtitulo">Envie sua melhor foto para concorrer a prêmios.</p>
+            </div>
 
             <!-- Estado: carregando o concurso desta página -->
-            <div id="carregando-concurso" class="text-center py-8 px-6 md:px-8">
-                <span class="text-sm font-medium text-[var(--ink-soft)]">Carregando...</span>
-            </div>
+            <p id="carregando-concurso" class="orbita-status-msg">Carregando...</p>
 
             <!-- Estado: concurso não encontrado ou não está mais ativo -->
-            <div id="sem-concurso" class="hidden text-center py-8 px-6 md:px-8">
-                <div class="text-5xl mb-4">😢</div>
-                <p class="font-display text-xl text-[var(--ink)]">Não foi possível abrir este concurso</p>
-                <p class="text-sm text-[var(--ink-soft)] mt-2 max-w-sm mx-auto">
+            <div id="sem-concurso" class="hidden orbita-empty">
+                <div class="orbita-empty-icon">😢</div>
+                <p class="orbita-empty-title">Não foi possível abrir este concurso</p>
+                <p class="orbita-empty-text">
                     O link pode estar errado, ou o concurso já não está mais aceitando envios.
                 </p>
-                <a href="./index.html" class="btn btn-fern btn-block mt-6 max-w-xs mx-auto">🏠 Ver concursos ativos</a>
+                <a href="./index.html" class="orbita-btn orbita-btn-primaria orbita-empty-btn">Ver concursos ativos</a>
             </div>
 
             <!-- ÁREA DO FORMULÁRIO -->
-            <div id="form-container" class="hidden p-6 md:p-8 pt-6">
-                <form id="upload-form" class="space-y-4">
+            <div id="form-container" class="hidden">
+                <form id="upload-form" class="orbita-form">
                     <div>
-                        <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Seu nome completo</label>
-                        <input type="text" id="participante-nome" required class="w-full px-4 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)] bg-white">
+                        <label for="participante-nome" class="orbita-label">Seu nome completo</label>
+                        <input type="text" id="participante-nome" required class="orbita-input">
                     </div>
 
                     <div>
-                        <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Escolha ou tire a foto</label>
-                        <input type="file" id="foto-arquivo" accept="image/*" required class="w-full text-sm text-[var(--ink-soft)] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-2 file:border-[var(--ink)] file:text-sm file:font-semibold file:bg-[var(--fern-light)] file:text-[var(--ink)] hover:file:bg-[var(--fern)] hover:file:text-white file:cursor-pointer">
+                        <label for="foto-arquivo" class="orbita-label">Escolha ou tire a foto</label>
+                        <input type="file" id="foto-arquivo" accept="image/*" required class="orbita-file-input">
                     </div>
 
                     <!-- Preview da Imagem -->
-                    <div id="preview-container" class="hidden mt-2 border-2 border-[var(--ink)] rounded-lg overflow-hidden h-48 bg-[var(--bone-2)] flex items-center justify-center">
-                        <img id="image-preview" src="" class="object-cover w-full h-full">
+                    <div id="preview-container" class="hidden orbita-preview">
+                        <img id="image-preview" src="" alt="Pré-visualização da foto selecionada">
                     </div>
 
                     <!-- Check-box de Direito de Imagem -->
-                    <div class="flex items-start space-x-2 ticket-sm p-3">
-                        <input type="checkbox" id="autoriza-imagem" required class="mt-1 h-4 w-4 text-[var(--fern-dark)] focus:ring-[var(--amber)] border-[var(--ink)] rounded cursor-pointer">
-                        <label for="autoriza-imagem" class="text-xs text-[var(--ink-soft)] leading-tight cursor-pointer">
+                    <div class="orbita-consent">
+                        <input type="checkbox" id="autoriza-imagem" required>
+                        <label for="autoriza-imagem">
                             Declaro que sou o autor desta foto e <b>autorizo o uso e exibição da minha imagem</b> para fins de votação pública deste concurso.
                         </label>
                     </div>
@@ -100,85 +254,74 @@
                     <!-- 2. O Elemento Visual/Invisível do CAPTCHA -->
                     <div class="cf-turnstile flex justify-center py-1" data-sitekey="0x4AAAAAAD4IVPmWUrALlMER"></div>
 
-                    <button type="submit" id="btn-enviar" class="btn btn-fern btn-block">
-                        Enviar foto para curadoria
+                    <button type="submit" id="btn-enviar" class="orbita-btn orbita-btn-primaria">
+                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="texto-btn-enviar">Enviar foto para curadoria</span>
                     </button>
 
-                    <div class="text-center pt-1">
-                        <a id="link-pagina-inicial" href="./index.html" class="btn btn-ghost btn-block">
-                            🏠 Página inicial
-                        </a>
-                    </div>
+                    <a id="link-pagina-inicial" href="./index.html" class="orbita-btn orbita-btn-ghost">
+                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Página inicial
+                    </a>
                 </form>
             </div>
 
             <!-- TELA DE SUCESSO -->
-            <div id="sucesso-container" class="hidden text-center py-8 px-6 md:px-8">
-                <div class="text-5xl mb-4">🎉</div>
-                <span class="stamp stamp-fern">Inscrição confirmada</span>
-                <p class="text-[var(--ink-soft)] text-sm mt-4 mb-4">
+            <div id="sucesso-container" class="hidden orbita-empty">
+                <div class="orbita-empty-icon">🎉</div>
+                <span class="orbita-badge-sucesso">Inscrição confirmada</span>
+                <p class="orbita-card-page-subtitulo orbita-sucesso-texto">
                     Sua foto foi enviada com sucesso para os nossos jurados. Ela passa por uma curadoria e pode ser aprovada ou reprovada conforme o regulamento.
                 </p>
 
                 <!-- Código de acompanhamento -->
-                <div class="ticket-sm p-4 mb-5 text-left">
-                    <p class="text-xs text-[var(--ink-soft)] mb-1">Código de acompanhamento — guarde para consultar o status da sua foto:</p>
-                    <div class="flex flex-col items-center gap-2 text-center">
-                        <p id="codigo-acompanhamento" class="font-mono text-xs sm:text-sm font-semibold text-[var(--ink)] break-all select-all"></p>
-                        <button id="btn-copiar-codigo" type="button" class="btn btn-ghost !py-1.5 !px-3 text-xs">📋 Copiar</button>
+                <div class="orbita-box orbita-box-esquerda">
+                    <p class="orbita-card-page-subtitulo orbita-box-legenda">Código de acompanhamento — guarde para consultar o status da sua foto:</p>
+                    <div class="orbita-codigo-linha">
+                        <p id="codigo-acompanhamento" class="orbita-codigo"></p>
+                        <button id="btn-copiar-codigo" type="button" class="orbita-btn orbita-btn-ghost orbita-btn-sm"><svg class="icon-inline icon-inline--tight" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar</button>
                     </div>
-                    <a href="./status.html" class="text-xs underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)] mt-2 inline-block">🔎 Acompanhar minha foto</a>
+                    <a href="./status.html" class="orbita-link-status"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Acompanhar minha foto</a>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-1 gap-3">
-                    <button id="btn-reiniciar" class="btn btn-amber btn-block mt-3">
-                        🔄 Enviar uma nova foto
+                <div class="orbita-form">
+                    <button id="btn-reiniciar" type="button" class="orbita-btn orbita-btn-neutro">
+                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Enviar uma nova foto
                     </button>
-                    <a id="link-votacao-sucesso" href="./votacao.html" class="btn btn-ember btn-block">
-                        ❤️ Ir para a votação
+                    <a id="link-votacao-sucesso" href="./votacao.html" class="orbita-btn orbita-btn-secundaria">
+                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Ir para a votação
                     </a>
-                    <a id="link-pagina-inicial-sucesso" href="./index.html" class="btn btn-ghost btn-block">
-                        🏠 Página inicial
+                    <a id="link-pagina-inicial-sucesso" href="./index.html" class="orbita-btn orbita-btn-ghost">
+                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Página inicial
                     </a>
                 </div>
             </div>
 
             <!-- Mensagem de erro simples -->
-            <p id="erro-mensagem" class="text-[var(--ember-dark)] text-sm text-center font-semibold px-6 pb-6 hidden"></p>
+            <p id="erro-mensagem" class="hidden orbita-disclaimer-erro orbita-erro-mensagem"></p>
             <!-- DEBUG TEMPORÁRIO: sobe o arquivo exatamente como o navegador
                  recebeu (sem processamento nosso) pra um caminho separado no
                  Storage, só pra diagnosticar falhas de decodificação — baixar
                  blob: grande via o atributo "download" falha com "Erro na
                  rede" em vários Android/Chrome, então evitamos esse caminho.
                  Remover depois de descobrir o problema. -->
-            <div id="erro-download-wrap" class="text-center px-6 pb-6 hidden">
-                <p class="text-xs text-[var(--ink-soft)] mb-1">Link do arquivo original (envie esse link):</p>
-                <p id="erro-download-status" class="text-sm font-semibold text-[var(--ink)] break-all select-all"></p>
+            <div id="erro-download-wrap" class="hidden orbita-erro-download">
+                <p>Link do arquivo original (envie esse link):</p>
+                <p id="erro-download-status" class="orbita-erro-download-status"></p>
             </div>
-
-            <div class="ticket-tear"></div>
-
-            <!-- Rodapé -->
-            <footer class="text-center p-6 md:p-10 pt-8 text-[var(--ink-soft)]">
-                <p class="text-sm font-semibold">
-                    Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
-                </p>
-                <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
-                    © AruSuperGuia
-                    <span class="divider-dot"></span>
-                    <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
-                    <span class="divider-dot"></span>
-                    <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
-                    <span id="regulamento-link-wrap" style="display: none;">
-                        <span class="divider-dot"></span>
-                        <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">📄 Regulamento do concurso</a>
-                    </span>
-                    <span class="divider-dot"></span>
-                    <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
-                </div>
-            </footer>
         </div>
-    </div>
+    </main>
+
+    <footer class="orbita-footer">
+        <p class="orbita-footer-slogan">Órbita — a plataforma por trás do seu concurso cultural</p>
+        <nav class="orbita-footer-links">
+            <a href="mailto:arusuperguia@outlook.com">Contato</a>
+            <a href="./privacy.html">Privacidade</a>
+            <a href="./terms.html">Termos</a>
+            <span id="regulamento-link-wrap" style="display: none;">
+                <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Regulamento do concurso</a>
+            </span>
+            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
+        </nav>
+    </footer>
 
     <script>
         // Configuração do Supabase vem de supabase-client.js
@@ -192,6 +335,7 @@
         const previewContainer = document.getElementById('preview-container');
         const imagePreview = document.getElementById('image-preview');
         const btnEnviar = document.getElementById('btn-enviar');
+        const textoBtnEnviar = document.getElementById('texto-btn-enviar');
         const btnReiniciar = document.getElementById('btn-reiniciar');
         const codigoAcompanhamentoEl = document.getElementById('codigo-acompanhamento');
         const btnCopiarCodigo = document.getElementById('btn-copiar-codigo');
@@ -215,24 +359,14 @@
             if (!themeConfig) return;
             const root = document.documentElement.style;
             const cores = themeConfig.cores || {};
-            if (cores.primaria) {
-                root.setProperty('--fern', cores.primaria);
-                root.setProperty('--fern-dark', cores.primaria);
-            }
-            if (cores.secundaria) {
-                root.setProperty('--ember', cores.secundaria);
-                root.setProperty('--ember-dark', cores.secundaria);
-            }
-            if (cores.fundo) {
-                root.setProperty('--canopy', cores.fundo);
-                root.setProperty('--canopy-2', cores.fundo);
-            }
+            if (cores.primaria) root.setProperty('--accent-primaria', cores.primaria);
+            if (cores.secundaria) root.setProperty('--accent-secundaria', cores.secundaria);
 
             const icones = themeConfig.icones || {};
             if (icones.favicon) document.getElementById('favicon-link').href = icones.favicon;
 
             const textos = themeConfig.textos || {};
-            if (textos.titulo) document.getElementById('titulo-enviar').textContent = `📸 ${textos.titulo}`;
+            if (textos.titulo) document.getElementById('texto-titulo-enviar').textContent = textos.titulo;
             if (textos.subtitulo) document.getElementById('subtitulo-enviar').textContent = textos.subtitulo;
         }
 
@@ -276,7 +410,7 @@
 
             if (concurso.regulamento_pdf_url) {
                 linkRegulamento.href = concurso.regulamento_pdf_url;
-                regulamentoLinkWrap.style.display = 'contents';
+                regulamentoLinkWrap.style.display = 'inline';
             }
 
             carregandoConcurso.classList.add('hidden');
@@ -336,7 +470,7 @@
             8: 'Enviando miniatura...',
         };
         function mostrarEtapaEnvio(etapaAtual) {
-            btnEnviar.textContent = MENSAGENS_ETAPA_ENVIO[etapaAtual] || 'Aguarde...';
+            textoBtnEnviar.textContent = MENSAGENS_ETAPA_ENVIO[etapaAtual] || 'Aguarde...';
         }
 
         // Confere a assinatura de bytes do arquivo (a caixa "ftyp" do
@@ -955,7 +1089,7 @@
                 // cada nova visita depois desse prazo, mesmo pra fotos que
                 // não mudam nunca.
                 const { data: storageData, error: storageError } = await comTimeout(
-                    supabase.storage.from('arusuperguia-fotos').upload(nomeArquivoUnico, fileComprimido, { contentType: 'image/jpeg', cacheControl: '31536000' }),
+                    supabase.storage.from('orbita-fotos').upload(nomeArquivoUnico, fileComprimido, { contentType: 'image/jpeg', cacheControl: '31536000' }),
                     30000,
                     mensagemTimeoutRede
                 );
@@ -964,7 +1098,7 @@
 
                 mostrarEtapaEnvio(8);
                 const { data: storageThumbData, error: storageThumbError } = await comTimeout(
-                    supabase.storage.from('arusuperguia-fotos').upload(nomeArquivoThumb, fileThumb, { contentType: 'image/jpeg', cacheControl: '31536000' }),
+                    supabase.storage.from('orbita-fotos').upload(nomeArquivoThumb, fileThumb, { contentType: 'image/jpeg', cacheControl: '31536000' }),
                     30000,
                     mensagemTimeoutRede
                 );
@@ -973,11 +1107,11 @@
 
                 // Captura as URLs
                 const { data: urlData } = supabase.storage
-                    .from('arusuperguia-fotos')
+                    .from('orbita-fotos')
                     .getPublicUrl(nomeArquivoUnico);
 
                 const { data: urlThumbData } = supabase.storage
-                    .from('arusuperguia-fotos')
+                    .from('orbita-fotos')
                     .getPublicUrl(nomeArquivoThumb);
 
                 const urlPublicaDaFoto = urlData.publicUrl;
@@ -1044,12 +1178,12 @@
                     try {
                         const nomeDebug = `diagnostico/${Date.now()}-${fileParaDebug.name || 'foto.jpg'}`;
                         const { error: erroUploadDebug } = await supabase.storage
-                            .from('arusuperguia-fotos')
+                            .from('orbita-fotos')
                             .upload(nomeDebug, fileParaDebug, { contentType: fileParaDebug.type || 'application/octet-stream' });
 
                         if (erroUploadDebug) throw erroUploadDebug;
 
-                        const { data: urlDebug } = supabase.storage.from('arusuperguia-fotos').getPublicUrl(nomeDebug);
+                        const { data: urlDebug } = supabase.storage.from('orbita-fotos').getPublicUrl(nomeDebug);
                         erroDownloadStatus.textContent = urlDebug.publicUrl;
                     } catch (erroDebug) {
                         console.error('Falha ao subir arquivo de diagnóstico:', erroDebug);
@@ -1060,7 +1194,7 @@
                 if (typeof turnstile !== "undefined") turnstile.reset();
             } finally {
                 btnEnviar.disabled = false;
-                btnEnviar.textContent = "Enviar foto para curadoria";
+                textoBtnEnviar.textContent = "Enviar foto para curadoria";
             }
         });
     </script>

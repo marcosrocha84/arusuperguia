@@ -30,6 +30,20 @@ window.addEventListener('unhandledrejection', (ev) => {
 // Configuração do Supabase e helper escapeHTML() vêm de supabase-client.js
 // (carregado antes deste arquivo em curadoria.html)
 
+// Ícones de linha (SVG inline, cor herdada via currentColor) — substituem
+// os emojis coloridos usados no HTML montado dinamicamente por este
+// arquivo. Ficam centralizados aqui em vez de espalhados pelas funções
+// porque vários são reaproveitados em mais de um lugar.
+const ICONE_CALENDARIO = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+const ICONE_PREMIO = '<svg class="icon-inline" style="margin-right:0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>';
+const ICONE_PREMIO_MARGEM = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>';
+const ICONE_ARQUIVO = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+const ICONE_USUARIO = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+const ICONE_CLIPBOARD = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
+const ICONE_LIXEIRA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+const ICONE_PARCERIA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+const ICONE_LINK = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+
 // Elementos do DOM
 const loginSection = document.getElementById('login-section');
 const adminPanel = document.getElementById('admin-panel');
@@ -417,7 +431,7 @@ async function carregarFotos(filtro = 'Todas', concursoId = 'todos', pagina = 1)
         // deletarFoto) — sem URL pra mostrar, exibe um espaço reservado em
         // vez de um <img src=""> (que gera um pedido de rede inválido).
         const imagemHtml = foto.reprovada
-            ? `<div class="w-full h-48 bg-[var(--bone-2)] flex items-center justify-center text-4xl">🗑️</div>`
+            ? `<div class="w-full h-48 bg-[var(--bone-2)] flex items-center justify-center text-[var(--ink-soft)]">${ICONE_LIXEIRA}</div>`
             : `<img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto de participante" loading="lazy" class="w-full h-48 object-cover">`;
 
         const dataEnvio = new Date(foto.criado_em).toLocaleString('pt-BR', {
@@ -427,10 +441,10 @@ async function carregarFotos(filtro = 'Todas', concursoId = 'todos', pagina = 1)
         card.innerHTML = `
             ${imagemHtml}
             <div class="p-4">
-                <p class="text-sm text-[var(--ink-soft)] mb-1">👤 Participante: <strong class="text-[var(--ink)]">${escapeHTML(foto.nome_participante)}</strong></p>
-                <p class="text-xs text-[var(--ink-soft)] mb-2">🏆 Concurso: <strong class="text-[var(--ink)]">${foto.concursos ? escapeHTML(foto.concursos.descricao) : 'Sem concurso vinculado'}</strong></p>
-                <p class="text-xs text-[var(--ink-soft)] mb-1">📅 Enviada em: <strong class="text-[var(--ink)]">${dataEnvio}</strong></p>
-                <p class="text-xs text-[var(--ink-soft)] mb-2">📋 Código de acompanhamento:<br><span class="font-mono text-[var(--ink)] break-all select-all">${escapeHTML(foto.id)}</span></p>
+                <p class="text-sm text-[var(--ink-soft)] mb-1">${ICONE_USUARIO} Participante: <strong class="text-[var(--ink)]">${escapeHTML(foto.nome_participante)}</strong></p>
+                <p class="text-xs text-[var(--ink-soft)] mb-2">${ICONE_PREMIO_MARGEM} Concurso: <strong class="text-[var(--ink)]">${foto.concursos ? escapeHTML(foto.concursos.descricao) : 'Sem concurso vinculado'}</strong></p>
+                <p class="text-xs text-[var(--ink-soft)] mb-1">${ICONE_CALENDARIO} Enviada em: <strong class="text-[var(--ink)]">${dataEnvio}</strong></p>
+                <p class="text-xs text-[var(--ink-soft)] mb-2">${ICONE_CLIPBOARD} Código de acompanhamento:<br><span class="font-mono text-[var(--ink)] break-all select-all">${escapeHTML(foto.id)}</span></p>
                 <div class="flex items-center space-x-2 my-2">
                     <span class="stamp ${foto.aprovada ? 'stamp-fern' : (foto.reprovada ? 'stamp-ember' : 'stamp-amber')}">
                         ${foto.aprovada ? 'Aprovada (visível)' : (foto.reprovada ? 'Reprovada' : 'Pendente')}
@@ -475,11 +489,11 @@ window.alterarStatusFoto = async function(id, status) {
 }
 
 // Extrai o caminho do arquivo dentro do bucket a partir da URL pública
-// salva no banco (ex: ".../object/public/arusuperguia-fotos/123-abc.jpg"
+// salva no banco (ex: ".../object/public/orbita-fotos/123-abc.jpg"
 // -> "123-abc.jpg") — é o formato que supabase.storage...remove() espera.
 function extrairCaminhoNoBucketFotos(url) {
     if (!url) return null;
-    const marcador = '/arusuperguia-fotos/';
+    const marcador = '/orbita-fotos/';
     const indice = url.indexOf(marcador);
     if (indice === -1) return null;
     return decodeURIComponent(url.slice(indice + marcador.length));
@@ -509,7 +523,7 @@ window.deletarFoto = async function(id) {
 
     const caminhos = [extrairCaminhoNoBucketFotos(foto.url_foto), extrairCaminhoNoBucketFotos(foto.url_thumb)].filter(Boolean);
     if (caminhos.length > 0) {
-        const { error: erroStorage } = await supabase.storage.from('arusuperguia-fotos').remove(caminhos);
+        const { error: erroStorage } = await supabase.storage.from('orbita-fotos').remove(caminhos);
         // Não interrompe o fluxo se a exclusão do arquivo falhar — a foto
         // já vai ser marcada como reprovada de qualquer forma; o pior caso é
         // um arquivo órfão no Storage, não um bloqueio da moderação.
@@ -596,7 +610,7 @@ async function carregarMetricasPorConcurso() {
             <div>
                 <div class="flex items-center gap-2 mb-3">
                     <h4 class="font-semibold text-[var(--ink)]">${escapeHTML(descricao)}</h4>
-                    ${dataFormatada ? `<span class="text-sm text-[var(--ink-soft)]">📅 ${dataFormatada}</span>` : ''}
+                    ${dataFormatada ? `<span class="text-sm text-[var(--ink-soft)]">${ICONE_CALENDARIO} ${dataFormatada}</span>` : ''}
                     ${ativo !== null ? `<span class="stamp ${ativo ? 'stamp-fern' : 'stamp-amber'}">${ativo ? 'Ativo' : 'Inativo'}</span>` : ''}
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -717,11 +731,11 @@ function renderizarConcursos() {
             <div>
                 <p class="font-semibold text-[var(--ink)]">${escapeHTML(concurso.nome || concurso.descricao)} <span class="font-mono text-xs text-[var(--ink-soft)] font-normal">/c/${escapeHTML(concurso.slug || '')}</span></p>
                 <div class="flex items-center gap-2 mt-1">
-                    <span class="text-sm text-[var(--ink-soft)]">📅 ${dataFormatada}</span>
+                    <span class="text-sm text-[var(--ink-soft)]">${ICONE_CALENDARIO} ${dataFormatada}</span>
                     <span class="stamp ${concurso.ativo ? 'stamp-fern' : 'stamp-amber'}">${concurso.ativo ? 'Ativo' : 'Inativo'}</span>
                     ${concurso.encerrado ? '<span class="stamp stamp-ember">Encerrado</span>' : ''}
-                    <span class="text-sm text-[var(--ink-soft)]">${'🏆'.repeat(concurso.qtd_vencedores || 3)}</span>
-                    ${concurso.regulamento_pdf_url ? `<a href="${escapeHTML(concurso.regulamento_pdf_url)}" target="_blank" rel="noopener noreferrer" class="text-sm underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">📄 Regulamento</a>` : ''}
+                    <span class="text-sm text-[var(--ink-soft)] flex items-center">${ICONE_PREMIO.repeat(concurso.qtd_vencedores || 3)}</span>
+                    ${concurso.regulamento_pdf_url ? `<a href="${escapeHTML(concurso.regulamento_pdf_url)}" target="_blank" rel="noopener noreferrer" class="text-sm underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">${ICONE_ARQUIVO}Regulamento</a>` : ''}
                 </div>
             </div>
             <div class="flex gap-2">
@@ -1085,13 +1099,13 @@ if (concursoForm) {
                     const extensao = (arquivo.name.split('.').pop() || 'jpg').toLowerCase();
                     const nomeArquivoUnico = `${chave}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${extensao}`;
                     const { error: storageError } = await supabase.storage
-                        .from('arusuperguia-temas')
+                        .from('orbita-temas')
                         .upload(nomeArquivoUnico, arquivo, { contentType: arquivo.type || 'image/jpeg' });
 
                     if (storageError) throw storageError;
 
                     const { data: urlData } = supabase.storage
-                        .from('arusuperguia-temas')
+                        .from('orbita-temas')
                         .getPublicUrl(nomeArquivoUnico);
 
                     payload.theme_config.icones[chave] = urlData.publicUrl;
@@ -1106,13 +1120,13 @@ if (concursoForm) {
             if (arquivoRegulamento) {
                 const nomeArquivoUnico = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.pdf`;
                 const { error: storageError } = await supabase.storage
-                    .from('arusuperguia-regulamentos')
+                    .from('orbita-regulamentos')
                     .upload(nomeArquivoUnico, arquivoRegulamento, { contentType: 'application/pdf' });
 
                 if (storageError) throw storageError;
 
                 const { data: urlData } = supabase.storage
-                    .from('arusuperguia-regulamentos')
+                    .from('orbita-regulamentos')
                     .getPublicUrl(nomeArquivoUnico);
 
                 payload.regulamento_pdf_url = urlData.publicUrl;
@@ -1244,12 +1258,12 @@ function renderizarPatrocinadores() {
             <div class="flex items-center gap-3">
                 ${patrocinador.logotipo_url
                     ? `<img src="${escapeHTML(patrocinador.logotipo_url)}" alt="Logotipo de ${escapeHTML(patrocinador.nome)}" class="h-10 w-10 object-contain border-2 border-[var(--ink)] rounded-lg bg-white">`
-                    : `<div class="h-10 w-10 flex items-center justify-center border-2 border-[var(--ink)] rounded-lg bg-white text-lg">🤝</div>`}
+                    : `<div class="h-10 w-10 flex items-center justify-center border-2 border-[var(--ink)] rounded-lg bg-white text-[var(--ink-soft)]">${ICONE_PARCERIA}</div>`}
                 <div>
                     <p class="font-semibold text-[var(--ink)]">${escapeHTML(patrocinador.nome)}</p>
                     <div class="flex items-center gap-2 mt-1">
                         <span class="stamp ${patrocinador.ativo ? 'stamp-fern' : 'stamp-amber'}">${patrocinador.ativo ? 'Ativo' : 'Inativo'}</span>
-                        ${patrocinador.url_rede_social ? `<a href="${escapeHTML(patrocinador.url_rede_social)}" target="_blank" rel="noopener noreferrer" class="text-sm underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">🔗 Link</a>` : ''}
+                        ${patrocinador.url_rede_social ? `<a href="${escapeHTML(patrocinador.url_rede_social)}" target="_blank" rel="noopener noreferrer" class="text-sm underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">${ICONE_LINK}Link</a>` : ''}
                     </div>
                 </div>
             </div>
@@ -1332,13 +1346,13 @@ if (patrocinadorForm) {
                 const logotipoComprimido = await comprimirLogotipo(arquivoLogotipo);
                 const nomeArquivoUnico = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.png`;
                 const { error: storageError } = await supabase.storage
-                    .from('arusuperguia-patrocinadores')
+                    .from('orbita-patrocinadores')
                     .upload(nomeArquivoUnico, logotipoComprimido, { contentType: 'image/png' });
 
                 if (storageError) throw storageError;
 
                 const { data: urlData } = supabase.storage
-                    .from('arusuperguia-patrocinadores')
+                    .from('orbita-patrocinadores')
                     .getPublicUrl(nomeArquivoUnico);
 
                 payload.logotipo_url = urlData.publicUrl;
@@ -1808,7 +1822,7 @@ if (campanhaRelatorioPdfBtn) {
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(16);
-        doc.text('AruSuperGuia — Relatório de Campanha de E-mail Marketing', margemEsquerda, y);
+        doc.text('Órbita — Relatório de Campanha de E-mail Marketing', margemEsquerda, y);
 
         y += 12;
         doc.setFontSize(11);

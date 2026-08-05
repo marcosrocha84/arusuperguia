@@ -25,12 +25,19 @@ const TURNSTILE_SECRET_KEY = Deno.env.get("TURNSTILE_SECRET_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Origens permitidas a chamar essa function pelo navegador. O domínio de
-// produção é o que importa de verdade; os outros dois são só para testar
-// localmente com a extensão Live Server do VSCode antes de subir mudanças
-// (porta padrão dela é 5500, tanto em 127.0.0.1 quanto em localhost).
+// Origens permitidas a chamar essa function pelo navegador. Durante a
+// migração de domínio (AruSuperGuia -> Órbita), os dois domínios de
+// produção ficam liberados ao mesmo tempo — o antigo (arusuperguia.com.br)
+// continua sendo quem o DNS aponta até a Fase 5 da migração cortar pro
+// domínio novo; o novo (orbita.art.br) já é liberado desde já pra poder
+// testar antes do corte. Remova o antigo da lista só depois que o DNS
+// estiver definitivamente no ar em orbita.art.br. Os outros dois são só
+// para testar localmente com a extensão Live Server do VSCode antes de
+// subir mudanças (porta padrão dela é 5500, tanto em 127.0.0.1 quanto em
+// localhost).
 const ORIGENS_PERMITIDAS = [
     "https://arusuperguia.com.br",
+    "https://orbita.art.br",
     "http://127.0.0.1:5500",
     "http://localhost:5500",
 ];

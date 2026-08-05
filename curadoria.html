@@ -4,28 +4,219 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>Curadoria - AruSuperGuia</title>
-    <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <title>Curadoria | Órbita</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f2430' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%231f2430'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
     <script src="./app.js?v=2.0" defer></script>
+
+    <!-- Identidade "Órbita" — mesma estratégia de votacao.html/historico.html:
+         app.js (1800+ linhas, arquivo à parte) monta MUITO HTML dinâmico
+         (linhas de concurso/patrocinador/premiação/campanha, fotos de
+         moderação, selos, botões) usando os nomes de classe/variável
+         antigos (.btn, .ticket-sm, .stamp, .eyebrow, var(--ink) etc.) — em
+         vez de caçar cada uma dessas linhas em 1800 linhas de JS (altíssimo
+         risco), só redefinimos o que esses nomes SIGNIFICAM visualmente.
+         Nenhuma linha de app.js foi tocada. -->
     <style>
+        :root {
+            --orbita-bg: #f4f5f7;
+            --orbita-surface: #ffffff;
+            --orbita-surface-2: #eef0f3;
+            --orbita-border: #e2e5ea;
+            --orbita-ink: #1f2430;
+            --orbita-ink-soft: #6b7280;
+
+            --ink: var(--orbita-ink);
+            --ink-soft: var(--orbita-ink-soft);
+            --bone: var(--orbita-surface);
+            --bone-2: var(--orbita-surface-2);
+            --fern: #3C8156;
+            --fern-dark: #3C8156;
+            --fern-light: #eef0f3;
+            --ember: #C1452C;
+            --ember-dark: #C1452C;
+            --amber: #E3A335;
+            --amber-dark: #B9791C;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--orbita-ink);
+            min-height: 100vh;
+            /* Mesmo fundo sutil de "planetas" do index.html — ver comentário
+               lá pra detalhes de por que o alpha fica embutido no SVG em vez
+               de usar opacity no body. Header/sidebar têm fundo opaco
+               próprio, então o padrão só aparece atrás da área principal. */
+            background-color: var(--orbita-bg);
+            background-repeat: no-repeat, no-repeat;
+            background-position: right -60px top 30px, left -50px bottom 40px;
+            background-image:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Ccircle cx='340' cy='90' r='55' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='340' cy='90' r='115' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='372' cy='30' r='5' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='255' cy='165' r='7' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E"),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='380' height='380'%3E%3Ccircle cx='65' cy='300' r='45' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='65' cy='300' r='95' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='25' cy='352' r='4' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='132' cy='248' r='6' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E");
+        }
+
+        /* ---------- Compat: títulos (a fonte serifada antiga saiu, esta
+           classe agora só garante o peso) ---------- */
+        .font-display { font-weight: 700; }
+
+        /* ---------- Compat: .eyebrow ---------- */
+        .eyebrow {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* ---------- Compat: cards (.ticket, .ticket-sm, .ticket-sm-light) ---------- */
+        .ticket, .ticket-sm {
+            background: var(--bone);
+            border: 1px solid var(--bone-2);
+            border-radius: 12px;
+        }
+        .ticket-sm-light {
+            background: var(--orbita-surface-2);
+            border-radius: 10px;
+        }
+
+        /* ---------- Ícone de linha inline (piloto: substitui emoji
+           colorido por SVG monocromático, herdando a cor do texto ao
+           redor via currentColor — testando primeiro só na seção
+           Concursos). ---------- */
+        .icon-inline {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            vertical-align: -3px;
+            margin-right: 3px;
+            stroke: currentColor;
+        }
+
+        /* ---------- Compat: botões (.btn) ---------- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-block { width: 100%; }
+        .btn-ghost { background: var(--bone); color: var(--ink); border-color: var(--bone-2); }
+        .btn-fern { background: var(--fern); color: #fff; }
+        .btn-ember { background: var(--ember); color: #fff; }
+        .btn-amber { background: var(--amber); color: #1f2430; }
+
+        /* ---------- Compat: selo de status (.stamp) ---------- */
+        .stamp {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .stamp-amber { background: color-mix(in srgb, var(--amber) 20%, white); color: var(--amber-dark); }
+        .stamp-fern { background: var(--bone-2); color: var(--ink); background: color-mix(in srgb, var(--fern) 18%, white); color: color-mix(in srgb, var(--fern) 55%, black); }
+        .stamp-ember { background: var(--bone-2); color: var(--ink); background: color-mix(in srgb, var(--ember) 18%, white); color: color-mix(in srgb, var(--ember) 55%, black); }
+
+        /* ---------- Painel administrativo ---------- */
+        .orbita-admin-header {
+            background: var(--orbita-ink);
+            color: #fff;
+            padding: 14px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+        }
+        .orbita-admin-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .orbita-admin-logo-mark {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .orbita-admin-logo-mark::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #fff;
+            transform: translate(-50%, -50%);
+        }
+        .orbita-admin-header .eyebrow {
+            background: rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.85);
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+        .orbita-sidebar {
+            width: 16rem;
+            flex-shrink: 0;
+            background: var(--orbita-ink);
+            color: rgba(255, 255, 255, 0.85);
+            display: flex;
+            flex-direction: column;
+        }
+        .nav-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.75);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .nav-item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        .nav-item.active { background: var(--fern); color: #fff; }
+
         .trofeu-opcao { opacity: 0.55; cursor: pointer; }
         .trofeu-opcao:hover { opacity: 0.85; }
         .trofeu-opcao.selecionado { opacity: 1; box-shadow: inset 0 0 0 2px var(--amber); background: var(--amber-light, #FBEBC8); }
+
+        /* Garante que "hidden" (Tailwind) sempre vença classes próprias que
+           definem "display" — ver comentário equivalente em enviar.html. */
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
-<body class="bg-[var(--bone-2)] font-sans min-h-screen" style="--page-bg: var(--bone-2);">
+<body>
 
     <!-- 1. TELA DE LOGIN (Visível por padrão) -->
     <div id="login-section" class="flex items-center justify-center min-h-screen p-4">
         <div class="ticket w-full max-w-md">
             <div class="p-8">
                 <p class="eyebrow text-[var(--fern-dark)] text-center">Acesso restrito</p>
-                <h2 class="font-display text-2xl text-center text-[var(--ink)] mt-1 mb-6">AruSuperGuia · Curadoria</h2>
+                <h2 class="font-display text-2xl text-center text-[var(--ink)] mt-1 mb-6">Órbita · Curadoria</h2>
                 <form id="login-form" class="space-y-4">
                     <div>
                         <label class="block text-[var(--ink)] text-sm font-semibold mb-1">E-mail</label>
@@ -45,24 +236,28 @@
     <!-- 2. PAINEL DE CONTROLE (Oculto por padrão) -->
     <div id="admin-panel" class="hidden min-h-screen flex flex-col">
         <!-- Header -->
-        <header class="bg-[var(--canopy)] text-[var(--bone)] px-4 md:px-6 py-4 flex justify-between items-center shadow-md relative z-10">
-            <h1 class="font-display text-lg md:text-xl">Painel de Curadoria</h1>
+        <header class="orbita-admin-header">
+            <div class="orbita-admin-brand">
+                <span class="orbita-admin-logo-mark" aria-hidden="true"></span>
+                <span class="font-display text-lg md:text-xl">Órbita</span>
+                <h1 class="font-display text-lg md:text-xl">— Painel de Curadoria</h1>
+            </div>
             <div class="flex items-center space-x-4">
-                <span id="user-display" class="eyebrow bg-[var(--canopy-2)] px-3 py-1.5 rounded-lg inline-block text-xs sm:text-sm truncate max-w-[9rem] sm:max-w-none">Admin: carregar...</span>
+                <span id="user-display" class="eyebrow px-3 py-1.5 rounded-lg inline-block text-xs sm:text-sm truncate max-w-[9rem] sm:max-w-none">Admin: carregar...</span>
                 <button id="btn-logout" class="btn btn-ember !py-1.5 !px-3 text-sm">Sair</button>
             </div>
         </header>
 
         <div class="flex-1 flex items-stretch">
             <!-- Menu lateral fixo -->
-            <aside id="sidebar" class="w-64 shrink-0 bg-[var(--canopy)] text-[var(--bone)] flex flex-col md:sticky md:top-0 md:h-screen">
+            <aside id="sidebar" class="orbita-sidebar md:sticky md:top-0 md:h-screen">
                 <nav class="p-3 space-y-1">
-                    <button data-view="dashboard" class="nav-item active">📊 Dashboard</button>
-                    <button data-view="moderacao" class="nav-item">🖼️ Moderação de fotos</button>
-                    <button data-view="concursos" class="nav-item">🎟️ Concursos</button>
-                    <button data-view="patrocinadores" class="nav-item">🤝 Patrocinadores</button>
-                    <button data-view="premiacoes" class="nav-item">🏅 Premiações</button>
-                    <button data-view="campanhas" class="nav-item">📧 Campanhas</button>
+                    <button data-view="dashboard" class="nav-item active"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Dashboard</button>
+                    <button data-view="moderacao" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Moderação de fotos</button>
+                    <button data-view="concursos" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Concursos</button>
+                    <button data-view="patrocinadores" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Patrocinadores</button>
+                    <button data-view="premiacoes" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Premiações</button>
+                    <button data-view="campanhas" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg> Campanhas</button>
                 </nav>
             </aside>
 
@@ -74,24 +269,24 @@
                     <div class="flex items-center justify-between mb-6 gap-4">
                         <h2 class="font-display text-2xl text-[var(--ink)]">Dashboard</h2>
                         <button id="btn-atualizar-dashboard" class="btn btn-ghost !py-1.5 !px-3 text-sm">
-                            🔄 Atualizar
+                            <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Atualizar
                         </button>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                         <div class="ticket-sm p-5">
-                            <p class="eyebrow text-[var(--fern-dark)] mb-2">📷 Total de fotos</p>
+                            <p class="eyebrow text-[var(--fern-dark)] mb-2"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Total de fotos</p>
                             <p id="metric-total" class="font-display text-3xl text-[var(--ink)]">–</p>
                         </div>
                         <div class="ticket-sm p-5">
-                            <p class="eyebrow text-[var(--fern-dark)] mb-2">✅ Aprovadas</p>
+                            <p class="eyebrow text-[var(--fern-dark)] mb-2"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Aprovadas</p>
                             <p id="metric-aprovadas" class="font-display text-3xl text-[var(--ink)]">–</p>
                         </div>
                         <div class="ticket-sm p-5">
-                            <p class="eyebrow text-[var(--ember-dark)] mb-2">🕐 Pendentes</p>
+                            <p class="eyebrow text-[var(--ember-dark)] mb-2"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Pendentes</p>
                             <p id="metric-pendentes" class="font-display text-3xl text-[var(--ink)]">–</p>
                         </div>
                         <div class="ticket-sm p-5">
-                            <p class="eyebrow text-[var(--ink-soft)] mb-2">❌ Reprovadas</p>
+                            <p class="eyebrow text-[var(--ink-soft)] mb-2"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Reprovadas</p>
                             <p id="metric-reprovadas" class="font-display text-3xl text-[var(--ink)]">–</p>
                         </div>
                     </div>
@@ -121,6 +316,7 @@
                         <div class="md:col-span-2">
                             <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Nome do concurso</label>
                             <input type="text" id="concurso-nome" required maxlength="120" placeholder="Ex: Festival de Inverno" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            <p class="text-xs mt-1 invisible" aria-hidden="true">espaçador</p>
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-[var(--ink)] text-sm font-semibold mb-1">
@@ -133,6 +329,7 @@
                         <div>
                             <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Data</label>
                             <input type="date" id="concurso-data" required class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            <p class="text-xs mt-1 invisible" aria-hidden="true">espaçador</p>
                         </div>
                         <div class="md:col-span-3">
                             <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Descrição / subtítulo interno</label>
@@ -155,13 +352,13 @@
                             <input type="hidden" id="concurso-qtd-vencedores" value="3">
                             <div class="flex flex-wrap gap-3">
                                 <button type="button" data-qtd="1" class="trofeu-opcao ticket-sm px-4 py-2 text-sm font-semibold text-[var(--ink)] flex items-center gap-2 transition">
-                                    <span class="text-lg">🏆</span> Vencedor único
+                                    <svg class="icon-inline" style="margin-right:0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Vencedor único
                                 </button>
                                 <button type="button" data-qtd="2" class="trofeu-opcao ticket-sm px-4 py-2 text-sm font-semibold text-[var(--ink)] flex items-center gap-2 transition">
-                                    <span class="text-lg">🏆🏆</span> Primeiro e segundo
+                                    <span class="flex gap-0.5"><svg class="icon-inline" style="margin-right:0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg><svg class="icon-inline" style="margin-right:0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></span> Primeiro e segundo
                                 </button>
                                 <button type="button" data-qtd="3" class="trofeu-opcao ticket-sm px-4 py-2 text-sm font-semibold text-[var(--ink)] flex items-center gap-2 transition">
-                                    <span class="text-lg">🏆🏆🏆</span> Primeiro, segundo e terceiro
+                                    <span class="flex gap-0.5"><svg class="icon-inline" style="margin-right:0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg><svg class="icon-inline" style="margin-right:0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg><svg class="icon-inline" style="margin-right:0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></span> Primeiro, segundo e terceiro
                                 </button>
                             </div>
                         </div>
@@ -244,7 +441,7 @@
                             <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Regulamento (PDF)</label>
                             <input type="file" id="concurso-regulamento-arquivo" accept="application/pdf" class="w-full text-sm text-[var(--ink-soft)] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-2 file:border-[var(--ink)] file:text-sm file:font-semibold file:bg-[var(--fern-light)] file:text-[var(--ink)] hover:file:bg-[var(--fern)] hover:file:text-white file:cursor-pointer">
                             <div id="concurso-regulamento-atual" class="hidden mt-2 text-sm flex items-center gap-3">
-                                <a id="concurso-regulamento-link" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-semibold">📄 Regulamento atual</a>
+                                <a id="concurso-regulamento-link" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-semibold"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Regulamento atual</a>
                                 <label class="flex items-center gap-1.5 text-[var(--ink-soft)] cursor-pointer">
                                     <input type="checkbox" id="concurso-regulamento-remover" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
                                     Remover
@@ -451,7 +648,7 @@
                             <div class="flex items-center justify-between mb-4 gap-3">
                                 <h3 class="font-display text-xl text-[var(--ink)]">Relatório da campanha</h3>
                                 <div class="flex gap-2 shrink-0">
-                                    <button type="button" id="campanha-relatorio-pdf" disabled class="btn btn-fern !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed">📄 Gerar PDF</button>
+                                    <button type="button" id="campanha-relatorio-pdf" disabled class="btn btn-fern !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Gerar PDF</button>
                                     <button type="button" id="campanha-relatorio-fechar" class="btn btn-ghost !py-1 !px-3 text-sm">Fechar</button>
                                 </div>
                             </div>

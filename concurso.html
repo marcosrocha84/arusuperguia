@@ -4,166 +4,604 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title id="titulo-pagina">AruSuperGuia - Concurso</title>
+    <title id="titulo-pagina">Órbita — Concurso</title>
     <meta id="meta-description" name="description" content="Envie sua foto e vote nos registros mais criativos do concurso.">
-    <meta id="og-title" property="og:title" content="AruSuperGuia - Concurso Cultural">
+    <meta id="og-title" property="og:title" content="Órbita — Concurso Cultural">
     <meta id="og-description" property="og:description" content="Envie sua foto e vote nos registros mais criativos do concurso.">
     <meta property="og:type" content="website">
-    <link id="favicon-link" rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <!-- Favicon padrão: mesmo círculo+ponto do index.html — sobrescrito por
+         icones.favicon quando o concurso tiver um próprio (ver aplicarTema). -->
+    <link id="favicon-link" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f2430' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%231f2430'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
+
+    <!-- Identidade "Órbita" — mesmo sistema visual do index.html, duplicado
+         aqui (em vez de um CSS compartilhado) porque nem todas as páginas
+         do site migraram pro rebranding ainda; consolidar num arquivo só
+         fica pra quando o resto também estiver convertido. -->
+    <style>
+        :root {
+            --orbita-bg: #f4f5f7;
+            --orbita-surface: #ffffff;
+            --orbita-surface-2: #eef0f3;
+            --orbita-border: #e2e5ea;
+            --orbita-ink: #1f2430;
+            --orbita-ink-soft: #6b7280;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--orbita-ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            /* Mesmo fundo sutil de "planetas" do index.html — ver comentário
+               lá pra detalhes de por que o alpha fica embutido no SVG em vez
+               de usar opacity no body. */
+            background-color: var(--orbita-bg);
+            background-repeat: no-repeat, no-repeat;
+            background-position: right -60px top 30px, left -50px bottom 40px;
+            background-image:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Ccircle cx='340' cy='90' r='55' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='340' cy='90' r='115' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='372' cy='30' r='5' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='255' cy='165' r='7' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E"),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='380' height='380'%3E%3Ccircle cx='65' cy='300' r='45' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='65' cy='300' r='95' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='25' cy='352' r='4' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='132' cy='248' r='6' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E");
+        }
+
+        /* ---------- Cabeçalho / rodapé (marca neutra, igual ao index.html) ---------- */
+        .orbita-header {
+            background: var(--orbita-surface-2);
+            border-bottom: 1px solid var(--orbita-border);
+        }
+        .orbita-header-inner {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .orbita-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .orbita-logo-mark {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid var(--orbita-ink);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .orbita-logo-mark::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--orbita-ink);
+            transform: translate(-50%, -50%);
+        }
+        .orbita-brand-name {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--orbita-ink);
+        }
+        .orbita-tagline {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-footer {
+            background: var(--orbita-surface-2);
+            border-top: 1px solid var(--orbita-border);
+            padding: 24px 20px;
+            text-align: center;
+        }
+        .orbita-footer-slogan {
+            margin: 0 0 10px;
+            font-size: 0.85rem;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px 16px;
+        }
+        .orbita-footer-links a {
+            font-size: 0.78rem;
+            color: var(--orbita-ink-soft);
+            text-decoration: none;
+        }
+        .orbita-footer-links a:hover {
+            color: var(--orbita-ink);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        /* ---------- Corpo ---------- */
+        .orbita-main {
+            flex: 1;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+        .orbita-status-msg {
+            font-size: 0.9rem;
+            color: var(--orbita-ink-soft);
+            text-align: center;
+        }
+        .orbita-empty {
+            background: var(--orbita-surface);
+            border: 1px solid var(--orbita-border);
+            border-radius: 12px;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        .orbita-empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .orbita-empty-title {
+            margin: 0;
+            font-weight: 600;
+            color: var(--orbita-ink);
+        }
+        .orbita-empty-text {
+            margin: 6px 0 0;
+            font-size: 0.85rem;
+            color: var(--orbita-ink-soft);
+            max-width: 26rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .orbita-empty-btn {
+            margin-top: 20px;
+            max-width: 16rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ---------- Hero do concurso ---------- */
+        .orbita-hero {
+            background: var(--orbita-surface);
+            border: 1px solid var(--orbita-border);
+            border-radius: 12px;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        /* Wrapper só pra posicionar o anel/planeta orbital fora do círculo
+           do banner — o banner em si precisa de overflow:hidden pra recortar
+           a logo, o que também cortaria o anel se ele fosse desenhado ali. */
+        .orbita-hero-banner-wrap {
+            position: relative;
+            width: 88px;
+            height: 88px;
+            margin: 0 auto;
+        }
+        .orbita-hero-banner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.25rem;
+            overflow: hidden;
+            background: var(--orbita-surface-2);
+            color: var(--orbita-ink-soft);
+            background: color-mix(in srgb, var(--accent, #3C8156) 16%, white);
+            color: color-mix(in srgb, var(--accent, #3C8156) 55%, black);
+        }
+        .orbita-hero-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        /* Mesmo anel orbital do card da tela inicial (ver comentário
+           equivalente em index.html), só que sempre ativo em vez de só no
+           hover — aqui é o único destaque da página, não faz sentido
+           escondê-lo esperando uma interação que talvez nunca aconteça. */
+        .orbita-hero-banner-wrap::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 132px;
+            height: 132px;
+            border-radius: 50%;
+            border: 3px dashed var(--accent, #3C8156);
+            opacity: 0.8;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .orbita-hero-banner-wrap::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 9px;
+            height: 9px;
+            margin-top: -4.5px;
+            margin-left: -4.5px;
+            border-radius: 50%;
+            background: #000;
+            opacity: 0.85;
+            transform: rotate(0deg) translateX(66px);
+            animation: orbita-planeta-hero 3s linear infinite;
+            pointer-events: none;
+            z-index: 2;
+        }
+        @keyframes orbita-planeta-hero {
+            from { transform: rotate(0deg) translateX(66px); }
+            to { transform: rotate(360deg) translateX(66px); }
+        }
+        .orbita-hero-titulo {
+            margin: 18px 0 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--orbita-ink);
+        }
+        .orbita-hero-subtitulo {
+            margin: 8px auto 0;
+            max-width: 30rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--orbita-ink-soft);
+        }
+
+        /* ---------- Contagem regressiva ---------- */
+        .orbita-countdown {
+            background: var(--orbita-surface-2);
+            border: 1px solid var(--orbita-border);
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .orbita-countdown-texto {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            line-height: 1.3;
+            color: var(--orbita-ink);
+            color: color-mix(in srgb, var(--accent-secundaria, #C1452C) 80%, black);
+        }
+        .orbita-countdown-data {
+            margin: 6px 0 0;
+            font-size: 0.78rem;
+            color: var(--orbita-ink-soft);
+        }
+
+        /* ---------- Etapas ---------- */
+        .orbita-etapas {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        @media (min-width: 560px) {
+            .orbita-etapas { grid-template-columns: 1fr 1fr; }
+        }
+        .orbita-etapa-card {
+            background: var(--orbita-surface);
+            border: 1px solid var(--orbita-border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .orbita-etapa-label {
+            margin: 0 0 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .orbita-etapa-label--primaria { color: var(--accent-primaria, #3C8156); }
+        .orbita-etapa-label--secundaria { color: var(--accent-secundaria, #C1452C); }
+        .orbita-etapa-titulo {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--orbita-ink);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .orbita-etapa-texto {
+            margin: 6px 0 0;
+            font-size: 0.83rem;
+            line-height: 1.5;
+            color: var(--orbita-ink-soft);
+        }
+
+        /* ---------- Botões ---------- */
+        .orbita-ctas {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        @media (min-width: 560px) {
+            .orbita-ctas { grid-template-columns: 1fr 1fr; }
+        }
+        .orbita-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: transform 0.15s ease, opacity 0.15s ease;
+            color: #fff;
+        }
+        .orbita-btn:hover {
+            transform: translateY(-1px);
+        }
+        .orbita-btn-primaria {
+            background: var(--accent-primaria, #3C8156);
+        }
+        .orbita-btn-secundaria {
+            background: var(--accent-secundaria, #C1452C);
+        }
+        .orbita-btn[aria-disabled="true"] {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .orbita-prazo-encerrado {
+            margin: 8px 0 0;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            color: var(--orbita-ink);
+            color: color-mix(in srgb, var(--accent-secundaria, #C1452C) 80%, black);
+        }
+        .orbita-disclaimer {
+            margin: 16px 0 0;
+            font-size: 0.75rem;
+            font-style: italic;
+            text-align: center;
+            color: var(--orbita-ink-soft);
+        }
+
+        /* ---------- Premiações e patrocinadores ---------- */
+        .orbita-secao {
+            margin-top: 28px;
+        }
+        .orbita-secao-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--orbita-ink-soft);
+            margin: 0 0 12px;
+            text-align: center;
+        }
+        .orbita-premiacoes-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .orbita-premiacao-chip {
+            background: var(--orbita-surface);
+            border: 1px solid var(--orbita-border);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--orbita-ink);
+        }
+        .orbita-patrocinadores-lista {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        .orbita-patrocinador {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            max-width: 7rem;
+        }
+        .orbita-patrocinador img {
+            height: 44px;
+            object-fit: contain;
+        }
+        .orbita-patrocinador a,
+        .orbita-patrocinador span {
+            font-size: 0.72rem;
+            text-align: center;
+            line-height: 1.2;
+            color: var(--orbita-ink-soft);
+            text-decoration: none;
+        }
+        .orbita-patrocinador a:hover {
+            color: var(--orbita-ink);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        /* Garante que "hidden" (Tailwind) sempre vença classes próprias que
+           definem "display" — ver comentário equivalente em enviar.html
+           pra detalhes da causa. */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ---------- Ícones de linha (substituem emoji colorido por SVG
+           monocromático, herdando cor via currentColor) ---------- */
+        .icon-inline {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            vertical-align: -3px;
+            margin-right: 3px;
+            stroke: currentColor;
+        }
+        .icon-banner {
+            display: inline-block;
+            width: 44px;
+            height: 44px;
+            stroke: currentColor;
+        }
+    </style>
 </head>
-<body class="bg-canopy min-h-screen flex items-center justify-center p-4 md:p-8">
+<body>
 
-    <main class="relative z-10 w-full max-w-3xl py-10">
+    <header class="orbita-header">
+        <div class="orbita-header-inner">
+            <div class="orbita-brand">
+                <span class="orbita-logo-mark" aria-hidden="true"></span>
+                <span class="orbita-brand-name">Órbita</span>
+            </div>
+            <p class="orbita-tagline">plataforma de concursos culturais</p>
+        </div>
+    </header>
 
-        <div class="ticket">
-            <!-- Cabeçalho do bilhete -->
-            <div class="p-6 md:p-10 text-center">
-                <p class="eyebrow text-[var(--fern-dark)]"><b>Concurso Cultural</b></p>
-                <img id="concurso-logo" src="./logo-medio.jpg" alt="AruSuperGuia" class="mx-auto w-24 h-24 md:w-28 md:h-28 mt-4 rounded-2xl border-2 border-[var(--ink)] shadow-md object-cover">
-                <h1 id="concurso-titulo" class="font-display text-3xl md:text-4xl text-[var(--ink)] mt-4">Concurso Cultural</h1>
-                <p id="concurso-subtitulo" class="text-sm md:text-base text-[var(--ink-soft)] mt-3 leading-relaxed max-w-lg mx-auto">
+    <main class="orbita-main">
+
+        <!-- Estado: carregando informações do concurso -->
+        <p id="conteudo-carregando" class="orbita-status-msg">Carregando informações do concurso...</p>
+
+        <!-- Estado: concurso não encontrado ou não está mais ativo -->
+        <div id="sem-concurso" class="hidden orbita-empty">
+            <div class="orbita-empty-icon">😢</div>
+            <p class="orbita-empty-title">Este concurso não está disponível</p>
+            <p class="orbita-empty-text">
+                O link pode estar errado, ou o concurso já não está mais ativo. Veja os concursos em andamento na página inicial.
+            </p>
+            <a href="./index.html" class="orbita-btn orbita-btn-primaria orbita-empty-btn">Ver concursos ativos</a>
+        </div>
+
+        <!-- Conteúdo do concurso (só aparece com o concurso disponível) -->
+        <div id="conteudo-ativo" class="hidden">
+            <div class="orbita-hero">
+                <div class="orbita-hero-banner-wrap">
+                    <div class="orbita-hero-banner">
+                        <svg id="concurso-logo-fallback" class="icon-banner" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <img id="concurso-logo" src="" alt="" class="orbita-hero-logo hidden">
+                    </div>
+                </div>
+                <h1 id="concurso-titulo" class="orbita-hero-titulo">Concurso Cultural</h1>
+                <p id="concurso-subtitulo" class="orbita-hero-subtitulo">
                     Participe e concorra a prêmios!<span id="concurso-nome-data"></span>.
                 </p>
-            </div>
 
-            <div class="ticket-tear"></div>
-
-            <!-- Estado: carregando informações do concurso -->
-            <div id="conteudo-carregando" class="p-6 md:p-10 pt-8 text-center">
-                <span class="text-sm font-medium text-[var(--ink-soft)]">Carregando informações do concurso...</span>
-            </div>
-
-            <!-- Estado: concurso não encontrado ou não está mais ativo -->
-            <div id="sem-concurso" class="hidden p-6 md:p-10 pt-8 text-center">
-                <div class="text-5xl mb-4">😢</div>
-                <p class="font-display text-xl text-[var(--ink)]">Este concurso não está disponível</p>
-                <p class="text-sm text-[var(--ink-soft)] mt-2 max-w-sm mx-auto">
-                    O link pode estar errado, ou o concurso já não está mais ativo. Veja os concursos em andamento na página inicial.
-                </p>
-                <a href="./index.html" class="btn btn-fern btn-block mt-6 max-w-xs mx-auto">🏠 Ver concursos ativos</a>
-            </div>
-
-            <!-- Corpo do bilhete: as duas etapas (só aparece com o concurso disponível) -->
-            <div id="conteudo-ativo" class="hidden p-6 md:p-10 pt-8">
                 <!-- Contagem regressiva até o encerramento do concurso -->
-                <div class="ticket-sm p-4 mb-6 text-center">
-                    <p id="contador-dias-numero" class="font-display text-4xl text-[var(--ember-dark)] leading-none">–</p>
-                    <p id="contador-dias-texto" class="text-sm font-semibold text-[var(--ink)] mt-1">Calculando prazo do concurso...</p>
+                <div class="orbita-countdown">
+                    <p id="contador-dias-texto" class="orbita-countdown-texto">Calculando prazo do concurso...</p>
+                    <p id="contador-data-encerramento" class="orbita-countdown-data"></p>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                    <div class="info-card p-4">
-                        <p class="eyebrow text-[var(--fern-dark)] mb-1">Etapa 1</p>
-                        <h3 class="font-display text-lg text-[var(--ink)] flex items-center gap-2">📸 Arena de envios</h3>
-                        <p class="text-sm text-[var(--ink-soft)] mt-1 leading-snug">
+                <div class="orbita-etapas">
+                    <div class="orbita-etapa-card">
+                        <p class="orbita-etapa-label orbita-etapa-label--primaria">Etapa 1</p>
+                        <h3 class="orbita-etapa-titulo"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Envio de fotos</h3>
+                        <p class="orbita-etapa-texto">
                             Registrou um momento incrível? Envie sua foto, aceite o termo de imagem e participe da seleção oficial.
                         </p>
                     </div>
-                    <div class="info-card p-4">
-                        <p class="eyebrow text-[var(--ember-dark)] mb-1">Etapa 2</p>
-                        <h3 class="font-display text-lg text-[var(--ink)] flex items-center gap-2">❤️ Arena de cliques</h3>
-                        <p class="text-sm text-[var(--ink-soft)] mt-1 leading-snug">
+                    <div class="orbita-etapa-card">
+                        <p class="orbita-etapa-label orbita-etapa-label--secundaria">Etapa 2</p>
+                        <h3 class="orbita-etapa-titulo"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Votação pública</h3>
+                        <p class="orbita-etapa-texto">
                             Vote nos seus registros favoritos em tempo real. Para garantir uma disputa 100% justa, entre com sua conta Google para validar o voto.
                         </p>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                    <a id="btn-enviar-foto" href="./enviar.html" class="btn btn-fern btn-block">
-                        📸 <span id="texto-cta-participar">Enviar minha foto</span>
+                <div class="orbita-ctas">
+                    <a id="btn-enviar-foto" href="./enviar.html" class="orbita-btn orbita-btn-primaria">
+                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> <span id="texto-cta-participar">Enviar minha foto</span>
                     </a>
-                    <a id="btn-ir-votacao" href="./votacao.html" class="btn btn-ember btn-block">
-                        ❤️ Ir para a votação
+                    <a id="btn-ir-votacao" href="./votacao.html" class="orbita-btn orbita-btn-secundaria">
+                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Ir para a votação
                     </a>
                 </div>
-                <p id="texto-prazo-encerrado" class="hidden text-xs text-[var(--ember-dark)] font-semibold mt-2 text-center">
-                    ⏰ O prazo para envio de fotos já encerrou.
+                <p id="texto-prazo-encerrado" class="hidden orbita-prazo-encerrado">
+                    <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> O prazo para envio de fotos já encerrou.
                 </p>
 
-                <p class="text-xs text-[var(--ink-soft)] mt-5 italic text-center">
-                    Todos os envios passam pela curadoria da nossa equipe antes de entrarem na Arena de Cliques.
+                <p class="orbita-disclaimer">
+                    Todos os envios passam pela curadoria da nossa equipe antes de entrarem na votação pública.
                 </p>
             </div>
-
-            <div id="separador-premiacoes-patrocinadores" class="hidden ticket-tear"></div>
 
             <!-- Premiações e patrocinadores deste concurso -->
-            <div id="secao-premiacoes-patrocinadores" class="hidden px-6 md:px-10 pb-8">
-                <div id="bloco-premiacoes" class="hidden mb-6">
-                    <p class="eyebrow text-[var(--ember-dark)] mb-3 text-center"><br>🏅 Premiações</p>
-                    <div id="lista-premiacoes" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            <div id="secao-premiacoes-patrocinadores" class="hidden">
+                <div id="bloco-premiacoes" class="hidden orbita-secao">
+                    <p class="orbita-secao-label"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>Premiações</p>
+                    <div id="lista-premiacoes" class="orbita-premiacoes-grid"></div>
                 </div>
-                <div id="bloco-patrocinadores" class="hidden">
-                    <p class="eyebrow text-[var(--fern-dark)] mb-3 text-center">Realização e patrocínio</p>
-                    <div id="lista-patrocinadores" class="flex flex-wrap items-center justify-center gap-4"></div>
+                <div id="bloco-patrocinadores" class="hidden orbita-secao">
+                    <p class="orbita-secao-label">Realização e patrocínio</p>
+                    <div id="lista-patrocinadores" class="orbita-patrocinadores-lista"></div>
                 </div>
             </div>
-
-            <div class="ticket-tear"></div>
-
-            <!-- Rodapé -->
-            <footer class="text-center p-6 md:p-10 pt-8 text-[var(--ink-soft)]">
-                <p class="text-sm font-semibold">
-                    Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
-                </p>
-                <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
-                    © AruSuperGuia
-                    <span class="divider-dot"></span>
-                    <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
-                    <span class="divider-dot"></span>
-                    <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
-                    <span id="regulamento-link-wrap" style="display: none;">
-                        <span class="divider-dot"></span>
-                        <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">📄 Regulamento do concurso</a>
-                    </span>
-                    <span class="divider-dot"></span>
-                    <a href="./index.html" class="underline underline-offset-2 hover:text-[var(--ink)]">🏠 Ver outros concursos ativos</a>
-                    <span class="divider-dot"></span>
-                    <a href="./status.html" class="underline underline-offset-2 hover:text-[var(--ink)]">🔎 Acompanhar minha foto</a>
-                    <span class="divider-dot"></span>
-                    <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
-                </div>
-            </footer>
         </div>
     </main>
+
+    <footer class="orbita-footer">
+        <p class="orbita-footer-slogan">Órbita — a plataforma por trás do seu concurso cultural</p>
+        <nav class="orbita-footer-links">
+            <a href="mailto:arusuperguia@outlook.com">Contato</a>
+            <a href="./privacy.html">Privacidade</a>
+            <a href="./terms.html">Termos</a>
+            <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="hidden"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Regulamento do concurso</a>
+            <a href="./index.html">Ver outros concursos ativos</a>
+            <a href="./status.html">Acompanhar minha foto</a>
+            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
+        </nav>
+    </footer>
 
     <script>
         // Configuração do Supabase vem de supabase-client.js
 
-        // Aplica o theme_config do concurso como CSS custom properties em
-        // :root — sobrescreve só as 3 cores de destaque (fern/ember/canopy)
-        // usadas em botões e fundo; o resto da paleta (bone, ink etc.)
-        // continua fixo, porque é a base neutra do "papel do bilhete" em
-        // qualquer concurso.
+        // Aplica o theme_config do concurso: cores de destaque (usadas no
+        // banner do hero, botões e contador) e favicon/textos. A marca
+        // Órbita do cabeçalho/rodapé permanece neutra — não recebe cor de
+        // destaque de nenhum concurso específico.
         function aplicarTema(themeConfig) {
             if (!themeConfig) return;
             const root = document.documentElement.style;
             const cores = themeConfig.cores || {};
             if (cores.primaria) {
-                root.setProperty('--fern', cores.primaria);
-                root.setProperty('--fern-dark', cores.primaria);
+                root.setProperty('--accent', cores.primaria);
+                root.setProperty('--accent-primaria', cores.primaria);
             }
-            if (cores.secundaria) {
-                root.setProperty('--ember', cores.secundaria);
-                root.setProperty('--ember-dark', cores.secundaria);
-            }
-            if (cores.fundo) {
-                root.setProperty('--canopy', cores.fundo);
-                root.setProperty('--canopy-2', cores.fundo);
-            }
+            if (cores.secundaria) root.setProperty('--accent-secundaria', cores.secundaria);
 
             const icones = themeConfig.icones || {};
-            if (icones.logo) document.getElementById('concurso-logo').src = icones.logo;
+            if (icones.logo) {
+                const logoImg = document.getElementById('concurso-logo');
+                logoImg.src = icones.logo;
+                logoImg.alt = document.getElementById('concurso-titulo').textContent;
+                logoImg.classList.remove('hidden');
+                document.getElementById('concurso-logo-fallback').classList.add('hidden');
+            }
             if (icones.favicon) document.getElementById('favicon-link').href = icones.favicon;
 
             const textos = themeConfig.textos || {};
             if (textos.titulo) {
                 document.getElementById('concurso-titulo').textContent = textos.titulo;
-                document.getElementById('titulo-pagina').textContent = `AruSuperGuia - ${textos.titulo}`;
+                document.getElementById('titulo-pagina').textContent = `Órbita — ${textos.titulo}`;
             }
             if (textos.subtitulo) document.getElementById('concurso-subtitulo').textContent = textos.subtitulo;
             if (textos.cta_participar) document.getElementById('texto-cta-participar').textContent = textos.cta_participar;
@@ -185,7 +623,7 @@
 
             if (premiacoes.length > 0) {
                 listaPremiacoes.innerHTML = premiacoes.map(v => `
-                    <div class="info-card p-3 text-sm text-[var(--ink)] text-center">${medalhaPorPosicao[v.posicao] || '🏅'} ${escapeHTML(v.premiacoes.descricao)}</div>
+                    <div class="orbita-premiacao-chip">${medalhaPorPosicao[v.posicao] || '🏅'} ${escapeHTML(v.premiacoes.descricao)}</div>
                 `).join('');
                 blocoPremiacoes.classList.remove('hidden');
             }
@@ -193,11 +631,11 @@
             if (patrocinadores.length > 0) {
                 listaPatrocinadores.innerHTML = patrocinadores.map(p => {
                     const nomeHtml = p.url_rede_social
-                        ? `<a href="${escapeHTML(p.url_rede_social)}" target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--ink-soft)] text-center leading-tight underline underline-offset-2 hover:text-[var(--ink)]">${escapeHTML(p.nome)}</a>`
-                        : `<span class="text-xs text-[var(--ink-soft)] text-center leading-tight">${escapeHTML(p.nome)}</span>`;
+                        ? `<a href="${escapeHTML(p.url_rede_social)}" target="_blank" rel="noopener noreferrer">${escapeHTML(p.nome)}</a>`
+                        : `<span>${escapeHTML(p.nome)}</span>`;
                     return `
-                        <div class="flex flex-col items-center gap-1.5 max-w-[7rem]">
-                            ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}" class="h-14 object-contain">` : ''}
+                        <div class="orbita-patrocinador">
+                            ${p.logotipo_url ? `<img src="${escapeHTML(p.logotipo_url)}" alt="${escapeHTML(p.nome)}">` : ''}
                             ${nomeHtml}
                         </div>
                     `;
@@ -206,7 +644,6 @@
             }
 
             if (premiacoes.length > 0 || patrocinadores.length > 0) {
-                document.getElementById('separador-premiacoes-patrocinadores').classList.remove('hidden');
                 document.getElementById('secao-premiacoes-patrocinadores').classList.remove('hidden');
             }
         }
@@ -225,12 +662,11 @@
             const conteudoAtivo = document.getElementById('conteudo-ativo');
             const semConcurso = document.getElementById('sem-concurso');
             const concursoNomeData = document.getElementById('concurso-nome-data');
-            const contadorNumero = document.getElementById('contador-dias-numero');
             const contadorTexto = document.getElementById('contador-dias-texto');
+            const contadorDataEncerramento = document.getElementById('contador-data-encerramento');
             const btnEnviarFoto = document.getElementById('btn-enviar-foto');
             const btnIrVotacao = document.getElementById('btn-ir-votacao');
             const textoPrazoEncerrado = document.getElementById('texto-prazo-encerrado');
-            const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
             const linkRegulamento = document.getElementById('link-regulamento');
 
             const slug = new URLSearchParams(window.location.search).get('c');
@@ -262,7 +698,7 @@
                 aplicarTema(concurso.theme_config);
 
                 const nomeExibicao = concurso.nome || concurso.descricao;
-                document.getElementById('og-title').content = `AruSuperGuia - ${nomeExibicao}`;
+                document.getElementById('og-title').content = `Órbita — ${nomeExibicao}`;
                 document.getElementById('og-description').content = `Envie sua foto e vote no concurso "${nomeExibicao}".`;
                 document.getElementById('meta-description').content = `Envie sua foto e vote no concurso "${nomeExibicao}".`;
 
@@ -276,25 +712,24 @@
 
                 if (concurso.regulamento_pdf_url) {
                     linkRegulamento.href = concurso.regulamento_pdf_url;
-                    regulamentoLinkWrap.style.display = 'contents';
+                    linkRegulamento.classList.remove('hidden');
                 }
 
                 exibirPremiacoesEPatrocinadores(concurso);
 
                 const dias = calcularDiasRestantes(concurso.data);
                 if (dias > 0) {
-                    contadorNumero.textContent = dias;
-                    contadorTexto.textContent = `📸 Você ainda tem ${dias} dia${dias === 1 ? '' : 's'} para participar!`;
+                    contadorTexto.textContent = `Você ainda tem ${dias} dia${dias === 1 ? '' : 's'} para participar!`;
+                    contadorDataEncerramento.textContent = `Encerra em ${dataFormatada}`;
                 } else if (dias === 0) {
-                    contadorNumero.textContent = '🔥';
-                    contadorTexto.textContent = 'Hoje é o último dia para participar!';
+                    contadorTexto.textContent = '🔥 Hoje é o último dia para participar!';
+                    contadorDataEncerramento.textContent = `Encerra hoje, ${dataFormatada}`;
                 } else {
-                    contadorNumero.textContent = '⏰';
                     contadorTexto.textContent = 'O prazo para participar já encerrou.';
+                    contadorDataEncerramento.textContent = `Encerrou em ${dataFormatada}`;
 
                     btnEnviarFoto.removeAttribute('href');
                     btnEnviarFoto.setAttribute('aria-disabled', 'true');
-                    btnEnviarFoto.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
                     textoPrazoEncerrado.classList.remove('hidden');
                 }
 

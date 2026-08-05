@@ -4,11 +4,149 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>Votação - AruSuperGuia</title>
-    <link id="favicon-link" rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <title>Votação | Órbita</title>
+    <link id="favicon-link" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f2430' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%231f2430'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
+    <!-- Identidade "Órbita" — a diferença pra concurso.html/enviar.html é
+         que aqui os nomes de classe/variável ANTIGOS (.btn, .stamp,
+         .ticket-sm, var(--ink), var(--fern) etc.) foram mantidos de
+         propósito: o <script> desta página monta HTML dinamicamente (botão
+         de voto, selo de posição, cards de foto) usando exatamente esses
+         nomes em várias linhas espalhadas — em vez de editar cada uma
+         dessas linhas (alto risco numa tela com login/modal/voto em tempo
+         real), só redefinimos o que esses nomes SIGNIFICAM visualmente.
+         aplicarTema() continua escrevendo em --fern/--ember/--canopy sem
+         nenhuma alteração. -->
     <style>
+        :root {
+            --orbita-bg: #f4f5f7;
+            --orbita-surface: #ffffff;
+            --orbita-surface-2: #eef0f3;
+            --orbita-border: #e2e5ea;
+            --orbita-ink: #1f2430;
+            --orbita-ink-soft: #6b7280;
+
+            /* Compat: nomes antigos, apontando pros tokens Órbita acima.
+               --amber fica de fora do remapeamento neutro porque tem um
+               significado próprio (medalha de 1º lugar, brilho de foco no
+               login) que não deve virar cinza junto com o resto. */
+            --ink: var(--orbita-ink);
+            --ink-soft: var(--orbita-ink-soft);
+            --bone: var(--orbita-surface);
+            --bone-2: var(--orbita-surface-2);
+            --fern: #3C8156;
+            --fern-dark: #3C8156;
+            --ember: #C1452C;
+            --ember-dark: #C1452C;
+            --amber: #E3A335;
+            --amber-dark: #B9791C;
+            --canopy: var(--orbita-border);
+            --canopy-2: var(--orbita-border);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--orbita-ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            /* Mesmo fundo sutil de "planetas" do index.html — ver comentário
+               lá pra detalhes de por que o alpha fica embutido no SVG em vez
+               de usar opacity no body. */
+            background-color: var(--orbita-bg);
+            background-repeat: no-repeat, no-repeat;
+            background-position: right -60px top 30px, left -50px bottom 40px;
+            background-image:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Ccircle cx='340' cy='90' r='55' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='340' cy='90' r='115' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='372' cy='30' r='5' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='255' cy='165' r='7' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E"),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='380' height='380'%3E%3Ccircle cx='65' cy='300' r='45' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='65' cy='300' r='95' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='25' cy='352' r='4' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='132' cy='248' r='6' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E");
+        }
+
+        /* ---------- Cabeçalho / rodapé ---------- */
+        .orbita-header { background: var(--orbita-surface-2); border-bottom: 1px solid var(--orbita-border); }
+        .orbita-header-inner { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .orbita-brand { display: flex; align-items: center; gap: 10px; }
+        .orbita-logo-mark { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--orbita-ink); position: relative; flex-shrink: 0; }
+        .orbita-logo-mark::after { content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--orbita-ink); transform: translate(-50%, -50%); }
+        .orbita-brand-name { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; color: var(--orbita-ink); }
+        .orbita-tagline { margin: 0; font-size: 0.8rem; color: var(--orbita-ink-soft); }
+        .orbita-footer { background: var(--orbita-surface-2); border-top: 1px solid var(--orbita-border); padding: 24px 20px; text-align: center; }
+        .orbita-footer-slogan { margin: 0 0 10px; font-size: 0.85rem; color: var(--orbita-ink-soft); }
+        .orbita-footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; }
+        .orbita-footer-links a { font-size: 0.78rem; color: var(--orbita-ink-soft); text-decoration: none; }
+        .orbita-footer-links a:hover { color: var(--orbita-ink); text-decoration: underline; text-underline-offset: 2px; }
+
+        /* ---------- Corpo ---------- */
+        .orbita-main { flex: 1; max-width: 1100px; width: 100%; margin: 0 auto; padding: 32px 20px 48px; }
+        .orbita-card-page { background: var(--orbita-surface); border: 1px solid var(--orbita-border); border-radius: 12px; overflow: hidden; }
+        .orbita-card-page-header { text-align: center; padding: 28px 24px 8px; }
+        .orbita-eyebrow { margin: 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--orbita-ink-soft); }
+        .orbita-card-page-titulo { margin: 8px 0 0; font-size: 1.6rem; font-weight: 700; color: var(--orbita-ink); }
+        .orbita-card-page-subtitulo { margin: 8px auto 0; max-width: 30rem; font-size: 0.9rem; color: var(--orbita-ink-soft); }
+
+        .orbita-login-area { display: flex; justify-content: center; padding: 16px 24px 24px; }
+        .orbita-user-bar { display: flex; align-items: center; gap: 16px; padding: 8px 16px; }
+        .orbita-btn-logout { font-size: 0.78rem; font-weight: 700; color: var(--orbita-ink); background: var(--orbita-surface-2); border: 1px solid var(--orbita-border); padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease; }
+        .orbita-btn-logout:hover { background: var(--orbita-border); }
+
+        .orbita-optin-banner { margin: 0 24px 24px; padding: 16px; }
+
+        .orbita-refresh-bar { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 24px 20px; font-size: 0.85rem; color: var(--orbita-ink-soft); border-top: 1px solid var(--orbita-border); padding-top: 20px; }
+
+        .orbita-grid-fotos { padding: 0 24px 24px; }
+
+        .orbita-secao { padding: 0 24px 24px; }
+        .orbita-secao-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--orbita-ink-soft); margin: 0 0 12px; text-align: center; }
+
+        .orbita-btn-margem { margin: 0 24px 24px; width: calc(100% - 48px); }
+
+        /* ---------- Compat: botões (.btn), usados dinamicamente pelo
+           script pra montar os botões de voto do grid e da modal) ---------- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-block { width: 100%; }
+        .btn-ghost { background: var(--bone); color: var(--ink); border-color: var(--bone-2); }
+        .btn-fern { background: var(--fern); color: #fff; }
+        .btn-ember { background: var(--ember); color: #fff; }
+
+        /* ---------- Compat: cards (.ticket-sm), usado pro card de cada
+           foto no grid, barra do usuário, banner de opt-in e estados
+           vazio/erro ---------- */
+        .ticket-sm {
+            background: var(--bone);
+            border: 1px solid var(--bone-2);
+            border-radius: 12px;
+        }
+
+        /* ---------- Compat: selo de posição no pódio (.stamp) ---------- */
+        .stamp {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .stamp-amber { background: color-mix(in srgb, var(--amber) 20%, white); color: var(--amber-dark); }
+        .stamp-fern { background: var(--bone-2); color: var(--ink); background: color-mix(in srgb, var(--fern) 18%, white); color: color-mix(in srgb, var(--fern) 55%, black); }
+        .stamp-ember { background: var(--bone-2); color: var(--ink); background: color-mix(in srgb, var(--ember) 18%, white); color: color-mix(in srgb, var(--ember) 55%, black); }
+
         @keyframes coracao-explodir {
             0% {
                 transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
@@ -150,7 +288,7 @@
         .modal-foto-backdrop {
             position: absolute;
             inset: 0;
-            background: rgba(22, 32, 26, 0.78);
+            background: rgba(31, 36, 48, 0.75);
             backdrop-filter: blur(2px);
             animation: modal-backdrop-in 0.2s ease-out;
         }
@@ -162,6 +300,8 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            background: var(--bone);
+            border-radius: 12px;
             animation: modal-conteudo-in 0.25s cubic-bezier(.2, .8, .2, 1);
         }
         .modal-foto-imagem-wrap {
@@ -204,40 +344,89 @@
             z-index: 1;
             width: 36px;
             height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 999px;
             background: var(--bone);
-            border: 2px solid var(--ink);
+            border: 1px solid var(--bone-2);
             font-weight: 700;
             line-height: 1;
             cursor: pointer;
-            box-shadow: 2px 2px 0 var(--ink);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .modal-foto-fechar:hover {
-            transform: translate(-1px, -1px);
-            box-shadow: 3px 3px 0 var(--ink);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+        }
+
+        /* Garante que "hidden" (Tailwind) sempre vença classes próprias que
+           definem "display" (.btn usa inline-flex, .orbita-login-area usa
+           flex etc.) — ver comentário equivalente em enviar.html. */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ---------- Ícones de linha (substituem emoji colorido por SVG
+           monocromático, herdando cor via currentColor) — os emojis
+           puramente decorativos/expressivos (partículas de coração,
+           confete, medalhas de posição, caixa de prêmio) ficaram de fora
+           de propósito: eles carregam significado de cor (ouro/prata/
+           bronze) ou são efeitos festivos, não ícones funcionais. ---------- */
+        .icon-inline {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            vertical-align: -3px;
+            margin-right: 3px;
+            stroke: currentColor;
+        }
+        .icon-inline--tight { margin-right: 0; }
+        /* Variante maior, pro ícone acompanhar o tamanho do título (1.6rem
+           de fonte fica desproporcional ao lado de um ícone de 15px). */
+        .icone-titulo-wrap {
+            display: inline-flex;
+            vertical-align: -6px;
+            margin-right: 8px;
+        }
+        .icon-inline--md {
+            width: 20px;
+            height: 20px;
+            vertical-align: -4px;
+            margin-right: 6px;
         }
     </style>
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
 </head>
-<body class="bg-canopy min-h-screen flex flex-col justify-between items-center p-4">
+<body>
+
+    <header class="orbita-header">
+        <div class="orbita-header-inner">
+            <div class="orbita-brand">
+                <span class="orbita-logo-mark" aria-hidden="true"></span>
+                <span class="orbita-brand-name">Órbita</span>
+            </div>
+            <p class="orbita-tagline">plataforma de concursos culturais</p>
+        </div>
+    </header>
 
     <!-- CONTEÚDO PRINCIPAL -->
-    <main class="w-full max-w-5xl relative z-10 my-auto py-6">
-        <div class="ticket">
+    <main class="orbita-main">
+        <div class="orbita-card-page">
 
             <!-- Cabeçalho da Votação -->
-            <div class="text-center p-6 md:p-8">
-                <p class="eyebrow text-[var(--ember-dark)]">Arena de Cliques</p>
-                <h1 id="titulo-votacao" class="font-display text-3xl md:text-4xl text-[var(--ink)] mt-1">❤️ Escolha a melhor foto!</h1>
-                <p id="subtitulo-votacao" class="text-sm md:text-base text-[var(--ink-soft)] mt-2 max-w-md mx-auto">
+            <div class="orbita-card-page-header">
+                <p class="orbita-eyebrow">Votação pública</p>
+                <h1 id="titulo-votacao" class="orbita-card-page-titulo"><span id="icone-titulo-votacao" class="icone-titulo-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span><span id="texto-titulo-votacao">Escolha a melhor foto!</span></h1>
+                <p id="subtitulo-votacao" class="orbita-card-page-subtitulo">
                     Vote nas suas fotos favoritas. Entre com sua conta Google para validar seu voto.
                 </p>
             </div>
 
             <!-- Área de Controle de Usuário (Login / Logout) -->
-            <div id="area-login" class="flex justify-center pb-6 px-6">
+            <div id="area-login" class="orbita-login-area">
                 <!-- Botão de Login (Visível se deslogado) -->
                 <button id="btn-login-google" class="hidden btn btn-ghost">
                     <img src="https://img.icons8.com/color/1200/google-logo.jpg" alt="Google" class="w-5 h-5">
@@ -245,14 +434,14 @@
                 </button>
 
                 <!-- Barra do Usuário (Visível se logado) -->
-                <div id="user-info-bar" class="hidden ticket-sm px-4 py-2 flex items-center gap-4">
+                <div id="user-info-bar" class="hidden ticket-sm orbita-user-bar">
                     <div class="flex flex-col leading-tight gap-0.5">
                         <span id="user-name" class="text-sm font-medium text-[var(--ink)]"></span>
                         <button id="btn-preferencias-marketing" class="hidden text-xs text-left underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">
-                            ⚙️ Preferências de e-mail
+                            <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Preferências de e-mail
                         </button>
                     </div>
-                    <button id="btn-logout" class="text-xs bg-[var(--amber)] hover:bg-[var(--amber-dark)] text-black font-bold px-3 py-1.5 rounded-lg border-2 border-[var(--ink)] transition">
+                    <button id="btn-logout" class="orbita-btn-logout">
                         Sair
                     </button>
                 </div>
@@ -260,7 +449,7 @@
 
             <!-- Banner de opt-in de e-mail marketing (só aparece se o concurso ativo
                  habilitar e o usuário estiver logado) -->
-            <div id="banner-optin-marketing" class="hidden ticket-sm mx-6 mb-6 p-4">
+            <div id="banner-optin-marketing" class="hidden ticket-sm orbita-optin-banner">
                 <p class="text-sm text-[var(--ink)] mb-3">
                     Quer receber novidades e ofertas por e-mail dos concursos e de seus patrocinadores parceiros?
                 </p>
@@ -275,77 +464,62 @@
                 </div>
             </div>
 
-            <div class="ticket-tear"></div>
-
             <!-- Barra de atualização -->
-            <div class="flex items-center justify-center gap-3 pt-6 px-6 text-sm text-[var(--ink-soft)]">
+            <div class="orbita-refresh-bar">
                 <button id="btn-atualizar" class="btn btn-ghost !py-1.5 !px-3 text-sm">
-                    🔄 Atualizar
+                    <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Atualizar
                 </button>
                 <span>Última atualização: <span id="ultima-atualizacao" class="font-medium text-[var(--ink)]">—</span></span>
             </div>
 
             <!-- Mosaico de Fotos -->
-            <div id="grid-fotos" class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 md:p-8">
+            <div id="grid-fotos" class="grid grid-cols-1 md:grid-cols-3 gap-4 orbita-grid-fotos">
                 <div class="col-span-2 md:col-span-3 text-center text-[var(--ink-soft)] py-12">
-                    <span class="text-lg font-semibold">⏳ Carregando sistema de votação...</span>
+                    <span class="text-lg font-semibold"><svg class="icon-inline icon-inline--md" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12"/><path d="M6 22h12"/><path d="M6 2c0 6 4 6 4 10s-4 4-4 10"/><path d="M18 2c0 6-4 6-4 10s4 4 4 10"/></svg> Carregando sistema de votação...</span>
                 </div>
             </div>
 
             <!-- Patrocinadores (tela de fotos campeãs, concurso encerrado) -->
-            <div id="secao-premiacoes-patrocinadores" class="hidden px-6 md:px-8 pb-6">
+            <div id="secao-premiacoes-patrocinadores" class="hidden orbita-secao">
                 <div id="bloco-patrocinadores" class="hidden">
-                    <p class="eyebrow text-[var(--fern-dark)] mb-3 text-center">Realização e patrocínio</p>
+                    <p class="orbita-secao-label">Realização e patrocínio</p>
                     <div id="lista-patrocinadores" class="flex flex-wrap items-center justify-center gap-4"></div>
                 </div>
             </div>
 
-            <div class="text-center px-6 md:px-8 pb-6">
-                <a id="link-pagina-inicial" href="./index.html" class="btn btn-ghost btn-block">
-                    🏠 Página inicial
-                </a>
-            </div>
-
-            <div class="ticket-tear"></div>
-
-            <!-- Rodapé -->
-            <footer class="text-center p-6 md:p-10 pt-8 text-[var(--ink-soft)]">
-                <p class="text-sm font-semibold">
-                    Dúvidas ou problemas? <a href="mailto:arusuperguia@outlook.com" class="underline underline-offset-2 text-[var(--ink)] hover:text-[var(--fern-dark)] font-bold">arusuperguia@outlook.com</a>
-                </p>
-                <div class="flex items-center justify-center gap-3 mt-4 text-sm font-semibold flex-wrap">
-                    © AruSuperGuia
-                    <span class="divider-dot"></span>
-                    <a href="./privacy.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Privacidade</a>
-                    <span class="divider-dot"></span>
-                    <a href="./terms.html" class="underline underline-offset-2 hover:text-[var(--ink)]">Termos</a>
-                    <span id="regulamento-link-wrap" style="display: none;">
-                        <span class="divider-dot"></span>
-                        <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">📄 Regulamento do concurso</a>
-                    </span>
-                    <span class="divider-dot"></span>
-                    <a href="./historico.html" class="underline underline-offset-2 hover:text-[var(--ink)]">📜 Histórico de concursos</a>
-                    <span class="divider-dot"></span>
-                    <a href="./status.html" class="underline underline-offset-2 hover:text-[var(--ink)]">🔎 Acompanhar minha foto</a>
-                    <span class="divider-dot"></span>
-                    <a href="./curadoria.html" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[var(--ink)]">Acesso administrativo</a>
-                </div>
-            </footer>
+            <a id="link-pagina-inicial" href="./index.html" class="btn btn-ghost btn-block orbita-btn-margem">
+                <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Página inicial
+            </a>
         </div>
     </main>
+
+    <footer class="orbita-footer">
+        <p class="orbita-footer-slogan">Órbita — a plataforma por trás do seu concurso cultural</p>
+        <nav class="orbita-footer-links">
+            <a href="mailto:arusuperguia@outlook.com">Contato</a>
+            <a href="./privacy.html">Privacidade</a>
+            <a href="./terms.html">Termos</a>
+            <span id="regulamento-link-wrap" style="display: none;">
+                <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Regulamento do concurso</a>
+            </span>
+            <a href="./historico.html">Histórico de concursos</a>
+            <a href="./status.html">Acompanhar minha foto</a>
+            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
+        </nav>
+    </footer>
 
     <!-- Modal de visualização ampliada da foto -->
     <div id="modal-foto" class="modal-foto hidden" role="dialog" aria-modal="true" aria-label="Foto ampliada">
         <div id="modal-foto-backdrop" class="modal-foto-backdrop"></div>
-        <div class="modal-foto-conteudo ticket">
-            <button id="modal-foto-fechar" type="button" class="modal-foto-fechar" aria-label="Fechar">✕</button>
+        <div class="modal-foto-conteudo">
+            <button id="modal-foto-fechar" type="button" class="modal-foto-fechar" aria-label="Fechar"><svg class="icon-inline icon-inline--tight" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             <div class="modal-foto-imagem-wrap">
                 <div id="modal-foto-spinner" class="modal-foto-spinner hidden" aria-hidden="true"></div>
                 <img id="modal-foto-img" src="" alt="Foto ampliada do concurso">
             </div>
             <div class="p-4 md:p-5 text-center">
                 <span id="modal-foto-selo" class="stamp mb-2 hidden"></span>
-                <h3 id="modal-foto-nome" class="font-display text-lg text-[var(--ink)]"></h3>
+                <h3 id="modal-foto-nome" class="text-lg font-semibold text-[var(--ink)]"></h3>
                 <p id="modal-foto-data" class="text-xs text-[var(--ink-soft)] mt-1"></p>
                 <p id="modal-foto-votos" class="text-sm text-[var(--ink-soft)] font-medium mt-1"></p>
                 <button id="modal-foto-votar" type="button" class="btn btn-block mt-3 text-sm !py-2 hidden"></button>
@@ -355,6 +529,23 @@
 
     <script>
         // Configuração do Supabase e helper escapeHTML() vêm de supabase-client.js
+
+        // Ícones de linha (SVG inline) reaproveitados em vários textos
+        // fixos montados via JS (botão de voto, "Atualizar" etc.) — só usados
+        // onde o texto ao redor é 100% fixo, nunca em spots que interpolam
+        // texto vindo do curador (theme_config), pra não abrir brecha de
+        // innerHTML com dado não sanitizado.
+        const ICONE_CORACAO = '<svg class="icon-inline icon-inline--tight" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+        const ICONE_CADEADO = '<svg class="icon-inline icon-inline--tight" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+        const ICONE_ATUALIZAR = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
+        const ICONE_CALENDARIO = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+        const ICONE_PREMIO = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>';
+        const ICONE_INBOX = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>';
+        const ICONE_ZOOM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+        // Versões maiores (26px), sem a classe icon-inline, pro ícone do
+        // título — o dimensionamento ali vem do span .icone-titulo-wrap.
+        const ICONE_CORACAO_TITULO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+        const ICONE_PREMIO_TITULO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>';
 
         // Elementos da Interface
         const gridFotos = document.getElementById('grid-fotos');
@@ -422,7 +613,7 @@
             modalFotoImg.src = foto.url_foto;
             modalFotoImg.alt = `Foto de ${foto.nome_participante}`;
             modalFotoNome.textContent = foto.nome_participante;
-            modalFotoData.textContent = `📅 ${foto.dataFormatada}`;
+            modalFotoData.innerHTML = `${ICONE_CALENDARIO} ${escapeHTML(foto.dataFormatada)}`;
             modalFotoVotos.textContent = `${foto.votos} voto${foto.votos === 1 ? '' : 's'}`;
 
             if (foto.selo) {
@@ -461,17 +652,17 @@
 
             if (!usuarioAtual) {
                 modalFotoVotarBtn.className = 'btn btn-ghost btn-block mt-3 text-sm !py-2';
-                modalFotoVotarBtn.textContent = '🔒 Entrar para votar';
+                modalFotoVotarBtn.innerHTML = `${ICONE_CADEADO} Entrar para votar`;
                 modalFotoVotarBtn.disabled = false;
                 modalFotoVotarBtn.onclick = () => entrarComGooglePopup(fotoId);
             } else if (jaVotou) {
                 modalFotoVotarBtn.className = 'btn btn-ghost btn-block mt-3 text-sm !py-2';
-                modalFotoVotarBtn.textContent = '❤️ Votado';
+                modalFotoVotarBtn.innerHTML = `${ICONE_CORACAO} Votado`;
                 modalFotoVotarBtn.disabled = true;
                 modalFotoVotarBtn.onclick = null;
             } else {
                 modalFotoVotarBtn.className = 'btn btn-ember btn-block mt-3 text-sm !py-2';
-                modalFotoVotarBtn.textContent = '❤️ Votar';
+                modalFotoVotarBtn.innerHTML = `${ICONE_CORACAO} Votar`;
                 modalFotoVotarBtn.disabled = false;
                 modalFotoVotarBtn.onclick = () => computarVoto(fotoId);
             }
@@ -508,7 +699,7 @@
 
             if (navigator.share) {
                 try {
-                    await navigator.share({ title: 'AruSuperGuia - Concurso', text: texto, url });
+                    await navigator.share({ title: 'Órbita - Concurso', text: texto, url });
                 } catch (err) {
                     // Usuário cancelou o compartilhamento nativo — não é um erro real.
                 }
@@ -701,7 +892,7 @@
             });
         });
 
-        const NOME_POPUP_LOGIN = 'arusuperguia-login';
+        const NOME_POPUP_LOGIN = 'orbita-login';
 
         // Login com o Google numa popup, em vez de navegar a aba atual —
         // usado pelo botão "Votar" da modal, pra alguém que abriu a foto por
@@ -945,9 +1136,20 @@
                     await verificarOptInMarketing();
                 }
 
+                // O ícone do título (span próprio, id fixo) nunca é tocado
+                // por texto vindo do curador — só recebe as constantes
+                // ICONE_* (controladas por nós). O texto (outro span) é
+                // sempre trocado via textContent, mesmo quando o valor vem
+                // de theme_config.textos.titulo (campo livre do curador) —
+                // assim nunca corremos risco de injeção via innerHTML, e o
+                // ícone não "some" quando o texto muda (bug antigo: os dois
+                // ficavam misturados no mesmo elemento).
+                const iconeTituloVotacao = document.getElementById('icone-titulo-votacao');
+                const textoTituloVotacao = document.getElementById('texto-titulo-votacao');
                 if (encerrado) {
                     const dataFormatada = new Date(concursoAtivo.data + 'T00:00:00').toLocaleDateString('pt-BR');
-                    tituloVotacao.textContent = '🏆 Fotos campeãs da temporada!';
+                    iconeTituloVotacao.innerHTML = ICONE_PREMIO_TITULO;
+                    textoTituloVotacao.textContent = 'Fotos campeãs da temporada!';
                     subtituloVotacao.textContent = `O concurso "${concursoAtivo.nome || concursoAtivo.descricao}" foi encerrado em ${dataFormatada}. Confira abaixo as fotos mais votadas.`;
                 } else {
                     // Concurso em andamento: usa o título/subtítulo do
@@ -955,7 +1157,8 @@
                     // texto genérico fixo (evita a página de votação de um
                     // concurso qualquer ficar sempre com o mesmo texto).
                     const textos = (concursoAtivo.theme_config && concursoAtivo.theme_config.textos) || {};
-                    if (textos.titulo) tituloVotacao.textContent = `❤️ ${textos.titulo}`;
+                    iconeTituloVotacao.innerHTML = ICONE_CORACAO_TITULO;
+                    textoTituloVotacao.textContent = textos.titulo || 'Escolha a melhor foto!';
                     if (textos.subtitulo) subtituloVotacao.textContent = textos.subtitulo;
                 }
 
@@ -983,7 +1186,7 @@
                     fotosExibidasCache = [];
                     gridFotos.innerHTML = `
                         <div class="col-span-2 md:col-span-3 text-center ticket-sm p-6">
-                            <p class="text-lg font-medium text-[var(--ink)]">📭 ${encerrado ? 'Este concurso encerrou sem nenhuma foto aprovada.' : 'Nenhuma foto aprovada para votação no momento.'}</p>
+                            <p class="text-lg font-medium text-[var(--ink)]">${ICONE_INBOX} ${encerrado ? 'Este concurso encerrou sem nenhuma foto aprovada.' : 'Nenhuma foto aprovada para votação no momento.'}</p>
                         </div>
                     `;
                     exibirPremiacoesEPatrocinadores(null);
@@ -1025,15 +1228,15 @@
 
                         if (!usuarioAtual) {
                             botaoClasse = "btn-ghost";
-                            botaoTexto = "🔒 Logar para votar";
+                            botaoTexto = `${ICONE_CADEADO} Logar para votar`;
                             botaoAtributos = `onclick="focarLogin()"`;
                         } else if (jaVotou) {
                             botaoClasse = "btn-ghost";
-                            botaoTexto = "❤️ Votado";
+                            botaoTexto = `${ICONE_CORACAO} Votado`;
                             botaoAtributos = "disabled";
                         } else {
                             botaoClasse = "btn-ember";
-                            botaoTexto = "❤️ Votar";
+                            botaoTexto = `${ICONE_CORACAO} Votar`;
                             // Não passamos mais a contagem atual — o incremento é feito
                             // de forma atômica no banco via RPC, nunca a partir de um
                             // valor vindo do cliente (ver função votar_em_foto no SQL).
@@ -1050,14 +1253,14 @@
                         <div class="ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
                             <div class="foto-card-imagem relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" ${selo ? `style="box-shadow: inset 0 0 0 4px ${selo.cor};"` : ''} onclick="abrirModalFoto('${foto.id}')" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHTML(foto.nome_participante)}" onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===this){event.preventDefault();abrirModalFoto('${foto.id}');}">
                                 <img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto do Concurso" loading="lazy" class="object-cover w-full h-full">
-                                <span class="foto-card-lupa" aria-hidden="true">🔍</span>
+                                <span class="foto-card-lupa" aria-hidden="true">${ICONE_ZOOM}</span>
                             </div>
                             <div class="p-3 flex flex-col justify-between flex-1">
                                 <div class="mb-2">
                                     ${selo ? `<span class="stamp ${selo.classe} mb-1.5">${selo.medalha} ${selo.texto}</span>` : ''}
                                     <h3 class="font-semibold text-[var(--ink)] text-sm sm:text-base truncate">${escapeHTML(foto.nome_participante)}</h3>
                                     <div class="flex items-center justify-between gap-2 mt-0.5">
-                                        <p class="text-xs text-[var(--ink-soft)]">📅 ${dataEnvio}</p>
+                                        <p class="text-xs text-[var(--ink-soft)]">${ICONE_CALENDARIO} ${dataEnvio}</p>
                                         ${!encerrado ? `
                                             <button type="button" class="foto-card-compartilhar-inline" onclick="compartilharFoto('${foto.id}', event)" aria-label="Compartilhar foto de ${escapeHTML(foto.nome_participante)}" title="Compartilhar">
                                                 <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1120,12 +1323,12 @@
         // outra aba) e a lista de fotos/votos, sem recarregar a página inteira
         btnAtualizar.addEventListener('click', async () => {
             btnAtualizar.disabled = true;
-            btnAtualizar.textContent = '🔄 Atualizando...';
+            btnAtualizar.innerHTML = `${ICONE_ATUALIZAR} Atualizando...`;
             try {
                 await checarSessao();
             } finally {
                 btnAtualizar.disabled = false;
-                btnAtualizar.textContent = '🔄 Atualizar';
+                btnAtualizar.innerHTML = `${ICONE_ATUALIZAR} Atualizar`;
             }
         });
 
@@ -1205,7 +1408,7 @@
                 if (botaoModal && novaContagem !== null) {
                     modalFotoVotos.textContent = `${novaContagem} voto${novaContagem === 1 ? '' : 's'}`;
                 }
-                botoes.forEach(botao => { botao.textContent = "❤️ Votado"; });
+                botoes.forEach(botao => { botao.innerHTML = `${ICONE_CORACAO} Votado`; });
 
             } catch (error) {
                 console.error(error);

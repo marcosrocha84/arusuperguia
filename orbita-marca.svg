@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Órbita">
+    <!-- Mesma marca (anel + ponto central) usada em CSS puro no cabeçalho
+         do site (.orbita-logo-mark, ver index.html) e no favicon inline —
+         este arquivo existe só como asset exportável, pra usos que exigem
+         um arquivo de imagem real (e-mail de campanha, og:image de
+         compartilhamento social, ícone de app/PWA), já que a versão do
+         site é gerada em tempo de execução via CSS/SVG inline, sem nenhum
+         arquivo por trás. Cor: var(--orbita-ink) = #1f2430. -->
+    <circle cx="128" cy="128" r="88" fill="none" stroke="#1f2430" stroke-width="24"/>
+    <circle cx="128" cy="128" r="25.6" fill="#1f2430"/>
+</svg>

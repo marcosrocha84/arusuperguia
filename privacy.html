@@ -4,88 +4,339 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>Política de Privacidade | AruSuperGuia</title>
-    <link rel="icon" href="./mini-logo.jpg" type="image/jpeg">
+    <title>Política de Privacidade | Órbita</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f2430' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%231f2430'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-    <link rel="stylesheet" href="./styles.css?v=2.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
+    <!-- Identidade "Órbita" — mesmo sistema visual de index.html/concurso.html,
+         duplicado aqui até o resto do site também migrar (ver comentário
+         equivalente em concurso.html). -->
+    <style>
+        :root {
+            --orbita-bg: #f4f5f7;
+            --orbita-surface: #ffffff;
+            --orbita-surface-2: #eef0f3;
+            --orbita-border: #e2e5ea;
+            --orbita-ink: #1f2430;
+            --orbita-ink-soft: #6b7280;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--orbita-ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            /* Mesmo fundo sutil de "planetas" do index.html — ver comentário
+               lá pra detalhes de por que o alpha fica embutido no SVG em vez
+               de usar opacity no body. */
+            background-color: var(--orbita-bg);
+            background-repeat: no-repeat, no-repeat;
+            background-position: right -60px top 30px, left -50px bottom 40px;
+            background-image:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Ccircle cx='340' cy='90' r='55' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='340' cy='90' r='115' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='372' cy='30' r='5' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='255' cy='165' r='7' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E"),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='380' height='380'%3E%3Ccircle cx='65' cy='300' r='45' fill='none' stroke='rgba(31,36,48,0.09)' stroke-width='1'/%3E%3Ccircle cx='65' cy='300' r='95' fill='none' stroke='rgba(31,36,48,0.07)' stroke-width='1'/%3E%3Ccircle cx='25' cy='352' r='4' fill='rgba(31,36,48,0.12)'/%3E%3Ccircle cx='132' cy='248' r='6' fill='rgba(31,36,48,0.1)'/%3E%3C/svg%3E");
+        }
+
+        /* ---------- Cabeçalho / rodapé ---------- */
+        .orbita-header {
+            background: var(--orbita-surface-2);
+            border-bottom: 1px solid var(--orbita-border);
+        }
+        .orbita-header-inner {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .orbita-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .orbita-logo-mark {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid var(--orbita-ink);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .orbita-logo-mark::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--orbita-ink);
+            transform: translate(-50%, -50%);
+        }
+        .orbita-brand-name {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--orbita-ink);
+        }
+        .orbita-tagline {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-footer {
+            background: var(--orbita-surface-2);
+            border-top: 1px solid var(--orbita-border);
+            padding: 24px 20px;
+            text-align: center;
+        }
+        .orbita-footer-slogan {
+            margin: 0 0 10px;
+            font-size: 0.85rem;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px 16px;
+        }
+        .orbita-footer-links a {
+            font-size: 0.78rem;
+            color: var(--orbita-ink-soft);
+            text-decoration: none;
+        }
+        .orbita-footer-links a:hover {
+            color: var(--orbita-ink);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        /* ---------- Corpo ---------- */
+        .orbita-main {
+            flex: 1;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+        .orbita-doc {
+            background: var(--orbita-surface);
+            border: 1px solid var(--orbita-border);
+            border-radius: 12px;
+            padding: 32px 24px;
+        }
+        .orbita-doc-header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .orbita-doc-eyebrow {
+            margin: 0;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-doc-title {
+            margin: 8px 0 0;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--orbita-ink);
+        }
+        .orbita-doc-lead {
+            margin: 10px auto 0;
+            max-width: 34rem;
+            font-size: 0.9rem;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-doc-section {
+            margin-top: 22px;
+            padding-top: 22px;
+            border-top: 1px solid var(--orbita-border);
+        }
+        .orbita-doc-section:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+        .orbita-doc-section h2 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--orbita-ink);
+        }
+        .orbita-doc-section p {
+            margin: 8px 0 0;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-doc-section ul {
+            margin: 8px 0 0;
+            padding-left: 1.1rem;
+            list-style: disc;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-doc-section li + li {
+            margin-top: 4px;
+        }
+        .orbita-doc-section strong {
+            color: var(--orbita-ink);
+        }
+        .orbita-doc-footer-cta {
+            text-align: center;
+            margin-top: 28px;
+            padding-top: 22px;
+            border-top: 1px solid var(--orbita-border);
+        }
+        .orbita-btn-ghost {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--orbita-border);
+            background: var(--orbita-surface);
+            color: var(--orbita-ink);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+        .orbita-btn-ghost:hover {
+            background: var(--orbita-surface-2);
+            transform: translateY(-1px);
+        }
+
+        .icon-inline {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            vertical-align: -3px;
+            margin-right: 3px;
+            stroke: currentColor;
+        }
+
+        /* Garante que "hidden" (Tailwind) sempre vença classes próprias que
+           definem "display" — ver comentário equivalente em enviar.html
+           pra detalhes da causa. */
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
-<body class="bg-canopy min-h-screen flex flex-col justify-between items-center p-4">
-    <main class="max-w-3xl mx-auto p-4 md:p-8 w-full">
-        <div class="ticket p-8 md:p-12">
-            <div class="mb-8 text-center">
-                <p class="text-sm uppercase tracking-[0.25em] text-[var(--fern-dark)] font-semibold eyebrow">AruSuperGuia</p>
-                <h1 class="mt-4 text-3xl md:text-4xl font-display text-[var(--ink)]">Política de Privacidade</h1>
-                <p class="mt-4 text-[var(--ink-soft)] max-w-2xl mx-auto">Entenda como coletamos, usamos e protegemos os seus dados ao usar o site dos concursos culturais de fotos.</p>
+<body>
+
+    <header class="orbita-header">
+        <div class="orbita-header-inner">
+            <div class="orbita-brand">
+                <span class="orbita-logo-mark" aria-hidden="true"></span>
+                <span class="orbita-brand-name">Órbita</span>
+            </div>
+            <p class="orbita-tagline">plataforma de concursos culturais</p>
+        </div>
+    </header>
+
+    <main class="orbita-main">
+        <div class="orbita-doc">
+            <div class="orbita-doc-header">
+                <p class="orbita-doc-eyebrow">Órbita</p>
+                <h1 class="orbita-doc-title">Política de Privacidade</h1>
+                <p class="orbita-doc-lead">Entenda como coletamos, usamos e protegemos os seus dados ao usar o site dos concursos culturais de fotos.</p>
             </div>
 
-            <section class="space-y-6">
-                <div>
-                    <h2 class="text-xl font-semibold text-[var(--ink)]">1. Dados que coletamos</h2>
-                    <p class="mt-3 text-[var(--ink-soft)]">Este aplicativo coleta apenas as informações necessárias para permitir o uso das funções principais:</p>
-                    <ul class="mt-3 list-disc list-inside text-[var(--ink-soft)] space-y-2">
+            <section>
+                <div class="orbita-doc-section">
+                    <h2>1. Dados que coletamos</h2>
+                    <p>Este aplicativo coleta apenas as informações necessárias para permitir o uso das funções principais:</p>
+                    <ul>
                         <li>Dados de autenticação: e-mail e credenciais de login gerenciadas pelo Supabase.</li>
                         <li>Dados de envio de foto: nome do participante, URL da imagem, título/categoria e status de aprovação.</li>
                         <li>Dados de interação: ações de votação, aprovações e exclusões feitas pelo painel administrativo.</li>
                     </ul>
                 </div>
 
-                <div>
-                    <h2 class="text-xl font-semibold text-[var(--ink)]">2. Como usamos esses dados</h2>
-                    <p class="mt-3 text-[var(--ink-soft)]">Os dados são usados para:</p>
-                    <ul class="mt-3 list-disc list-inside text-[var(--ink-soft)] space-y-2">
+                <div class="orbita-doc-section">
+                    <h2>2. Como usamos esses dados</h2>
+                    <p>Os dados são usados para:</p>
+                    <ul>
                         <li>Autenticar administradores e proteger a área de curadoria.</li>
                         <li>Armazenar e apresentar fotos nos concursos culturais.</li>
                         <li>Gerenciar o fluxo de votos e a moderação dos envios.</li>
                     </ul>
                 </div>
 
-                <div>
-                    <h2 class="text-xl font-semibold text-[var(--ink)]">3. Serviços de terceiros</h2>
-                    <p class="mt-3 text-[var(--ink-soft)]">Para oferecer o funcionamento do site, usamos serviços de terceiros, principalmente:</p>
-                    <ul class="mt-3 list-disc list-inside text-[var(--ink-soft)] space-y-2">
+                <div class="orbita-doc-section">
+                    <h2>3. Serviços de terceiros</h2>
+                    <p>Para oferecer o funcionamento do site, usamos serviços de terceiros, principalmente:</p>
+                    <ul>
                         <li><strong>Supabase:</strong> usado para autenticação, banco de dados e armazenamento.</li>
                         <li><strong>Provedor OAuth:</strong> se o login estiver habilitado por Google ou outro serviço, o redirecionamento de autenticação pode ser feito por essa plataforma.</li>
                     </ul>
-                    <p class="mt-3 text-[var(--ink-soft)]">Os dados compartilhados com esses provedores seguem as políticas deles e acontecem apenas quando necessário para realizar login ou armazenar informações dos concursos.</p>
+                    <p>Os dados compartilhados com esses provedores seguem as políticas deles e acontecem apenas quando necessário para realizar login ou armazenar informações dos concursos.</p>
                 </div>
 
-                <div>
-                    <h2 class="text-xl font-semibold text-[var(--ink)]">4. Cookies e armazenamento do navegador</h2>
-                    <p class="mt-3 text-[var(--ink-soft)]">O site pode usar cookies ou armazenamento local do navegador para manter sessão e melhorar a experiência do usuário. Não armazenamos informações sensíveis em cookies do lado do cliente.</p>
+                <div class="orbita-doc-section">
+                    <h2>4. Cookies e armazenamento do navegador</h2>
+                    <p>O site pode usar cookies ou armazenamento local do navegador para manter sessão e melhorar a experiência do usuário. Não armazenamos informações sensíveis em cookies do lado do cliente.</p>
                 </div>
 
-                <div>
-                    <h2 class="text-xl font-semibold text-[var(--ink)]">5. Segurança</h2>
-                    <p class="mt-3 text-[var(--ink-soft)]">Adotamos práticas básicas de segurança para proteger os dados dentro do ambiente do Supabase. No entanto, nenhum sistema é totalmente à prova de falhas, então recomendamos que você mantenha seus dados pessoais seguros e evite compartilhar credenciais.</p>
+                <div class="orbita-doc-section">
+                    <h2>5. Segurança</h2>
+                    <p>Adotamos práticas básicas de segurança para proteger os dados dentro do ambiente do Supabase. No entanto, nenhum sistema é totalmente à prova de falhas, então recomendamos que você mantenha seus dados pessoais seguros e evite compartilhar credenciais.</p>
                 </div>
 
-                <div>
-                    <h2 class="text-xl font-semibold text-[var(--ink)]">6. Seus direitos</h2>
-                    <p class="mt-3 text-[var(--ink-soft)]">Você pode solicitar a correção ou exclusão dos seus dados pessoais entrando em contato com o responsável pelo site. Caso haja dúvidas sobre o uso de dados, podemos fornecer informações sobre o que foi armazenado.</p>
+                <div class="orbita-doc-section">
+                    <h2>6. Seus direitos</h2>
+                    <p>Você pode solicitar a correção ou exclusão dos seus dados pessoais entrando em contato com o responsável pelo site. Caso haja dúvidas sobre o uso de dados, podemos fornecer informações sobre o que foi armazenado.</p>
                 </div>
 
-                <div id="marketing">
-                    <h2 class="text-xl font-semibold text-[var(--ink)]">7. E-mail marketing e novidades</h2>
-                    <p class="mt-3 text-[var(--ink-soft)]">Se você fizer login com o Google para votar, pode optar por receber e-mails com novidades e ofertas dos concursos e de seus patrocinadores parceiros. Sobre esse uso específico:</p>
-                    <ul class="mt-3 list-disc list-inside text-[var(--ink-soft)] space-y-2">
+                <div id="marketing" class="orbita-doc-section">
+                    <h2>7. E-mail marketing e novidades</h2>
+                    <p>Se você fizer login com o Google para votar, pode optar por receber e-mails com novidades e ofertas dos concursos e de seus patrocinadores parceiros. Sobre esse uso específico:</p>
+                    <ul>
                         <li>Isso só acontece se você marcar explicitamente a opção exibida na tela de votação — nunca é enviado por padrão.</li>
                         <li>O dado usado é o e-mail da sua conta Google utilizada no login.</li>
                         <li>A base legal é o seu consentimento, que pode ser revogado a qualquer momento, sem afetar sua participação nos concursos ou seu direito de votar.</li>
                         <li>Sua resposta fica salva junto com a data e a versão do texto de consentimento aceito, e vale para qualquer concurso futuro — não é necessário reconfirmar a cada novo concurso, a menos que este texto mude de forma relevante.</li>
                     </ul>
-                    <p class="mt-3 text-[var(--ink-soft)]">Para revogar, clique em "⚙️ Preferências de e-mail" na tela de votação (abaixo do seu nome, quando logado) e desmarque a opção, ou use o link de descadastro presente em qualquer e-mail de marketing recebido.</p>
+                    <p>Para revogar, clique em "Preferências de e-mail" na tela de votação (abaixo do seu nome, quando logado) e desmarque a opção, ou use o link de descadastro presente em qualquer e-mail de marketing recebido.</p>
                 </div>
 
-                <div>
-                    <h2 class="text-xl font-semibold text-[var(--ink)]">8. Contato</h2>
-                    <p class="mt-3 text-[var(--ink-soft)]">Se precisar entrar em contato sobre privacidade ou dados, utilize o canal de comunicação disponível no site ou no repositório do projeto.</p>
+                <div class="orbita-doc-section">
+                    <h2>8. Contato</h2>
+                    <p>Se precisar entrar em contato sobre privacidade ou dados, utilize o canal de comunicação disponível no site ou no repositório do projeto.</p>
                 </div>
             </section>
 
-            <div class="mt-10 text-center border-t border-[var(--bone-2)] pt-6 text-sm text-[var(--ink-soft)]">
-                <a href="./index.html" class="btn btn-fern">Voltar para a página inicial</a>
+            <div class="orbita-doc-footer-cta">
+                <a href="./index.html" class="orbita-btn-ghost"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Voltar para a página inicial</a>
             </div>
         </div>
     </main>
+
+    <footer class="orbita-footer">
+        <p class="orbita-footer-slogan">Órbita — a plataforma por trás do seu concurso cultural</p>
+        <nav class="orbita-footer-links">
+            <a href="mailto:arusuperguia@outlook.com">Contato</a>
+            <a href="./privacy.html">Privacidade</a>
+            <a href="./terms.html">Termos</a>
+            <a href="./historico.html">Histórico de concursos</a>
+            <a href="./status.html">Acompanhar minha foto</a>
+            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
+        </nav>
+    </footer>
 </body>
 </html>

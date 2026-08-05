@@ -26,9 +26,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Mesmo padrão de CORS de enviar-foto — ver comentário lá pra detalhes de
-// por que localhost/127.0.0.1:5500 (Live Server) também estão liberados.
+// por que os dois domínios de produção (antigo e novo) ficam liberados
+// juntos durante a migração, e por que localhost/127.0.0.1:5500 (Live
+// Server) também estão liberados.
 const ORIGENS_PERMITIDAS = [
     "https://arusuperguia.com.br",
+    "https://orbita.art.br",
     "http://127.0.0.1:5500",
     "http://localhost:5500",
 ];

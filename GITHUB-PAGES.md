@@ -39,9 +39,9 @@ git push -u origin main
 
 ## 6) Usar domínio customizado
 1. Em `Settings` → `Pages`, na seção `Custom domain`, adicione:
-   - `arusuperguia.com.br`
+   - `orbita.art.br`
 2. GitHub Pages criará um arquivo `CNAME` automaticamente ou você pode criar um manual:
-   - `CNAME` contendo apenas `arusuperguia.com.br`
+   - `CNAME` contendo apenas `orbita.art.br`
 
 ## 7) Atualizar DNS no Registro.br
 No Registro.br, adicione os registros DNS do GitHub Pages:
