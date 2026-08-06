@@ -101,8 +101,6 @@
         .orbita-secao { padding: 0 24px 24px; }
         .orbita-secao-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--orbita-ink-soft); margin: 0 0 12px; text-align: center; }
 
-        .orbita-btn-margem { margin: 0 24px 24px; width: calc(100% - 48px); }
-
         /* ---------- Compat: botões (.btn), usados dinamicamente pelo
            script pra montar os botões de voto do grid e da modal) ---------- */
         .btn {
@@ -125,6 +123,14 @@
         .btn-ghost { background: var(--bone); color: var(--ink); border-color: var(--bone-2); }
         .btn-fern { background: var(--fern); color: #fff; }
         .btn-ember { background: var(--ember); color: #fff; }
+
+        /* Vem depois de .btn-block de propósito: mesma especificidade (uma
+           classe cada), então quem aparece por último no CSS vence — sem
+           essa ordem, .btn-block (width: 100%) sobrescrevia o width daqui,
+           mas a margem de 24px de cada lado continuava valendo, deixando o
+           botão 48px mais largo que o container (estourava a tela no
+           mobile). */
+        .orbita-btn-margem { margin: 0 24px 24px; width: calc(100% - 48px); }
 
         /* ---------- Compat: cards (.ticket-sm), usado pro card de cada
            foto no grid, barra do usuário, banner de opt-in e estados

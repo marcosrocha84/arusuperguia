@@ -47,9 +47,10 @@ function construirCorsHeaders(origin: string | null) {
 
 // API do Resend aceita no máximo 100 destinatários por chamada de batch.
 const TAMANHO_LOTE = 100;
-// Domínio arusuperguia.com.br verificado no Resend (SPF/DKIM) — antes disso
-// só era possível enviar a partir de onboarding@resend.dev.
-const REMETENTE = "AruSuperGuia <campanhas@arusuperguia.com.br>";
+// Domínio orbita.art.br verificado no Resend (SPF/DKIM) — antes disso só
+// era possível enviar a partir de onboarding@resend.dev, e depois disso
+// (durante a migração de marca) a partir de campanhas@arusuperguia.com.br.
+const REMETENTE = "Órbita <campanhas@orbita.art.br>";
 
 function dividirEmLotes<T>(itens: T[], tamanho: number): T[][] {
     const lotes: T[][] = [];
