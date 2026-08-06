@@ -374,7 +374,7 @@ async function carregarFotos(filtro = 'Todas', concursoId = 'todos', pagina = 1)
 
     let query = supabase
         .from('fotos_concurso')
-        .select('*, concursos(descricao)', { count: 'exact' })
+        .select('*, concursos(nome, descricao)', { count: 'exact' })
         .order('criado_em', { ascending: false });
 
     if (filtro === 'Aprovadas') {
@@ -442,7 +442,7 @@ async function carregarFotos(filtro = 'Todas', concursoId = 'todos', pagina = 1)
             ${imagemHtml}
             <div class="p-4">
                 <p class="text-sm text-[var(--ink-soft)] mb-1">${ICONE_USUARIO} Participante: <strong class="text-[var(--ink)]">${escapeHTML(foto.nome_participante)}</strong></p>
-                <p class="text-xs text-[var(--ink-soft)] mb-2">${ICONE_PREMIO_MARGEM} Concurso: <strong class="text-[var(--ink)]">${foto.concursos ? escapeHTML(foto.concursos.descricao) : 'Sem concurso vinculado'}</strong></p>
+                <p class="text-xs text-[var(--ink-soft)] mb-2">${ICONE_PREMIO_MARGEM} Concurso: <strong class="text-[var(--ink)]">${foto.concursos ? escapeHTML(foto.concursos.nome || foto.concursos.descricao) : 'Sem concurso vinculado'}</strong></p>
                 <p class="text-xs text-[var(--ink-soft)] mb-1">${ICONE_CALENDARIO} Enviada em: <strong class="text-[var(--ink)]">${dataEnvio}</strong></p>
                 <p class="text-xs text-[var(--ink-soft)] mb-2">${ICONE_CLIPBOARD} Código de acompanhamento:<br><span class="font-mono text-[var(--ink)] break-all select-all">${escapeHTML(foto.id)}</span></p>
                 <div class="flex items-center space-x-2 my-2">
@@ -1014,8 +1014,72 @@ window.editarConcurso = function(id) {
     concursoDescricaoInput.focus();
 }
 
+// Extrai o caminho de um arquivo dentro de um bucket qualquer a partir da
+// URL pública salva no banco — mesma lógica de extrairCaminhoNoBucketFotos,
+// mas parametrizada pelo nome do bucket (regulamento e imagens de tema
+// ficam em buckets diferentes do de fotos).
+function extrairCaminhoNoBucket(url, bucket) {
+    if (!url) return null;
+    const marcador = `/${bucket}/`;
+    const indice = url.indexOf(marcador);
+    if (indice === -1) return null;
+    return decodeURIComponent(url.slice(indice + marcador.length));
+}
+
+// Apagar o concurso no banco também apaga (em cascata, ver
+// sql/026_excluir_concurso_cascade.sql) as linhas de fotos_concurso e
+// votos_realizados vinculadas — mas isso NÃO remove os arquivos no Storage
+// (fotos, PDF de regulamento, imagens de tema), então precisamos buscar
+// essas URLs e apagar os arquivos antes de apagar o concurso, senão viram
+// arquivos órfãos.
 window.excluirConcurso = async function(id) {
-    if (!confirm('Tem certeza que deseja excluir este concurso? Essa ação não pode ser desfeita.')) return;
+    const { data: concurso, error: erroBuscaConcurso } = await supabase
+        .from('concursos')
+        .select('regulamento_pdf_url, theme_config, fotos_concurso ( url_foto, url_thumb )')
+        .eq('id', id)
+        .single();
+
+    if (erroBuscaConcurso) {
+        alert('Erro ao verificar dados do concurso: ' + erroBuscaConcurso.message);
+        return;
+    }
+
+    const fotosDoConcurso = concurso.fotos_concurso || [];
+    const totalFotos = fotosDoConcurso.length;
+    const avisoFotos = totalFotos > 0
+        ? `\n\nEssa ação também vai apagar ${totalFotos} foto${totalFotos === 1 ? '' : 's'} enviada${totalFotos === 1 ? '' : 's'} (e os votos recebidos por elas).`
+        : '';
+
+    if (!confirm(`Tem certeza que deseja excluir este concurso? Essa ação não pode ser desfeita.${avisoFotos}`)) return;
+
+    if (totalFotos > 0) {
+        const caminhosFotos = fotosDoConcurso
+            .flatMap((foto) => [extrairCaminhoNoBucketFotos(foto.url_foto), extrairCaminhoNoBucketFotos(foto.url_thumb)])
+            .filter(Boolean);
+
+        if (caminhosFotos.length > 0) {
+            const { error: erroStorage } = await supabase.storage.from('orbita-fotos').remove(caminhosFotos);
+            if (erroStorage) console.error('Falha ao remover fotos do Storage:', erroStorage);
+        }
+    }
+
+    const caminhoRegulamento = extrairCaminhoNoBucket(concurso.regulamento_pdf_url, 'orbita-regulamentos');
+    if (caminhoRegulamento) {
+        const { error: erroRegulamento } = await supabase.storage.from('orbita-regulamentos').remove([caminhoRegulamento]);
+        if (erroRegulamento) console.error('Falha ao remover regulamento do Storage:', erroRegulamento);
+    }
+
+    const icones = (concurso.theme_config && concurso.theme_config.icones) || {};
+    const caminhosTema = [icones.logo, icones.favicon, icones.mascote]
+        .map((url) => extrairCaminhoNoBucket(url, 'orbita-temas'))
+        .filter(Boolean);
+    if (caminhosTema.length > 0) {
+        const { error: erroTema } = await supabase.storage.from('orbita-temas').remove(caminhosTema);
+        if (erroTema) console.error('Falha ao remover imagens de tema do Storage:', erroTema);
+    }
+    // Nenhuma falha de limpeza do Storage interrompe o fluxo — o concurso
+    // ainda deve ser apagado; o pior caso é sobrar arquivo órfão, não um
+    // bloqueio da exclusão.
 
     const { error } = await supabase.from('concursos').delete().eq('id', id);
 
