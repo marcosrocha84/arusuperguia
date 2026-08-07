@@ -1667,6 +1667,7 @@ function renderizarCampanhas() {
             </div>
             <div class="flex gap-2">
                 ${podeDisparar ? `<button onclick="editarCampanha('${campanha.id}')" class="btn btn-ghost text-sm !py-1.5 !px-3">Editar</button>` : ''}
+                ${podeDisparar ? `<button onclick="testarCampanhaExistente('${campanha.id}')" class="btn btn-ghost text-sm !py-1.5 !px-3">Enviar teste</button>` : ''}
                 ${podeDisparar ? `<button onclick="dispararCampanhaExistente('${campanha.id}')" class="btn btn-fern text-sm !py-1.5 !px-3">Disparar</button>` : ''}
                 <button onclick="verRelatorioCampanha('${campanha.id}')" class="btn btn-ghost text-sm !py-1.5 !px-3">Ver relatório</button>
             </div>
@@ -1754,7 +1755,7 @@ if (campanhaCancelBtn) {
 
 // Chama a Edge Function disparar-campanha com o JWT do admin logado (não a
 // chave anônima) — é esse JWT que a function usa pra validar is_admin().
-async function chamarDisparoCampanha(campanhaId) {
+async function chamarDisparoCampanha(campanhaId, modoTeste) {
     const { data: sessao } = await supabase.auth.getSession();
     const token = sessao.session?.access_token;
     if (!token) throw new Error('Sessão expirada. Faça login novamente.');
@@ -1765,7 +1766,7 @@ async function chamarDisparoCampanha(campanhaId) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ campanha_id: campanhaId }),
+        body: JSON.stringify({ campanha_id: campanhaId, modo_teste: modoTeste === true }),
     });
 
     const resultado = await resposta.json();
@@ -1784,10 +1785,21 @@ if (campanhaForm) {
     btnDispararFormulario.textContent = 'Disparar';
     campanhaSubmitBtn.insertAdjacentElement('afterend', btnDispararFormulario);
 
+    // Botão "Enviar teste" — manda só pro e-mail do próprio admin logado
+    // (ver modo_teste em disparar-campanha), pra validar assunto/corpo/
+    // remetente antes do disparo real pra lista inteira.
+    const btnTesteFormulario = document.createElement('button');
+    btnTesteFormulario.type = 'button';
+    btnTesteFormulario.id = 'campanha-teste-btn';
+    btnTesteFormulario.className = 'btn btn-ghost text-sm !py-2 !px-4';
+    btnTesteFormulario.textContent = 'Enviar teste';
+    btnDispararFormulario.insertAdjacentElement('afterend', btnTesteFormulario);
+
     btnDispararFormulario.addEventListener('click', async () => {
         campanhaError.classList.add('hidden');
         campanhaSucesso.classList.add('hidden');
         btnDispararFormulario.disabled = true;
+        btnTesteFormulario.disabled = true;
         campanhaSubmitBtn.disabled = true;
 
         try {
@@ -1802,6 +1814,30 @@ if (campanhaForm) {
             campanhaError.classList.remove('hidden');
         } finally {
             btnDispararFormulario.disabled = false;
+            btnTesteFormulario.disabled = false;
+            campanhaSubmitBtn.disabled = false;
+        }
+    });
+
+    btnTesteFormulario.addEventListener('click', async () => {
+        campanhaError.classList.add('hidden');
+        campanhaSucesso.classList.add('hidden');
+        btnDispararFormulario.disabled = true;
+        btnTesteFormulario.disabled = true;
+        campanhaSubmitBtn.disabled = true;
+
+        try {
+            const id = await salvarCampanhaDoFormulario();
+            const resultado = await chamarDisparoCampanha(id, true);
+            campanhaSucesso.textContent = `E-mail de teste enviado para ${resultado.para}.`;
+            campanhaSucesso.classList.remove('hidden');
+            carregarCampanhas();
+        } catch (error) {
+            campanhaError.textContent = 'Erro ao enviar teste: ' + error.message;
+            campanhaError.classList.remove('hidden');
+        } finally {
+            btnDispararFormulario.disabled = false;
+            btnTesteFormulario.disabled = false;
             campanhaSubmitBtn.disabled = false;
         }
     });
@@ -1816,6 +1852,15 @@ window.dispararCampanhaExistente = async function (id) {
         carregarCampanhas();
     } catch (error) {
         alert('Erro ao disparar campanha: ' + error.message);
+    }
+};
+
+window.testarCampanhaExistente = async function (id) {
+    try {
+        const resultado = await chamarDisparoCampanha(id, true);
+        alert(`E-mail de teste enviado para ${resultado.para}.`);
+    } catch (error) {
+        alert('Erro ao enviar teste: ' + error.message);
     }
 };
 

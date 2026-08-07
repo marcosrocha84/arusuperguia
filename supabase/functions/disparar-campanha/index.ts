@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     }
 
     try {
-        const { campanha_id } = await req.json();
+        const { campanha_id, modo_teste } = await req.json();
 
         if (!campanha_id || typeof campanha_id !== "string") {
             return new Response(JSON.stringify({ error: "campanha_id é obrigatório." }), {
@@ -121,6 +121,50 @@ Deno.serve(async (req) => {
         if (!campanha) {
             return new Response(JSON.stringify({ error: "Campanha não encontrada." }), {
                 status: 404,
+                headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+            });
+        }
+
+        // 2b) Modo teste: manda só pro e-mail do próprio admin logado, sem
+        // tocar na lista de inscritos, sem checar/alterar o status da
+        // campanha e sem gravar em eventos_email — assim não interfere no
+        // relatório nem impede o disparo real de acontecer depois.
+        if (modo_teste === true) {
+            const { data: dadosChamador, error: erroChamador } = await supabaseComoChamador.auth.getUser();
+            const emailAdmin = dadosChamador?.user?.email;
+
+            if (erroChamador || !emailAdmin) {
+                return new Response(JSON.stringify({ error: "Não foi possível identificar o e-mail do admin logado." }), {
+                    status: 400,
+                    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+                });
+            }
+
+            const respostaTeste = await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${RESEND_API_KEY}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    from: REMETENTE,
+                    to: [emailAdmin],
+                    subject: `[TESTE] ${campanha.assunto}`,
+                    html: campanha.corpo_html,
+                }),
+            });
+
+            const dadosResposta = await respostaTeste.json();
+
+            if (!respostaTeste.ok) {
+                return new Response(JSON.stringify({ error: dadosResposta?.message || "Falha ao enviar e-mail de teste pelo Resend." }), {
+                    status: 502,
+                    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+                });
+            }
+
+            return new Response(JSON.stringify({ success: true, teste: true, enviados: 1, para: emailAdmin }), {
+                status: 200,
                 headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
             });
         }

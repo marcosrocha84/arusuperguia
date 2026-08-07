@@ -494,7 +494,7 @@
             </div>
 
             <a id="link-pagina-inicial" href="./index.html" class="btn btn-ghost btn-block orbita-btn-margem">
-                <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Página inicial
+                <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> <span id="texto-link-pagina-inicial">Página inicial</span>
             </a>
         </div>
     </main>
@@ -823,6 +823,7 @@
 
         if (concursoSlugAtual) {
             document.getElementById('link-pagina-inicial').href = `./concurso.html?c=${encodeURIComponent(concursoSlugAtual)}`;
+            document.getElementById('texto-link-pagina-inicial').textContent = 'Voltar para o concurso';
         }
 
         // Aplica o theme_config do concurso (mesma lógica de concurso.html)
@@ -1279,7 +1280,7 @@
                                             </button>` : ''}
                                     </div>
                                     <p class="text-xs text-[var(--ink-soft)] font-medium mt-0.5">
-                                        <span id="contador-${foto.id}">${foto.votos}</span> votos
+                                        <span id="contador-${foto.id}">${foto.votos} voto${foto.votos === 1 ? '' : 's'}</span>
                                     </p>
                                     ${encerrado && selo && premiacaoPorPosicao[indice + 1] ? `
                                         <p class="text-xs text-[var(--ember-dark)] font-semibold mt-1"><span class="premio-caixa">🎁</span> ${escapeHTML(premiacaoPorPosicao[indice + 1])}</p>
@@ -1410,7 +1411,10 @@
                     .single();
                 const novaContagem = fotoAtualizada ? fotoAtualizada.votos : null;
 
-                if (contador) contador.textContent = novaContagem !== null ? novaContagem : (parseInt(contador.textContent, 10) + 1);
+                if (contador) {
+                    const novoTotal = novaContagem !== null ? novaContagem : (parseInt(contador.textContent, 10) + 1);
+                    contador.textContent = `${novoTotal} voto${novoTotal === 1 ? '' : 's'}`;
+                }
                 if (botaoModal && novaContagem !== null) {
                     modalFotoVotos.textContent = `${novaContagem} voto${novaContagem === 1 ? '' : 's'}`;
                 }
