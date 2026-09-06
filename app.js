@@ -738,14 +738,75 @@ function renderizarConcursos() {
                     ${concurso.regulamento_pdf_url ? `<a href="${escapeHTML(concurso.regulamento_pdf_url)}" target="_blank" rel="noopener noreferrer" class="text-sm underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">${ICONE_ARQUIVO}Regulamento</a>` : ''}
                 </div>
             </div>
-            <div class="flex gap-2">
-                <button onclick="editarConcurso('${concurso.id}')" class="btn btn-ghost text-sm !py-1.5 !px-3">Editar</button>
-                <button onclick="excluirConcurso('${concurso.id}')" class="btn btn-ember text-sm !py-1.5 !px-3">Excluir</button>
+            <div class="flex flex-col items-end gap-1">
+                <div class="flex gap-2">
+                    <button onclick="editarConcurso('${concurso.id}')" class="btn btn-ghost text-sm !py-1.5 !px-3">Editar</button>
+                    <button onclick="excluirConcurso('${concurso.id}')" class="btn btn-ember text-sm !py-1.5 !px-3">Excluir</button>
+                </div>
+                ${botaoResultadoConcurso(concurso)}
             </div>
         `;
         concursosContainer.appendChild(row);
     });
 }
+
+// Botão de envio do e-mail de resultado (vencedores) — só existe pra
+// concursos encerrados. Enquanto não foi enviado, mostra "Enviar resultado";
+// depois de enviado, mostra a data e um botão discreto de reenvio (não trava
+// de vez, pra permitir corrigir um envio com dado errado).
+function botaoResultadoConcurso(concurso) {
+    if (!concurso.encerrado) return '';
+
+    if (!concurso.resultado_enviado_em) {
+        return `<button onclick="enviarResultadoConcurso('${concurso.id}')" class="btn btn-fern text-sm !py-1.5 !px-3">Enviar resultado</button>`;
+    }
+
+    const dataEnvio = new Date(concurso.resultado_enviado_em).toLocaleString('pt-BR');
+    return `
+        <span class="text-xs text-[var(--ink-soft)]">Resultado enviado em ${dataEnvio}</span>
+        <button onclick="enviarResultadoConcurso('${concurso.id}')" class="btn btn-ghost text-xs !py-1 !px-2">Reenviar mesmo assim</button>
+    `;
+}
+
+// Chama a Edge Function enviar-resultado-concurso com o JWT do admin logado
+// (mesmo padrão de chamarDisparoCampanha).
+async function chamarEnvioResultado(concursoId) {
+    const { data: sessao } = await supabase.auth.getSession();
+    const token = sessao.session?.access_token;
+    if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+    const resposta = await fetch(`${SUPABASE_URL}/functions/v1/enviar-resultado-concurso`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ concurso_id: concursoId }),
+    });
+
+    const resultado = await resposta.json();
+    if (!resposta.ok || resultado.error) throw new Error(resultado.error || 'Falha ao enviar o resultado.');
+    return resultado;
+}
+
+window.enviarResultadoConcurso = async function(id) {
+    const concurso = concursosCache.find((c) => c.id === id);
+    const jaEnviado = concurso && concurso.resultado_enviado_em;
+
+    const mensagemConfirmacao = jaEnviado
+        ? 'O resultado deste concurso já foi enviado antes. Tem certeza que quer reenviar para todos que optaram por recebê-lo?'
+        : 'Enviar o e-mail de resultado para quem optou por saber os vencedores deste concurso?';
+
+    if (!confirm(mensagemConfirmacao)) return;
+
+    try {
+        const resultado = await chamarEnvioResultado(id);
+        alert(`Resultado enviado com sucesso: ${resultado.enviados} e-mail(s) enviado(s).`);
+        await carregarConcursos();
+    } catch (erro) {
+        alert('Não foi possível enviar o resultado: ' + erro.message);
+    }
+};
 
 // Marca visualmente qual opção de troféu está selecionada e guarda o
 // valor (1, 2 ou 3) no input escondido usado no payload do formulário.

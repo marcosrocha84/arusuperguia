@@ -257,7 +257,12 @@
                     <button data-view="concursos" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Concursos</button>
                     <button data-view="patrocinadores" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Patrocinadores</button>
                     <button data-view="premiacoes" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Premiações</button>
-                    <button data-view="campanhas" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg> Campanhas</button>
+                    <!-- Menu desabilitado: a base de preferencias_marketing não recebe mais
+                         opt-ins novos desde que o banner de votacao.html passou a perguntar
+                         sobre aviso de resultado por concurso (preferencias_resultado_concurso)
+                         em vez de marketing. Código, dados e Edge Function (disparar-campanha)
+                         continuam intactos — só a entrada de menu foi escondida. -->
+                    <button data-view="campanhas" class="nav-item hidden"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg> Campanhas</button>
                 </nav>
             </aside>
 
@@ -345,7 +350,7 @@
                         </div>
                         <div class="flex items-center gap-2 pb-2 md:col-span-5">
                             <input type="checkbox" id="concurso-mostrar-optin-marketing" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
-                            <label for="concurso-mostrar-optin-marketing" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Exibir banner de opt-in de e-mail marketing na votação</label>
+                            <label for="concurso-mostrar-optin-marketing" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Exibir banner de aviso de resultado por e-mail na votação</label>
                         </div>
                         <div class="md:col-span-5">
                             <label class="block text-[var(--ink)] text-sm font-semibold mb-2">Quantidade de vencedores</label>

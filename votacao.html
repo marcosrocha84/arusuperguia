@@ -366,6 +366,18 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
         }
+        .modal-foto-ampliar-link {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--fern-dark);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .modal-foto-ampliar-link:hover {
+            color: var(--fern);
+        }
 
         /* Garante que "hidden" (Tailwind) sempre vença classes próprias que
            definem "display" (.btn usa inline-flex, .orbita-login-area usa
@@ -444,7 +456,7 @@
                     <div class="flex flex-col leading-tight gap-0.5">
                         <span id="user-name" class="text-sm font-medium text-[var(--ink)]"></span>
                         <button id="btn-preferencias-marketing" class="hidden text-xs text-left underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">
-                            <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Preferências de e-mail
+                            <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Aviso de resultado por e-mail
                         </button>
                     </div>
                     <button id="btn-logout" class="orbita-btn-logout">
@@ -453,15 +465,15 @@
                 </div>
             </div>
 
-            <!-- Banner de opt-in de e-mail marketing (só aparece se o concurso ativo
-                 habilitar e o usuário estiver logado) -->
+            <!-- Banner de opt-in de resultado do concurso (só aparece se o concurso
+                 ativo habilitar e o usuário estiver logado) -->
             <div id="banner-optin-marketing" class="hidden ticket-sm orbita-optin-banner">
                 <p class="text-sm text-[var(--ink)] mb-3">
-                    Quer receber novidades e ofertas por e-mail dos concursos e de seus patrocinadores parceiros?
+                    Quer saber por e-mail quem foram os vencedores deste concurso?
                 </p>
                 <label class="flex items-center gap-2 mb-1 cursor-pointer">
                     <input type="checkbox" id="optin-marketing-checkbox" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
-                    <span class="text-sm text-[var(--ink)]">Aceito receber e-mails com novidades e ofertas dos concursos e de seus patrocinadores parceiros.</span>
+                    <span class="text-sm text-[var(--ink)]">Aceito receber um e-mail com o resultado deste concurso quando ele for encerrado.</span>
                 </label>
                 <a href="./privacy.html#marketing" target="_blank" rel="noopener noreferrer" class="block mb-3 text-xs underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">Saiba mais sobre esse uso dos seus dados</a>
                 <div class="flex items-center gap-3">
@@ -528,6 +540,7 @@
                 <h3 id="modal-foto-nome" class="text-lg font-semibold text-[var(--ink)]"></h3>
                 <p id="modal-foto-data" class="text-xs text-[var(--ink-soft)] mt-1"></p>
                 <p id="modal-foto-votos" class="text-sm text-[var(--ink-soft)] font-medium mt-1"></p>
+                <a id="modal-foto-ampliar" href="" target="_blank" rel="noopener noreferrer" class="modal-foto-ampliar-link">Ver em tamanho real ↗</a>
                 <button id="modal-foto-votar" type="button" class="btn btn-block mt-3 text-sm !py-2 hidden"></button>
             </div>
         </div>
@@ -577,6 +590,7 @@
         const modalFoto = document.getElementById('modal-foto');
         const modalFotoBackdrop = document.getElementById('modal-foto-backdrop');
         const modalFotoFechar = document.getElementById('modal-foto-fechar');
+        const modalFotoAmpliar = document.getElementById('modal-foto-ampliar');
         const modalFotoImg = document.getElementById('modal-foto-img');
         const modalFotoSpinner = document.getElementById('modal-foto-spinner');
         const modalFotoSelo = document.getElementById('modal-foto-selo');
@@ -618,6 +632,7 @@
             modalFotoSpinner.classList.remove('hidden');
             modalFotoImg.src = foto.url_foto;
             modalFotoImg.alt = `Foto de ${foto.nome_participante}`;
+            modalFotoAmpliar.href = foto.url_foto;
             modalFotoNome.textContent = foto.nome_participante;
             modalFotoData.innerHTML = `${ICONE_CALENDARIO} ${escapeHTML(foto.dataFormatada)}`;
             modalFotoVotos.textContent = `${foto.votos} voto${foto.votos === 1 ? '' : 's'}`;
@@ -852,15 +867,13 @@
         let usuarioAtual = null;
         let meusVotosRealizados = [];
 
-        // Se o concurso ativo no momento habilita (ou não) o opt-in de
-        // marketing — controlado pelo curador em curadoria.html.
+        // Se o concurso ativo no momento habilita (ou não) o banner de aviso
+        // de resultado — controlado pelo curador em curadoria.html.
         let concursoMostrarOptinMarketing = false;
 
-        // Versão do texto de consentimento exibido no banner. Só muda se o
-        // texto do opt-in mudar de sentido no futuro (ex: passar a incluir
-        // WhatsApp) — nesse caso, suba esse valor para os usuários serem
-        // solicitados a confirmar de novo.
-        const TERMO_MARKETING_VERSAO = '2026-07-22';
+        // ID do concurso ativo — a resposta do opt-in de resultado é gravada
+        // por (usuário, concurso), não mais globalmente por usuário.
+        let concursoAtivoId = null;
 
         // 1. GERENCIAMENTO DE SESSÃO DO USUÁRIO
         async function checarSessao() {
@@ -1044,9 +1057,9 @@
             return dataFim < hoje;
         }
 
-        // Opt-in de e-mail marketing — a resposta do usuário fica gravada por
-        // user_id (tabela preferencias_marketing), independente do concurso
-        // ativo no momento em que foi dada. O concurso só decide se pergunta.
+        // Opt-in de aviso de resultado — a resposta do usuário fica gravada
+        // por (user_id, concurso_id) (tabela preferencias_resultado_concurso),
+        // já que aceitar/recusar num concurso não deve valer para os outros.
         async function verificarOptInMarketing() {
             if (!usuarioAtual || !concursoMostrarOptinMarketing) {
                 bannerOptinMarketing.classList.add('hidden');
@@ -1054,31 +1067,31 @@
             }
 
             const { data, error } = await supabase
-                .from('preferencias_marketing')
-                .select('optin_email_marketing')
+                .from('preferencias_resultado_concurso')
+                .select('quer_resultado')
                 .eq('user_id', usuarioAtual.id)
+                .eq('concurso_id', concursoAtivoId)
                 .maybeSingle();
 
             if (error) {
-                console.error('Erro ao buscar preferência de marketing:', error);
+                console.error('Erro ao buscar preferência de resultado:', error);
                 return;
             }
 
-            // Só mostra o banner sozinho se a pessoa nunca respondeu ainda.
-            // Quem já respondeu (aceitou ou recusou) só vê de novo clicando
-            // em "Preferências de e-mail".
+            // Só mostra o banner sozinho se a pessoa nunca respondeu ainda
+            // para ESTE concurso. Quem já respondeu (aceitou ou recusou) só
+            // vê de novo clicando em "Aviso de resultado por e-mail".
             bannerOptinMarketing.classList.toggle('hidden', data !== null);
         }
 
         async function salvarOptInMarketing(aceitou) {
             const { error } = await supabase
-                .from('preferencias_marketing')
+                .from('preferencias_resultado_concurso')
                 .upsert({
                     user_id: usuarioAtual.id,
-                    optin_email_marketing: aceitou,
-                    optin_em: new Date().toISOString(),
-                    optin_versao_termo: TERMO_MARKETING_VERSAO,
-                    atualizado_em: new Date().toISOString(),
+                    concurso_id: concursoAtivoId,
+                    quer_resultado: aceitou,
+                    respondido_em: new Date().toISOString(),
                 });
 
             if (error) {
@@ -1093,21 +1106,23 @@
             salvarOptInMarketing(optinMarketingCheckbox.checked);
         });
 
-        // "Agora não" também grava (como recusa) — assim o link de
-        // preferências passa a ser o único jeito de reabrir o banner depois,
-        // em vez dele reaparecer em toda visita futura.
+        // "Agora não" também grava (como recusa) — assim o botão de reabrir
+        // passa a ser o único jeito de ver o banner de novo, em vez dele
+        // reaparecer em toda visita futura a este concurso.
         btnOptinMarketingFechar.addEventListener('click', () => {
             optinMarketingCheckbox.checked = false;
             salvarOptInMarketing(false);
         });
 
-        // Reabre o banner pré-preenchido com a resposta atual, pra quem já
-        // respondeu poder mudar de ideia a qualquer momento.
+        // Reabre o banner pré-preenchido com a resposta atual PARA ESTE
+        // concurso, pra quem já respondeu poder mudar de ideia a qualquer
+        // momento.
         btnPreferenciasMarketing.addEventListener('click', async () => {
             const { data, error } = await supabase
-                .from('preferencias_marketing')
-                .select('optin_email_marketing')
+                .from('preferencias_resultado_concurso')
+                .select('quer_resultado')
                 .eq('user_id', usuarioAtual.id)
+                .eq('concurso_id', concursoAtivoId)
                 .maybeSingle();
 
             if (error) {
@@ -1115,7 +1130,7 @@
                 return;
             }
 
-            optinMarketingCheckbox.checked = data ? data.optin_email_marketing : false;
+            optinMarketingCheckbox.checked = data ? data.quer_resultado : false;
             bannerOptinMarketing.classList.remove('hidden');
             bannerOptinMarketing.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
@@ -1135,6 +1150,7 @@
                 areaLogin.classList.toggle('hidden', encerrado);
 
                 concursoMostrarOptinMarketing = concursoAtivo.mostrar_optin_marketing;
+                concursoAtivoId = concursoAtivo.id;
                 if (encerrado || !usuarioAtual) {
                     bannerOptinMarketing.classList.add('hidden');
                     btnPreferenciasMarketing.classList.add('hidden');
