@@ -100,6 +100,9 @@
         .orbita-consent { display: flex; align-items: flex-start; gap: 8px; background: var(--orbita-surface-2); border: 1px solid var(--orbita-border); border-radius: 10px; padding: 12px; }
         .orbita-consent input[type="checkbox"] { margin-top: 2px; flex-shrink: 0; }
         .orbita-consent label { font-size: 0.78rem; color: var(--orbita-ink-soft); line-height: 1.4; cursor: pointer; }
+        .orbita-consent-secundario { display: block; margin-top: 3px; font-size: 0.68rem; }
+        .orbita-consent-secundario a { color: var(--orbita-ink-soft); text-decoration: underline; text-underline-offset: 2px; }
+        .orbita-consent-secundario a:hover { color: var(--orbita-ink); }
         .orbita-disclaimer-erro { font-size: 0.85rem; text-align: center; font-weight: 600; color: color-mix(in srgb, var(--accent-secundaria, #C1452C) 80%, black); }
 
         /* ---------- Botões ---------- */
@@ -243,6 +246,19 @@
                         <img id="image-preview" src="" alt="Pré-visualização da foto selecionada">
                     </div>
 
+                    <!-- Check-box de aceite do regulamento — só aparece (e só é
+                         obrigatório) quando o concurso tem um PDF de regulamento
+                         cadastrado; ver toggleAceiteRegulamento() mais abaixo. -->
+                    <div id="aceite-regulamento-wrap" class="orbita-consent hidden">
+                        <input type="checkbox" id="aceita-regulamento">
+                        <label for="aceita-regulamento">
+                            Li e aceito o regulamento deste concurso.
+                            <span class="orbita-consent-secundario">
+                                <a id="link-regulamento-consent" href="#" target="_blank" rel="noopener noreferrer">Abrir regulamento do concurso ↗</a>
+                            </span>
+                        </label>
+                    </div>
+
                     <!-- Check-box de Direito de Imagem -->
                     <div class="orbita-consent">
                         <input type="checkbox" id="autoriza-imagem" required>
@@ -344,6 +360,9 @@
         const erroDownloadStatus = document.getElementById('erro-download-status');
         const regulamentoLinkWrap = document.getElementById('regulamento-link-wrap');
         const linkRegulamento = document.getElementById('link-regulamento');
+        const aceiteRegulamentoWrap = document.getElementById('aceite-regulamento-wrap');
+        const aceitaRegulamentoCheckbox = document.getElementById('aceita-regulamento');
+        const linkRegulamentoConsent = document.getElementById('link-regulamento-consent');
 
         // Id do concurso desta página, descoberto a partir do slug na URL
         // (?c=slug) — preenchido antes do formulário ficar disponível. Sem
@@ -413,6 +432,14 @@
             if (concurso.regulamento_pdf_url) {
                 linkRegulamento.href = concurso.regulamento_pdf_url;
                 regulamentoLinkWrap.style.display = 'inline';
+
+                // Regra combinada: o checkbox de aceite do regulamento só existe
+                // (e só é obrigatório) quando o concurso tem um PDF cadastrado —
+                // sem regulamento, não faz sentido pedir aceite de um documento
+                // que não existe.
+                linkRegulamentoConsent.href = concurso.regulamento_pdf_url;
+                aceiteRegulamentoWrap.classList.remove('hidden');
+                aceitaRegulamentoCheckbox.required = true;
             }
 
             carregandoConcurso.classList.add('hidden');
