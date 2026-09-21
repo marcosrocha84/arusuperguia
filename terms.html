@@ -107,10 +107,13 @@
         .orbita-footer-links {
             display: flex;
             flex-wrap: wrap;
+            align-items: center;
             justify-content: center;
             gap: 6px 16px;
         }
         .orbita-footer-links a {
+            display: inline-flex;
+            align-items: center;
             font-size: 0.78rem;
             color: var(--orbita-ink-soft);
             text-decoration: none;
@@ -119,6 +122,113 @@
             color: var(--orbita-ink);
             text-decoration: underline;
             text-underline-offset: 2px;
+        }
+        /* O botão "Contato" precisa se comportar visualmente como os links
+           ao lado dele no rodapé (mesmo <nav>), mas é um <button> (não um
+           <a>) porque não navega — só abre o popup de categorias abaixo. */
+        .orbita-footer-links button {
+            font: inherit;
+            font-size: 0.78rem;
+            line-height: inherit;
+            color: var(--orbita-ink-soft);
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            cursor: pointer;
+        }
+        .orbita-footer-links button:hover {
+            color: var(--orbita-ink);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        /* ---------- Popup "Contato" (categorias de e-mail) ---------- */
+        .orbita-contato-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: rgba(31, 36, 48, 0.45);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .orbita-contato-backdrop.hidden { display: none; }
+        .orbita-contato-modal {
+            position: relative;
+            width: 100%;
+            max-width: 26rem;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: var(--orbita-surface);
+            border: 1px solid var(--orbita-border);
+            border-radius: 14px;
+            box-shadow: 0 12px 32px rgba(31, 36, 48, 0.18);
+            padding: 24px;
+        }
+        .orbita-contato-fechar {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            border: 1px solid var(--orbita-border);
+            background: var(--orbita-surface-2);
+            color: var(--orbita-ink-soft);
+            cursor: pointer;
+        }
+        .orbita-contato-fechar:hover { color: var(--orbita-ink); }
+        .orbita-contato-titulo {
+            margin: 0 0 4px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--orbita-ink);
+        }
+        .orbita-contato-intro {
+            margin: 0 0 20px;
+            font-size: 0.85rem;
+            color: var(--orbita-ink-soft);
+            line-height: 1.5;
+        }
+        .orbita-contato-grupo + .orbita-contato-grupo { margin-top: 18px; }
+        .orbita-contato-grupo-titulo {
+            margin: 0 0 8px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--orbita-ink-soft);
+        }
+        .orbita-contato-item {
+            display: block;
+            padding: 10px 12px;
+            border: 1px solid var(--orbita-border);
+            border-radius: 10px;
+            text-decoration: none;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .orbita-contato-item + .orbita-contato-item { margin-top: 8px; }
+        .orbita-contato-item:hover {
+            border-color: var(--orbita-ink-soft);
+            background: var(--orbita-surface-2);
+        }
+        .orbita-contato-item-principal {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--orbita-ink);
+        }
+        .orbita-contato-item-secundario {
+            display: block;
+            margin-top: 2px;
+            font-size: 0.76rem;
+            color: var(--orbita-ink-soft);
         }
 
         /* ---------- Corpo ---------- */
@@ -294,7 +404,7 @@
     <footer class="orbita-footer">
         <p class="orbita-footer-slogan">Órbita — a plataforma por trás do seu concurso cultural</p>
         <nav class="orbita-footer-links">
-            <a href="mailto:arusuperguia@outlook.com">Contato</a>
+            <button type="button" id="btn-abrir-contato">Contato</button>
             <a href="./privacy.html">Privacidade</a>
             <a href="./terms.html">Termos</a>
             <a href="./historico.html">Histórico de concursos</a>
@@ -302,5 +412,72 @@
             <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
         </nav>
     </footer>
+
+    <!-- Popup "Contato" — separa quem quer falar sobre a experiência no site
+         (elogio/sugestão/reclamação) de quem procura contato comercial
+         (orçamento/parceria). Cada item é um mailto: pré-preenchido — sem
+         backend nesta primeira versão; todos caem no mesmo endereço, a
+         categoria só organiza o assunto pra facilitar a triagem manual. -->
+    <div id="contato-backdrop" class="orbita-contato-backdrop hidden" role="dialog" aria-modal="true" aria-label="Formas de contato">
+        <div class="orbita-contato-modal">
+            <button type="button" id="btn-fechar-contato" class="orbita-contato-fechar" aria-label="Fechar"><svg class="icon-inline" style="margin:0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+
+            <h2 class="orbita-contato-titulo">Fale com a gente</h2>
+            <p class="orbita-contato-intro">Escolha o motivo do seu contato — isso abre seu aplicativo de e-mail com o assunto já preenchido.</p>
+
+            <div class="orbita-contato-grupo">
+                <p class="orbita-contato-grupo-titulo">Elogio, sugestão ou reclamação</p>
+                <a class="orbita-contato-item" href="mailto:marcos.f.rocha@outlook.com?subject=Orbita%20-%20Elogio">
+                    <span class="orbita-contato-item-principal">Elogio</span>
+                    <span class="orbita-contato-item-secundario">Gostou de algo? Conta pra gente.</span>
+                </a>
+                <a class="orbita-contato-item" href="mailto:marcos.f.rocha@outlook.com?subject=Orbita%20-%20Sugestao">
+                    <span class="orbita-contato-item-principal">Sugestão</span>
+                    <span class="orbita-contato-item-secundario">Uma ideia pra melhorar a plataforma.</span>
+                </a>
+                <a class="orbita-contato-item" href="mailto:marcos.f.rocha@outlook.com?subject=Orbita%20-%20Reclamacao">
+                    <span class="orbita-contato-item-principal">Reclamação</span>
+                    <span class="orbita-contato-item-secundario">Algo não funcionou como deveria.</span>
+                </a>
+            </div>
+
+            <div class="orbita-contato-grupo">
+                <p class="orbita-contato-grupo-titulo">Sou cliente ou parceiro em potencial</p>
+                <a class="orbita-contato-item" href="mailto:marcos.f.rocha@outlook.com?subject=Orbita%20-%20Orcamento">
+                    <span class="orbita-contato-item-principal">Solicitar orçamento</span>
+                    <span class="orbita-contato-item-secundario">Quero um concurso cultural pra minha marca/evento.</span>
+                </a>
+                <a class="orbita-contato-item" href="mailto:marcos.f.rocha@outlook.com?subject=Orbita%20-%20Proposta%20de%20parceria">
+                    <span class="orbita-contato-item-principal">Proposta de parceria</span>
+                    <span class="orbita-contato-item-secundario">Quero propor uma parceria com a Órbita.</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Popup "Contato" — abre/fecha pelo botão do rodapé, pelo X, clicando
+        // no fundo escurecido, ou apertando Esc. Não intercepta o clique nos
+        // itens (são mailto: normais, o navegador cuida do resto sozinho).
+        const btnAbrirContato = document.getElementById('btn-abrir-contato');
+        const btnFecharContato = document.getElementById('btn-fechar-contato');
+        const contatoBackdrop = document.getElementById('contato-backdrop');
+
+        function abrirContato() {
+            contatoBackdrop.classList.remove('hidden');
+        }
+        function fecharContato() {
+            contatoBackdrop.classList.add('hidden');
+        }
+
+        btnAbrirContato.addEventListener('click', abrirContato);
+        btnFecharContato.addEventListener('click', fecharContato);
+        contatoBackdrop.addEventListener('click', (evento) => {
+            if (evento.target === contatoBackdrop) fecharContato();
+        });
+        document.addEventListener('keydown', (evento) => {
+            if (evento.key === 'Escape' && !contatoBackdrop.classList.contains('hidden')) fecharContato();
+        });
+    </script>
 </body>
 </html>
