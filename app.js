@@ -109,6 +109,7 @@ const CONFIGS_TEMA_IMAGEM = ['logo', 'favicon', 'mascote'].map(chave => ({
 const concursoTemaTituloInput = document.getElementById('concurso-tema-titulo');
 const concursoTemaSubtituloInput = document.getElementById('concurso-tema-subtitulo');
 const concursoTemaCtaInput = document.getElementById('concurso-tema-cta');
+const concursoTemaLabelNomeInput = document.getElementById('concurso-tema-label-nome');
 const trofeuOpcoes = document.querySelectorAll('.trofeu-opcao');
 const concursoRegulamentoArquivoInput = document.getElementById('concurso-regulamento-arquivo');
 const concursoRegulamentoAtualDiv = document.getElementById('concurso-regulamento-atual');
@@ -1056,6 +1057,7 @@ window.editarConcurso = function(id) {
     concursoTemaTituloInput.value = textos.titulo || '';
     concursoTemaSubtituloInput.value = textos.subtitulo || '';
     concursoTemaCtaInput.value = textos.cta_participar || '';
+    concursoTemaLabelNomeInput.value = textos.label_nome || '';
 
     selecionarQtdVencedores(concurso.qtd_vencedores || 3);
     marcarSelecionadosLista(concursoPatrocinadoresLista, (concurso.concursos_patrocinadores || []).map(v => v.patrocinador_id));
@@ -1183,6 +1185,7 @@ if (concursoForm) {
                     titulo: concursoTemaTituloInput.value.trim(),
                     subtitulo: concursoTemaSubtituloInput.value.trim(),
                     cta_participar: concursoTemaCtaInput.value.trim(),
+                    label_nome: concursoTemaLabelNomeInput.value.trim(),
                 },
             },
         };

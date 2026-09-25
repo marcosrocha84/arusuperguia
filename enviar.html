@@ -251,7 +251,7 @@
             <div id="form-container" class="hidden">
                 <form id="upload-form" class="orbita-form">
                     <div>
-                        <label for="participante-nome" class="orbita-label">Seu nome completo</label>
+                        <label for="participante-nome" id="label-participante-nome" class="orbita-label">Seu nome completo</label>
                         <input type="text" id="participante-nome" required class="orbita-input">
                     </div>
 
@@ -448,6 +448,7 @@
             const textos = themeConfig.textos || {};
             if (textos.titulo) document.getElementById('texto-titulo-enviar').textContent = textos.titulo;
             if (textos.subtitulo) document.getElementById('subtitulo-enviar').textContent = textos.subtitulo;
+            if (textos.label_nome) document.getElementById('label-participante-nome').textContent = textos.label_nome;
         }
 
         // Descobre o concurso desta página pelo slug (?c=slug), valida que
