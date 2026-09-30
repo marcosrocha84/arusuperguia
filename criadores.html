@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <title>Concurso cultural para criadores e marcas | Órbita</title>
+    <meta name="application-name" content="Órbita">
+    <meta name="description" content="Premie sua comunidade com um concurso cultural de fotos, sem sorteio e sem autorização. Você escolhe tema e prêmio; a Órbita cuida do resto.">
+
+    <meta property="og:site_name" content="Órbita">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Concurso cultural para criadores e marcas | Órbita">
+    <meta property="og:description" content="Premie sua comunidade com um concurso cultural de fotos, sem sorteio e sem autorização. Você escolhe tema e prêmio; a Órbita cuida do resto.">
+    <meta property="og:url" content="https://orbita.art.br/criadores">
+    <!-- TODO: gerar e hospedar uma imagem de compartilhamento 1200x630 pra
+         essa página (nenhum asset do projeto serve pra isso hoje — os PNGs
+         na raiz são avatar de Instagram, quadrados, não servem pro formato
+         de OG image). Caminho esperado assim que existir: /og-criadores.png -->
+    <!-- <meta property="og:image" content="https://orbita.art.br/og-criadores.png"> -->
+
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f2430' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%231f2430'/%3E%3C/svg%3E">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+    <style>
+        /* ---------- Tokens de cor (claro/escuro) ----------
+           Nomes mantidos fiéis à referência (orbita-criadores.html) — essa
+           página é independente do resto do site (cada página do projeto já
+           tem seu próprio <style>, sem folha compartilhada), então não
+           precisa reaproveitar os tokens --orbita-* das outras telas. */
+        :root {
+            --bg: #f3f5fb;
+            --surface: #ffffff;
+            --ink: #141a3a;
+            --muted: #5a6285;
+            --line: #dde2f0;
+            --accent: #3b4cf5;
+            --accent-ink: #ffffff;
+            --sun: #f2a93b;
+            --soft: #e7eaff;
+            --font-display: 'Unbounded', 'Arial Rounded MT Bold', system-ui, sans-serif;
+            --font-body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #0d1128; --surface: #161b3a; --ink: #eef0ff; --muted: #a3a9cc; --line: #2a3160;
+                --accent: #7d89ff; --accent-ink: #0d1128; --sun: #f5b957; --soft: #1f2552;
+            }
+        }
+        :root[data-theme="dark"] {
+            --bg: #0d1128; --surface: #161b3a; --ink: #eef0ff; --muted: #a3a9cc; --line: #2a3160;
+            --accent: #7d89ff; --accent-ink: #0d1128; --sun: #f5b957; --soft: #1f2552;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: var(--font-body);
+            font-size: 17px;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.15; text-wrap: balance; margin: 0; }
+        p { margin: 0; }
+        a { color: var(--accent); }
+        a:focus-visible, button:focus-visible, summary:focus-visible {
+            outline: 3px solid var(--sun);
+            outline-offset: 3px;
+            border-radius: 4px;
+        }
+
+        /* ---------- Classes de cor ligadas aos tokens ----------
+           Substituem o que em Tailwind puro seria bg-*/text-* fixos — como
+           o build do Tailwind usado aqui (CDN, sem JIT) não gera classes
+           arbitrárias tipo text-[var(--ink)], as cores que dependem de tema
+           claro/escuro ficam nessas classes próprias; o resto (espaçamento,
+           grid, flex, tipografia em escala) usa utilitárias do Tailwind. */
+        .text-ink { color: var(--ink); }
+        .text-muted { color: var(--muted); }
+        .text-accent { color: var(--accent); }
+        .text-sun { color: var(--sun); }
+        .bg-surface { background: var(--surface); }
+        .bg-soft { background: var(--soft); }
+        .bg-accent { background: var(--accent); color: var(--accent-ink); }
+        .border-line { border-color: var(--line); }
+        .font-display { font-family: var(--font-display); }
+        .font-mono { font-family: var(--font-mono); }
+        .font-body { font-family: var(--font-body); }
+
+        .eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+        .lead { color: var(--muted); max-width: 62ch; }
+
+        /* ---------- Logo (mesmo padrão visual de index.html: círculo com
+           contorno + ponto central, desenhado só em CSS) — aqui usando
+           var(--ink) em vez de var(--orbita-ink), pra acompanhar o tema
+           claro/escuro próprio desta página. ---------- */
+        .orbita-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .orbita-logo-mark { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--ink); position: relative; flex-shrink: 0; }
+        .orbita-logo-mark::after {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--ink); transform: translate(-50%, -50%);
+        }
+        .orbita-brand-name { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+
+        /* ---------- Botões ---------- */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 13px 22px; border-radius: 999px; font-weight: 600;
+            text-decoration: none; font-size: 1rem; border: 2px solid var(--accent);
+        }
+        .btn.primary { background: var(--accent); color: var(--accent-ink); }
+        .btn.ghost { color: var(--accent); background: transparent; }
+        .btn.on-accent { background: var(--accent-ink); color: var(--accent); border-color: var(--accent-ink); }
+        /* Botão de destaque do card de preço: usa --sun (o mesmo tom de "até
+           100%" do alerta de sorteio) em vez do branco/azul do resto do
+           card, pra chamar mais atenção como CTA principal. Texto escuro
+           fixo (não var(--ink), que inverte no tema escuro e perderia
+           contraste contra o amarelo/laranja em ambos os temas). */
+        .btn.cta-destaque {
+            background: var(--sun); color: #141a3a; border-color: var(--sun);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+        }
+        .btn.cta-destaque:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgb(0 0 0 / 0.25);
+            filter: brightness(1.06);
+        }
+        .badge-lancamento {
+            display: inline-block; width: fit-content;
+            background: var(--accent-ink); color: var(--accent);
+            font-size: 0.78rem; font-weight: 600;
+            padding: 5px 14px; border-radius: 999px;
+        }
+
+        /* ---------- Hero: sistema orbital ---------- */
+        .orbit { position: relative; aspect-ratio: 1; width: 100%; max-width: 380px; margin-inline: auto; }
+        @media (min-width: 768px) { .orbit { max-width: none; } }
+        .ring { position: absolute; inset: 0; border: 1.5px dashed var(--line); border-radius: 50%; }
+        .ring.r2 { inset: 17%; }
+        .core {
+            position: absolute; inset: 34%; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+            display: grid; place-items: center; text-align: center; padding: 10px;
+            font-family: var(--font-display); font-size: clamp(0.62rem, 1.3vw, 0.85rem); line-height: 1.25;
+        }
+        .core small { display: block; font-family: var(--font-mono); font-size: 0.62rem; opacity: 0.8; margin-top: 4px; letter-spacing: 0.04em; }
+        /* Câmera, estrela, coração e medalha como "adesivos" flutuando por
+           cima do centro da órbita — cada um num badge circular claro
+           (var(--surface)) com sombra, ícone sólido preenchido com o
+           degradê da marca (var(--accent) até um coral já usado nas fotos
+           que orbitam), tamanhos variados e levemente rotacionados, tipo a
+           referência de arte de divulgação. Passa por cima da borda do
+           círculo de destaque de propósito (inset negativo), sem
+           overflow:hidden no .core pra não cortar os badges. */
+        .core-icons { position: absolute; inset: 2%; }
+        .core-badge {
+            position: absolute;
+            display: grid; place-items: center;
+            border-radius: 50%;
+            background: var(--surface);
+            box-shadow: 0 6px 18px rgb(20 26 58 / 0.22);
+        }
+        .core-badge svg { width: 56%; height: 56%; }
+        .core-badge.i1 { width: clamp(34px, 8vw, 46px); height: clamp(34px, 8vw, 46px); top: 18%; left: 14%; transform: rotate(-10deg); }
+        .core-badge.i2 { width: clamp(20px, 4.6vw, 26px); height: clamp(20px, 4.6vw, 26px); top: 6%;  left: 58%; transform: rotate(10deg); }
+        .core-badge.i3 { width: clamp(24px, 5.6vw, 32px);   height: clamp(24px, 5.6vw, 32px);   top: 56%; left: 14%; transform: rotate(6deg); }
+        .core-badge.i4 { width: clamp(20px, 4.6vw, 26px); height: clamp(20px, 4.6vw, 26px); top: 58%; left: 60%; transform: rotate(-8deg); }
+        .spin { position: absolute; inset: 0; animation: orbita-girar 60s linear infinite; }
+        .spin.s2 { inset: 17%; animation-duration: 40s; animation-direction: reverse; }
+        .photo {
+            position: absolute; width: 19%; aspect-ratio: 1; border-radius: 14px; background: var(--surface);
+            border: 1px solid var(--line); box-shadow: 0 8px 24px rgb(20 26 58 / 0.12);
+            display: grid; place-items: end center; padding: 6px; overflow: hidden;
+        }
+        .photo span { font-family: var(--font-mono); font-size: 0.62rem; background: var(--surface); color: var(--ink); padding: 1px 6px; border-radius: 99px; position: relative; }
+        .photo::before { content: ''; position: absolute; inset: 0; background: var(--g); }
+        .spin .photo { animation: orbita-girar 60s linear infinite reverse; }
+        .spin.s2 .photo { animation-duration: 40s; animation-direction: normal; }
+        @keyframes orbita-girar { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            .spin, .spin .photo { animation: none; }
+        }
+
+        /* Mesma explosão de corações usada em votacao.html ao clicar em
+           "Votar" (ver coracao-explodir/explodirCoracoes lá) — reaproveitada
+           aqui pro botão do mockup "Na prática". */
+        @keyframes coracao-explodir {
+            0% { transform: translate(-50%, -50%) scale(0.4) rotate(0deg); opacity: 1; }
+            100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(var(--scale)) rotate(var(--rot)); opacity: 0; }
+        }
+        .coracao-particula {
+            position: fixed; left: var(--x); top: var(--y);
+            pointer-events: none; z-index: 9999; font-size: var(--size);
+            animation: coracao-explodir 0.8s ease-out forwards;
+            will-change: transform, opacity;
+        }
+
+        /* ---------- Passos numerados ---------- */
+        .steps { counter-reset: passo; }
+        .steps li { counter-increment: passo; border-top: 3px solid var(--accent); }
+        .steps li::before {
+            content: 'Passo ' counter(passo); display: block;
+            font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent);
+            letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px;
+        }
+
+        /* ---------- "Você" x "A Órbita" ---------- */
+        /* Proporção 1fr/1.4fr não é uma escala padrão do Tailwind (e esse
+           projeto usa o CDN sem JIT, então classes arbitrárias tipo
+           grid-cols-[1fr_1.4fr] não geram CSS nenhum) — por isso vira uma
+           classe própria em vez de utilitária. */
+        .roles-grid { display: grid; grid-template-columns: 1fr; }
+        @media (min-width: 768px) { .roles-grid { grid-template-columns: 1fr 1.4fr; } }
+        .roles-lista { list-style: none; margin: 0; padding: 0; }
+        .roles-lista li { display: flex; gap: 10px; align-items: baseline; }
+        .roles-lista li::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); transform: translateY(-1px); }
+        .roles-voce li::before { background: var(--sun); }
+
+        /* ---------- Regras (checklist) ---------- */
+        .checks { list-style: none; margin: 0; padding: 0; }
+        .checks li { display: flex; gap: 12px; align-items: baseline; }
+        .checks li::before { content: '✓'; font-weight: 700; color: var(--accent); }
+
+        /* ---------- Chips de tema ---------- */
+        .chip { padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 0.95rem; }
+
+        /* ---------- Casos ---------- */
+        .quote { font-style: italic; color: var(--muted); border-left: 3px solid var(--line); padding-left: 14px; }
+        .ph { color: var(--sun); }
+
+        /* ---------- FAQ ---------- */
+        details { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+        summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+        summary::-webkit-details-marker { display: none; }
+        summary::after { content: '+'; font-family: var(--font-mono); color: var(--accent); }
+        details[open] summary::after { content: '−'; }
+
+        /* Garante que a seção de casos suma de verdade enquanto nenhum
+           concurso está marcado como case — nesse Tailwind sem JIT, uma
+           classe própria com display:grid pode empatar em especificidade
+           com a `.hidden` do Tailwind e "ganhar" a ordem no CSS final (ver
+           mesmo cuidado em outras páginas do projeto). */
+        #secao-casos.hidden { display: none !important; }
+
+        /* ---------- Quem está por trás ---------- */
+        .quem-somos-avatar {
+            flex: none; width: 64px; height: 64px; border-radius: 50%;
+            background: var(--soft); color: var(--accent);
+            display: grid; place-items: center;
+            font-family: var(--font-display); font-size: 1.3rem; font-weight: 700;
+        }
+
+        /* ---------- Mockup ilustrativo da tela de votação ---------- */
+        .mockup-browser { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: 0 12px 32px rgb(20 26 58 / 0.08); }
+        .mockup-browser-barra { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(--soft); border-bottom: 1px solid var(--line); }
+        .mockup-browser-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+        .mockup-browser-url { margin-left: 10px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+        .mockup-browser-conteudo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 20px; }
+        /* Card individual, no mesmo espírito do card real de votacao.html:
+           foto, nome, data/hora + compartilhar, contagem de votos e o
+           botão (Votar ou Votado, conforme o estado). */
+        .mockup-card { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+        .mockup-foto {
+            position: relative; aspect-ratio: 1; overflow: hidden;
+            background: var(--g); display: flex; align-items: center; justify-content: center;
+        }
+        .mockup-foto-emoji { font-size: 4.2rem; line-height: 1; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.15)); }
+        .mockup-card-corpo { padding: 10px 12px 12px; display: grid; gap: 4px; }
+        /* Cores fixas (não var(--ink)/tokens que invertem no escuro) porque
+           os fundos aqui (dourado/coral) não mudam de tom entre os temas —
+           texto de tom claro/escuro fixo garante contraste nos dois. */
+        .mockup-selo { display: inline-flex; align-items: center; gap: 3px; width: fit-content; font-size: 0.64rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; margin-bottom: 2px; }
+        .mockup-selo.ouro { background: var(--sun); color: #141a3a; }
+        .mockup-selo.prata { background: var(--soft); color: var(--muted); }
+        .mockup-selo.bronze { background: #e2735a; color: #ffffff; }
+        .mockup-card-nome { margin: 0; font-family: var(--font-body); font-size: 0.92rem; font-weight: 600; color: var(--ink); }
+        .mockup-card-linha { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+        .mockup-card-data { display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; color: var(--muted); }
+        .mockup-card-compartilhar { color: var(--muted); flex-shrink: 0; }
+        .mockup-card-votos { margin: 0; font-size: 0.72rem; font-weight: 600; color: var(--muted); }
+        .mockup-card-btn {
+            margin-top: 4px; width: 100%; border: none; border-radius: 8px; padding: 7px 0;
+            font-size: 0.74rem; font-weight: 700; cursor: pointer;
+            background: var(--accent); color: var(--accent-ink);
+        }
+        .mockup-card-btn.votado { background: var(--soft); color: var(--muted); cursor: default; }
+        @media (max-width: 640px) {
+            .mockup-browser-conteudo { grid-template-columns: 1fr; gap: 10px; padding: 14px; }
+        }
+
+        /* ---------- Contatos ---------- */
+        .contacts { font-family: var(--font-mono); font-size: 0.9rem; color: var(--muted); }
+        .contacts b { color: var(--ink); font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <div class="max-w-5xl mx-auto px-5">
+
+        <!-- Topo: logo -->
+        <nav class="flex justify-between items-center gap-4 py-6">
+            <a class="orbita-brand" href="./index.html" aria-label="Órbita">
+                <span class="orbita-logo-mark" aria-hidden="true"></span>
+                <span class="orbita-brand-name">Órbita</span>
+            </a>
+            <div class="flex flex-wrap items-center gap-4">
+                <a class="text-sm text-muted" href="#como-funciona">Como funciona</a>
+                <a class="text-sm text-muted" href="./index.html">Página inicial</a>
+            </div>
+        </nav>
+
+        <!-- Hero com a animação de órbita -->
+        <header class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center py-10 md:py-16" id="topo">
+            <div class="grid gap-6 min-w-0">
+                <span class="eyebrow">Concursos culturais para criadores e marcas</span>
+                <h1 class="text-4xl md:text-6xl tracking-tight text-ink">Premie sua comunidade <em class="not-italic text-accent">sem depender de sorteio</em></h1>
+                <p class="lead">Com a Órbita, você cria um concurso cultural de fotografia em que seu público envia fotos, vota nas favoritas e os melhores levam o prêmio. Você escolhe o tema e o prêmio. A gente cuida do resto.</p>
+                <div class="flex flex-wrap gap-3">
+                    <a class="btn primary" href="#contato">Quero criar meu concurso</a>
+                    <a class="btn ghost" href="#como-funciona">Ver como funciona</a>
+                </div>
+            </div>
+            <div class="orbit" aria-hidden="true">
+                <div class="ring"></div>
+                <div class="ring r2"></div>
+                <div class="spin">
+                    <div class="photo" style="top:-4%; left:40%; --g:linear-gradient(160deg,#f7c88a,#e2735a)"><span>♥ 128</span></div>
+                    <div class="photo" style="top:62%; left:-3%; --g:linear-gradient(160deg,#9fb8ff,#4a5bd6)"><span>♥ 96</span></div>
+                    <div class="photo" style="top:62%; left:84%; --g:linear-gradient(160deg,#b9e3c6,#3f8f6b)"><span>♥ 74</span></div>
+                </div>
+                <div class="spin s2">
+                    <div class="photo" style="top:-8%; left:-6%; width:24%; --g:linear-gradient(160deg,#ffe3a3,#f2a93b)"><span>♥ 51</span></div>
+                    <div class="photo" style="top:76%; left:74%; width:24%; --g:linear-gradient(160deg,#d8c2ff,#7a55d6)"><span>♥ 33</span></div>
+                </div>
+                <div class="core">
+                    <!-- Degradê único da marca, reaproveitado por todos os badges
+                         abaixo — vai de var(--accent) a um coral já usado nas
+                         fotos que orbitam (#e2735a), acompanhando o tema claro/
+                         escuro automaticamente (stop-color via CSS, não atributo). -->
+                    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="core-gradiente" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0" style="stop-color:var(--accent)"/>
+                                <stop offset="1" style="stop-color:#e2735a"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="core-icons">
+                        <div class="core-badge i1">
+                            <svg viewBox="0 0 24 24" fill="url(#core-gradiente)" aria-hidden="true">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4" fill="var(--surface)"/>
+                                <circle cx="12" cy="13" r="4" fill="none" stroke="url(#core-gradiente)" stroke-width="1.5"/>
+                            </svg>
+                        </div>
+                        <div class="core-badge i2">
+                            <svg viewBox="0 0 24 24" fill="url(#core-gradiente)" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        </div>
+                        <div class="core-badge i3">
+                            <svg viewBox="0 0 24 24" fill="url(#core-gradiente)" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        </div>
+                        <div class="core-badge i4">
+                            <svg viewBox="0 0 24 24" fill="url(#core-gradiente)" aria-hidden="true">
+                                <circle cx="12" cy="8" r="7"/>
+                                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" fill="url(#core-gradiente)" stroke="none"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Números — soma de TODOS os concursos (não só os marcados como
+             case), populado em tempo de execução (ver script no fim do
+             arquivo). Fica com valores em branco até a consulta terminar,
+             sem "pulo" de layout. -->
+        <section class="py-8 border-t border-line">
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <b id="stat-concursos" class="font-display text-3xl md:text-4xl text-ink block">—</b>
+                    <small class="text-muted text-xs md:text-sm">concursos criados</small>
+                </div>
+                <div>
+                    <b id="stat-fotos" class="font-display text-3xl md:text-4xl text-ink block">—</b>
+                    <small class="text-muted text-xs md:text-sm">fotos enviadas</small>
+                </div>
+                <div>
+                    <b id="stat-votos" class="font-display text-3xl md:text-4xl text-ink block">—</b>
+                    <small class="text-muted text-xs md:text-sm">votos registrados</small>
+                </div>
+            </div>
+        </section>
+
+        <!-- O problema -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start py-14 border-t border-line">
+            <div class="grid gap-4 min-w-0">
+                <span class="eyebrow">O problema</span>
+                <h2 class="text-2xl md:text-3xl text-ink">Quer premiar seu público? Sorteio não é o caminho</h2>
+                <p class="lead">No Brasil, sorteios com prêmio precisam de autorização da Secretaria de Prêmios e Apostas do Ministério da Fazenda. Pessoa física não consegue essa autorização, e para empresas o processo envolve documentação, taxas, prazos de semanas e prestação de contas.</p>
+                <p class="lead">O concurso cultural é a alternativa prevista em lei. Quando o vencedor é escolhido pela criatividade, e não pela sorte, e o concurso segue as regras, não é preciso pedir autorização.</p>
+            </div>
+            <div class="bg-surface border border-line rounded-2xl p-6 grid gap-3 min-w-0">
+                <span class="eyebrow">Sorteio feito por conta própria no Instagram</span>
+                <div class="font-display text-5xl text-sun">até 100%</div>
+                <p class="text-ink">do valor dos prêmios em multa, além de proibição de fazer novas promoções por até 2 anos.</p>
+                <p class="font-mono text-xs text-muted">Portaria SPA/MF nº 1.818/2026</p>
+            </div>
+        </section>
+
+        <!-- Como funciona -->
+        <section class="py-14 border-t border-line grid gap-6" id="como-funciona">
+            <span class="eyebrow">Como funciona</span>
+            <h2 class="text-2xl md:text-3xl text-ink">Seu concurso no ar em 3 passos</h2>
+            <ol class="steps grid grid-cols-1 md:grid-cols-3 gap-5 list-none p-0 m-0">
+                <li class="grid gap-2 pt-4">
+                    <h3 class="text-lg font-medium text-ink">Você escolhe o tema e o prêmio</h3>
+                    <p class="text-muted">A gente ajuda a definir um tema criativo e confere se tudo está dentro das regras.</p>
+                </li>
+                <li class="grid gap-2 pt-4">
+                    <h3 class="text-lg font-medium text-ink">Seu público participa</h3>
+                    <p class="text-muted">Cada pessoa envia sua foto pelo site da Órbita e a comunidade vota nas favoritas, com login do Google e um voto por pessoa em cada foto.</p>
+                </li>
+                <li class="grid gap-2 pt-4">
+                    <h3 class="text-lg font-medium text-ink">Os vencedores são anunciados</h3>
+                    <p class="text-muted">A Órbita apura o resultado, publica a página dos vencedores e avisa cada um por e-mail. Você entrega o prêmio.</p>
+                </li>
+            </ol>
+        </section>
+
+        <!-- Mockup ilustrativo da tela de votação (não é um print real — os
+             "animais" são emoji sobre um gradiente, no lugar de fotos de
+             verdade, só pra mostrar a interface sem precisar de fotos reais
+             de alguém). Cards espelham a estrutura de votacao.html: foto,
+             nome, data/hora, compartilhar, contagem de votos e o botão
+             Votar/Votado. Se um dia tiver um print de verdade do produto,
+             substituir esse bloco por uma <img>. -->
+        <section class="py-14 border-t border-line grid gap-6">
+            <span class="eyebrow">Na prática</span>
+            <h2 class="text-2xl md:text-3xl text-ink">É assim que a votação aparece pro seu público</h2>
+            <div class="mockup-browser">
+                <div class="mockup-browser-barra">
+                    <span class="mockup-browser-dot"></span>
+                    <span class="mockup-browser-dot"></span>
+                    <span class="mockup-browser-dot"></span>
+                    <span class="mockup-browser-url">orbita.art.br/c/seu-concurso</span>
+                </div>
+                <div class="mockup-browser-conteudo">
+                    <div class="mockup-card">
+                        <div class="mockup-foto" style="--g: linear-gradient(160deg, #f7c88a, #e2735a)">
+                            <span class="mockup-foto-emoji" aria-hidden="true">🐱</span>
+                        </div>
+                        <div class="mockup-card-corpo">
+                            <span class="mockup-selo ouro">🥇 1º lugar</span>
+                            <h3 class="mockup-card-nome">Mingau</h3>
+                            <div class="mockup-card-linha">
+                                <span class="mockup-card-data">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    05/09 14:32
+                                </span>
+                                <svg class="mockup-card-compartilhar" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>
+                            </div>
+                            <p class="mockup-card-votos">128 votos</p>
+                            <button type="button" class="mockup-card-btn votado" disabled>♥ Votado</button>
+                        </div>
+                    </div>
+                    <div class="mockup-card">
+                        <div class="mockup-foto" style="--g: linear-gradient(160deg, #9fb8ff, #4a5bd6)">
+                            <span class="mockup-foto-emoji" aria-hidden="true">🐶</span>
+                        </div>
+                        <div class="mockup-card-corpo">
+                            <span class="mockup-selo prata">🥈 2º lugar</span>
+                            <h3 class="mockup-card-nome">Thor</h3>
+                            <div class="mockup-card-linha">
+                                <span class="mockup-card-data">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    09/09 09:07
+                                </span>
+                                <svg class="mockup-card-compartilhar" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>
+                            </div>
+                            <p class="mockup-card-votos">96 votos</p>
+                            <button type="button" class="mockup-card-btn votado" disabled>♥ Votado</button>
+                        </div>
+                    </div>
+                    <div class="mockup-card">
+                        <div class="mockup-foto" style="--g: linear-gradient(160deg, #b9e3c6, #3f8f6b)">
+                            <span class="mockup-foto-emoji" aria-hidden="true">🦜</span>
+                        </div>
+                        <div class="mockup-card-corpo">
+                            <span class="mockup-selo bronze">🥉 3º lugar</span>
+                            <h3 class="mockup-card-nome">Kiwi</h3>
+                            <div class="mockup-card-linha">
+                                <span class="mockup-card-data">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    12/09 19:45
+                                </span>
+                                <svg class="mockup-card-compartilhar" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>
+                            </div>
+                            <p class="mockup-card-votos" id="mockup-votos-kiwi">54 votos</p>
+                            <button type="button" class="mockup-card-btn" id="mockup-btn-kiwi">♥ Votar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quem faz o quê -->
+        <section class="py-14 border-t border-line grid gap-6">
+            <span class="eyebrow">Quem faz o quê</span>
+            <h2 class="text-2xl md:text-3xl text-ink">Você cuida da comunidade. A Órbita cuida do concurso.</h2>
+            <div class="roles-grid bg-surface border border-line rounded-2xl overflow-hidden">
+                <div class="p-6 grid gap-3 content-start min-w-0">
+                    <h3 class="text-lg font-medium text-ink">Você</h3>
+                    <ul class="roles-lista roles-voce grid gap-2">
+                        <li class="text-ink">Escolhe o tema</li>
+                        <li class="text-ink">Define e garante o prêmio</li>
+                        <li class="text-ink">Divulga o link para sua comunidade</li>
+                        <li class="text-ink">Entrega o prêmio aos vencedores</li>
+                    </ul>
+                </div>
+                <div class="p-6 grid gap-3 content-start min-w-0 bg-soft">
+                    <h3 class="text-lg font-medium text-ink">A Órbita</h3>
+                    <ul class="roles-lista grid gap-2">
+                        <li class="text-ink">Cria a página do concurso e o regulamento</li>
+                        <li class="text-ink">Modera as fotos enviadas</li>
+                        <li class="text-ink">Controla a votação contra fraudes e votos repetidos</li>
+                        <li class="text-ink">Apura o resultado e publica a página dos vencedores</li>
+                        <li class="text-ink">Avisa os vencedores por e-mail</li>
+                        <li class="text-ink">Envia um relatório com os números do concurso</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Benefícios -->
+        <section class="py-14 border-t border-line grid gap-6">
+            <span class="eyebrow">Benefícios</span>
+            <h2 class="text-2xl md:text-3xl text-ink">O que você ganha ao promover um concurso com a Órbita</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <article class="bg-surface border border-line rounded-2xl p-6 grid gap-2 content-start min-w-0">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <h3 class="text-lg font-medium text-ink">Engajamento de verdade</h3>
+                    <p class="text-muted">Em vez de curtidas passivas, sua comunidade participa de verdade: envia foto, vota e compartilha pra conseguir mais votos.</p>
+                </article>
+                <article class="bg-surface border border-line rounded-2xl p-6 grid gap-2 content-start min-w-0">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <h3 class="text-lg font-medium text-ink">Conteúdo pronto pra reaproveitar</h3>
+                    <p class="text-muted">As fotos enviadas pelo público viram material pra você repostar depois, sem precisar produzir nada.</p>
+                </article>
+                <article class="bg-surface border border-line rounded-2xl p-6 grid gap-2 content-start min-w-0">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    <h3 class="text-lg font-medium text-ink">Alcance orgânico</h3>
+                    <p class="text-muted">Quem participa compartilha pra conseguir mais votos — isso leva seu concurso a gente nova, sem gastar com anúncio.</p>
+                </article>
+                <article class="bg-surface border border-line rounded-2xl p-6 grid gap-2 content-start min-w-0">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    <h3 class="text-lg font-medium text-ink">Dados reais do concurso</h3>
+                    <p class="text-muted">Ao final, você recebe um relatório com os números de participação, pra entender o alcance de verdade.</p>
+                </article>
+            </div>
+        </section>
+
+        <!-- Para quem é -->
+        <section class="py-14 border-t border-line grid gap-6">
+            <span class="eyebrow">Para quem é</span>
+            <h2 class="text-2xl md:text-3xl text-ink">Feito para quem tem uma comunidade</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <article class="grid gap-2 content-start">
+                    <h3 class="text-lg font-medium text-ink">Criadores de conteúdo</h3>
+                    <p class="text-muted">Streamers, youtubers e influenciadores que querem retribuir o carinho do público com um prêmio e dar à comunidade um motivo para criar e interagir junto.</p>
+                </article>
+                <article class="grid gap-2 content-start">
+                    <h3 class="text-lg font-medium text-ink">Marcas, eventos e instituições</h3>
+                    <p class="text-muted">Empresas, parques, festivais, escolas e projetos culturais que querem estimular a criatividade do público com um concurso transparente, organizado e fácil de participar.</p>
+                </article>
+            </div>
+        </section>
+
+        <!-- Dentro das regras -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start py-14 border-t border-line">
+            <div class="grid gap-4 min-w-0">
+                <span class="eyebrow">Dentro das regras</span>
+                <h2 class="text-2xl md:text-3xl text-ink">Seu concurso já nasce dentro da lei</h2>
+                <p class="lead">Antes de publicar, revisamos cada concurso com o nosso checklist, baseado na regulamentação federal de concursos culturais.</p>
+                <!-- TODO: o checklist completo ainda não foi publicado no site.
+                     Trocar o href abaixo e remover o aviso/listener assim que a
+                     página/seção real existir (ex: /criadores/checklist ou uma
+                     âncora nesta mesma página). -->
+                <a href="#checklist-em-breve" id="link-checklist">Ver o checklist completo</a>
+                <p id="aviso-checklist" class="text-sm text-muted hidden">Em breve! O checklist completo ainda está em desenvolvimento.</p>
+            </div>
+            <ul class="checks grid gap-3 min-w-0">
+                <li class="text-ink">Participar e votar é gratuito, sem compra nem assinatura</li>
+                <li class="text-ink">O concurso acontece no site da Órbita, e as redes sociais servem só para divulgar</li>
+                <li class="text-ink">Ninguém precisa seguir, curtir ou compartilhar nada para participar</li>
+                <li class="text-ink">O vencedor é escolhido pela criatividade, nunca por sorte</li>
+                <li class="text-ink">Receber e-mails é opcional</li>
+            </ul>
+        </section>
+
+        <!-- Ideias de tema -->
+        <section class="py-14 border-t border-line grid gap-6">
+            <span class="eyebrow">Ideias de tema</span>
+            <h2 class="text-2xl md:text-3xl text-ink">Um tema bom faz metade do trabalho</h2>
+            <p class="lead">Temas abertos rendem mais fotos, mais variedade e mais votos. Não sabe qual escolher? A gente sugere temas que combinam com a sua comunidade.</p>
+            <div class="flex flex-wrap gap-3">
+                <span class="chip">Um cantinho aconchegante</span>
+                <span class="chip">O céu da sua cidade</span>
+                <span class="chip">Um objeto com história</span>
+                <span class="chip">Seu pet em ação</span>
+                <span class="chip">Um lugar que te faz bem</span>
+                <span class="chip">Cores de um dia comum</span>
+            </div>
+        </section>
+
+        <!-- CTA intermediário — pra quem já se convenceu antes de chegar
+             no fechamento lá embaixo. -->
+        <section class="py-10 border-t border-line grid gap-4 justify-items-center text-center">
+            <h2 class="text-xl md:text-2xl text-ink">Curtiu até aqui? Vamos criar o seu concurso.</h2>
+            <a class="btn primary" href="#contato">Quero criar meu concurso</a>
+        </section>
+
+        <!-- Casos -->
+        <!-- Populado em tempo de execução a partir de `concursos` onde
+             mostrar_case = true (ver script no fim do arquivo). Começa
+             com a classe "hidden" e só aparece se houver pelo menos um
+             concurso marcado como case. -->
+        <section class="py-14 border-t border-line grid gap-6 hidden" id="secao-casos">
+            <span class="eyebrow">Casos</span>
+            <h2 class="text-2xl md:text-3xl text-ink">Comunidades que já estão na Órbita</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="casos-container"></div>
+            <a href="./index.html">Ver todos os concursos</a>
+        </section>
+
+        <!-- Preço -->
+        <section class="py-14 border-t border-line grid gap-6">
+            <span class="eyebrow">Preço</span>
+            <div class="bg-accent rounded-2xl p-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="grid gap-4 min-w-0">
+                    <h2 class="text-2xl md:text-3xl">Um preço simples por concurso</h2>
+                    <span class="badge-lancamento">Preço especial de lançamento. Peça um orçamento</span>
+                    <div class="font-display text-5xl"><span class="line-through">R$ 299</span><small class="block font-body text-base font-medium opacity-80 mt-2 line-through">a partir de, por concurso</small></div>
+                    <a class="btn cta-destaque justify-self-start" href="#contato">Pedir orçamento</a>
+                </div>
+                <div class="grid gap-3 min-w-0">
+                    <ul class="list-disc pl-5 grid gap-1.5">
+                        <li>Página do concurso e regulamento</li>
+                        <li>Moderação das fotos</li>
+                        <li>Votação protegida e apuração</li>
+                        <li>Página dos vencedores</li>
+                        <li>E-mail aos vencedores</li>
+                    </ul>
+                    <p class="text-sm opacity-80">O prêmio é escolhido e entregue por você e não está incluído no valor.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Perguntas frequentes -->
+        <section class="py-14 border-t border-line grid gap-6">
+            <span class="eyebrow">Perguntas frequentes</span>
+            <h2 class="text-2xl md:text-3xl text-ink">Dúvidas comuns</h2>
+            <div class="grid gap-3">
+                <details class="p-4 md:p-5" open>
+                    <summary class="text-ink">Preciso de autorização do governo?</summary>
+                    <p class="text-muted mt-2">Não, desde que o concurso seja exclusivamente cultural. Por isso revisamos tema, prêmio e divulgação com você antes de publicar.</p>
+                </details>
+                <details class="p-4 md:p-5">
+                    <summary class="text-ink">Preciso ter CNPJ?</summary>
+                    <p class="text-muted mt-2">Não. O concurso cultural pode ser promovido por pessoa física, como a maioria dos criadores de conteúdo.</p>
+                </details>
+                <details class="p-4 md:p-5">
+                    <summary class="text-ink">Posso dar um produto do meu canal ou da minha marca como prêmio?</summary>
+                    <p class="text-muted mt-2">Não. A regra não permite prêmio que seja produto ou serviço de quem promove o concurso. Vale-presente, gift card, livros, equipamentos e ingressos funcionam bem.</p>
+                </details>
+                <details class="p-4 md:p-5">
+                    <summary class="text-ink">Posso pedir para as pessoas me seguirem para participar?</summary>
+                    <p class="text-muted mt-2">Não. Seguir, curtir ou compartilhar não pode ser condição para participar. A divulgação nas redes é livre, e o crescimento vem naturalmente com o compartilhamento das fotos e a votação.</p>
+                </details>
+                <details class="p-4 md:p-5">
+                    <summary class="text-ink">Quem escolhe os vencedores?</summary>
+                    <p class="text-muted mt-2">O público, pela votação no site. Cada pessoa entra com a conta do Google e pode votar uma vez em cada foto.</p>
+                </details>
+                <details class="p-4 md:p-5">
+                    <summary class="text-ink">E se alguém enviar uma foto imprópria?</summary>
+                    <p class="text-muted mt-2">Todas as fotos passam por moderação antes de aparecer no concurso.</p>
+                </details>
+                <details class="p-4 md:p-5">
+                    <summary class="text-ink">Quanto tempo dura um concurso?</summary>
+                    <p class="text-muted mt-2">Você define. Em geral, algumas semanas de envio e votação funcionam bem.</p>
+                </details>
+                <details class="p-4 md:p-5">
+                    <summary class="text-ink">Quem entrega o prêmio?</summary>
+                    <p class="text-muted mt-2">Você. A Órbita avisa os vencedores e passa os contatos para a entrega.</p>
+                </details>
+            </div>
+        </section>
+
+        <!-- Quem está por trás -->
+        <!-- Nome e bio reais, buscados do currículo (marcosrocha84.github.io/curriculo).
+             Foto opcional: trocar o círculo com iniciais por uma <img> se
+             quiser usar uma foto de verdade. -->
+        <section class="py-14 border-t border-line grid gap-6">
+            <span class="eyebrow">Quem está por trás</span>
+            <h2 class="text-2xl md:text-3xl text-ink">Uma pessoa só, cuidando de cada concurso</h2>
+            <div class="flex items-center gap-5 flex-wrap">
+                <span class="quem-somos-avatar" aria-hidden="true">MR</span>
+                <div class="grid gap-1 min-w-0">
+                    <p class="text-lg font-medium text-ink">Marcos Rocha</p>
+                    <p class="lead">Trabalho há mais de 15 anos com tecnologia, hoje como líder técnico e Scrum Master, e já desenvolvi outros projetos próprios (como o Florbela TV e o Legião de Heróis) além da Órbita. Cuido pessoalmente de cada concurso, do código ao suporte, pra garantir que tudo funcione direito.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fechamento com contatos -->
+        <section class="py-14 border-t border-line grid gap-5" id="contato">
+            <span class="eyebrow">Vamos conversar</span>
+            <h2 class="text-2xl md:text-3xl text-ink">Bora criar o concurso da sua comunidade?</h2>
+            <p class="lead">Conta pra gente sobre o seu canal ou a sua marca e a gente sugere um tema.</p>
+            <div class="flex flex-wrap gap-3">
+                <a class="btn primary" href="https://wa.me/5548988164814" target="_blank" rel="noopener noreferrer">Falar no WhatsApp</a>
+                <a class="btn ghost" href="https://www.instagram.com/orbita.art.br/" target="_blank" rel="noopener noreferrer">Ver o Instagram</a>
+            </div>
+            <div class="contacts flex flex-wrap gap-x-7 gap-y-2">
+                <!-- TODO: trocar pelo e-mail contato@orbita.art.br assim que o
+                     redirecionamento de domínio estiver configurado. -->
+                <span>E-mail <a href="mailto:marcos.f.rocha@outlook.com"><b>marcos.f.rocha@outlook.com</b></a></span>
+                <span>Instagram <a href="https://www.instagram.com/orbita.art.br/"><b>@orbita.art.br</b></a></span>
+                <span>WhatsApp <a href="https://wa.me/5548988164814" target="_blank" rel="noopener noreferrer"><b>+55 48 98816-4814</b></a></span>
+            </div>
+        </section>
+
+        <!-- Rodapé -->
+        <footer class="py-8 border-t border-line text-muted text-sm flex flex-wrap gap-3 justify-between">
+            <span>Órbita · a plataforma por trás do seu concurso cultural</span>
+            <span>orbita.art.br</span>
+            <a class="text-muted" href="./index.html">Página inicial</a>
+        </footer>
+
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="./supabase-client.js?v=1.0"></script>
+    <script>
+        // Configuração do Supabase e helper escapeHTML() vêm de supabase-client.js.
+        // Página pública, sem login (mesmo padrão de index.html): busca só
+        // concursos marcados como case pelo curador (mostrar_case = true) e
+        // monta os cards com números reais de fotos/votos/duração.
+        // Checklist completo ainda não existe (ver TODO acima, na seção
+        // "Dentro das regras") — em vez de navegar pra uma âncora vazia
+        // (que não faz nada visível), mostra um aviso de "em breve".
+        const linkChecklist = document.getElementById('link-checklist');
+        const avisoChecklist = document.getElementById('aviso-checklist');
+        linkChecklist.addEventListener('click', (evento) => {
+            evento.preventDefault();
+            avisoChecklist.classList.remove('hidden');
+        });
+
+        // Mesmo efeito de votacao.html: corações "explodem" a partir do
+        // botão clicado. Aqui é só decorativo (o botão do mockup não vota
+        // de verdade em nada) e respeita prefers-reduced-motion.
+        const PREFERE_MENOS_MOVIMENTO = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        function explodirCoracoes(botao) {
+            if (PREFERE_MENOS_MOVIMENTO) return;
+
+            const rect = botao.getBoundingClientRect();
+            const centroX = rect.left + rect.width / 2;
+            const centroY = rect.top + rect.height / 2;
+            const totalParticulas = 14;
+
+            for (let i = 0; i < totalParticulas; i++) {
+                const particula = document.createElement('span');
+                particula.className = 'coracao-particula';
+                particula.textContent = '❤️';
+
+                const angulo = (Math.PI * 2 * i) / totalParticulas + (Math.random() * 0.5 - 0.25);
+                const distancia = 60 + Math.random() * 70;
+                const tx = Math.cos(angulo) * distancia;
+                const ty = Math.sin(angulo) * distancia;
+
+                particula.style.setProperty('--x', `${centroX}px`);
+                particula.style.setProperty('--y', `${centroY}px`);
+                particula.style.setProperty('--tx', `${tx}px`);
+                particula.style.setProperty('--ty', `${ty}px`);
+                particula.style.setProperty('--rot', `${Math.random() * 360 - 180}deg`);
+                particula.style.setProperty('--scale', `${0.8 + Math.random() * 0.8}`);
+                particula.style.setProperty('--size', `${16 + Math.random() * 14}px`);
+
+                document.body.appendChild(particula);
+                particula.addEventListener('animationend', () => particula.remove());
+            }
+        }
+
+        const btnVotarKiwi = document.getElementById('mockup-btn-kiwi');
+        const votosKiwi = document.getElementById('mockup-votos-kiwi');
+        btnVotarKiwi.addEventListener('click', () => {
+            if (btnVotarKiwi.disabled) return;
+            explodirCoracoes(btnVotarKiwi);
+            votosKiwi.textContent = '55 votos';
+            btnVotarKiwi.textContent = '♥ Votado';
+            btnVotarKiwi.classList.add('votado');
+            btnVotarKiwi.disabled = true;
+        });
+
+        const secaoCasos = document.getElementById('secao-casos');
+        const casosContainer = document.getElementById('casos-container');
+
+        function diasDeDuracao(dataEncerramento, criadoEm) {
+            const inicio = new Date(criadoEm);
+            const fim = new Date(dataEncerramento + 'T00:00:00');
+            return Math.max(0, Math.round((fim - inicio) / (1000 * 60 * 60 * 24)));
+        }
+
+        function montarCardCaso(concurso, fotos, votos) {
+            const dias = diasDeDuracao(concurso.data, concurso.criado_em);
+            const subtitulo = concurso.theme_config?.textos?.subtitulo;
+            return `
+                <article class="bg-surface border border-line rounded-2xl p-6 grid gap-4 content-start min-w-0">
+                    <div>
+                        <h3 class="text-lg font-medium text-ink">${escapeHTML(concurso.nome || '')}</h3>
+                        ${subtitulo ? `<div class="font-mono text-xs text-muted">${escapeHTML(subtitulo)}</div>` : ''}
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="grid"><b class="font-display text-xl text-ink">${fotos}</b><small class="text-muted text-xs">fotos</small></div>
+                        <div class="grid"><b class="font-display text-xl text-ink">${votos}</b><small class="text-muted text-xs">votos</small></div>
+                        <div class="grid"><b class="font-display text-xl text-ink">${dias}</b><small class="text-muted text-xs">dias</small></div>
+                    </div>
+                    ${concurso.comentario_patrocinador ? `<p class="quote">"${escapeHTML(concurso.comentario_patrocinador)}"</p>` : ''}
+                </article>
+            `;
+        }
+
+        (async () => {
+            const { data: casos, error: erroCasos } = await supabase
+                .from('concursos')
+                .select('id, nome, data, criado_em, comentario_patrocinador, theme_config')
+                .eq('mostrar_case', true)
+                .order('data', { ascending: false });
+
+            if (erroCasos || !casos || casos.length === 0) {
+                if (erroCasos) console.error('Erro ao carregar cases:', erroCasos);
+                return; // Seção continua escondida (classe "hidden" já aplicada no HTML).
+            }
+
+            const idsCasos = casos.map((c) => c.id);
+            const { data: fotosDosCasos, error: erroFotos } = await supabase
+                .from('fotos_concurso')
+                .select('concurso_id, votos')
+                .eq('aprovada', true)
+                .in('concurso_id', idsCasos);
+
+            if (erroFotos) console.error('Erro ao carregar fotos dos cases:', erroFotos);
+
+            const estatisticasPorConcurso = new Map();
+            for (const foto of fotosDosCasos ?? []) {
+                const atual = estatisticasPorConcurso.get(foto.concurso_id) || { fotos: 0, votos: 0 };
+                atual.fotos += 1;
+                atual.votos += foto.votos || 0;
+                estatisticasPorConcurso.set(foto.concurso_id, atual);
+            }
+
+            casosContainer.innerHTML = casos.map((concurso) => {
+                const estatisticas = estatisticasPorConcurso.get(concurso.id) || { fotos: 0, votos: 0 };
+                return montarCardCaso(concurso, estatisticas.fotos, estatisticas.votos);
+            }).join('');
+
+            secaoCasos.classList.remove('hidden');
+        })();
+
+        // Barra de números — soma de TODOS os concursos (não só os
+        // marcados como case), pra dar prova social mesmo antes de existir
+        // algum case cadastrado.
+        (async () => {
+            const statConcursos = document.getElementById('stat-concursos');
+            const statFotos = document.getElementById('stat-fotos');
+            const statVotos = document.getElementById('stat-votos');
+
+            const [{ count: totalConcursos, error: erroConcursos }, { data: fotos, error: erroFotos }] = await Promise.all([
+                supabase.from('concursos').select('id', { count: 'exact', head: true }),
+                supabase.from('fotos_concurso').select('votos').eq('aprovada', true),
+            ]);
+
+            if (erroConcursos || erroFotos) {
+                console.error('Erro ao carregar números da Órbita:', erroConcursos || erroFotos);
+                return; // Mantém o "—" em vez de mostrar um número errado.
+            }
+
+            const totalFotos = fotos?.length ?? 0;
+            const totalVotos = (fotos ?? []).reduce((soma, f) => soma + (f.votos || 0), 0);
+
+            statConcursos.textContent = (totalConcursos ?? 0).toLocaleString('pt-BR');
+            statFotos.textContent = totalFotos.toLocaleString('pt-BR');
+            statVotos.textContent = totalVotos.toLocaleString('pt-BR');
+        })();
+    </script>
+</body>
+</html>

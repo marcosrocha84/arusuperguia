@@ -1,2 +1,4 @@
 /c/:slug  /concurso.html?c=:slug  200
+/criadores  /criadores.html  200
+/historico  /historico.html  200
 /*    /index.html   200

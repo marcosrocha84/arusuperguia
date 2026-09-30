@@ -121,6 +121,20 @@
             font-size: 0.8rem;
             color: var(--orbita-ink-soft);
         }
+        @media (max-width: 767px) {
+            .orbita-tagline { display: none; }
+        }
+        .orbita-header-link {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--orbita-ink-soft);
+            text-decoration: none;
+        }
+        .orbita-header-link:hover {
+            color: var(--orbita-ink);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
 
         /* ---------- Corpo ---------- */
         .orbita-main {
@@ -130,6 +144,12 @@
             margin: 0 auto;
             padding: 32px 20px 48px;
         }
+        .orbita-bloco-concursos {
+            background: var(--orbita-surface-2);
+            border: 1px solid var(--orbita-border);
+            border-radius: 16px;
+            padding: 24px;
+        }
         .orbita-section-label {
             font-size: 0.72rem;
             font-weight: 600;
@@ -137,18 +157,85 @@
             letter-spacing: 0.1em;
             color: var(--orbita-ink-soft);
             margin: 0 0 14px;
+            text-align: center;
         }
         /* Explica o que a Órbita é/faz de forma fixa, independente de ter
            concurso ativo no momento — sem isso, um visitante (ou o crawler
            de verificação do Google OAuth) que caísse aqui num período sem
            nenhum concurso ativo só via "Nenhum concurso ativo", sem
            entender do que se trata a plataforma. */
+        .orbita-intro-linha {
+            display: flex;
+            align-items: stretch;
+            gap: 24px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
         .orbita-intro {
-            max-width: 42rem;
-            margin: 0 0 28px;
+            margin: 0;
             font-size: 0.95rem;
-            line-height: 1.6;
+            line-height: 1.7;
             color: var(--orbita-ink-soft);
+            text-align: justify;
+            flex: 1 1 300px;
+            padding: 20px;
+        }
+        /* Só decorativo: a logo da Órbita ampliada, com um ponto satélite
+           girando ao redor dela — a mesma metáfora do nome "Órbita", só que
+           agora é literalmente a marca no centro. Sem fundo, sem link. */
+        .orbita-mini-orbit {
+            flex: 0 0 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @media (max-width: 767px) {
+            .orbita-mini-orbit { display: none; }
+        }
+        .orbita-mini-orbit-stage {
+            position: relative;
+            width: 128px;
+            height: 128px;
+        }
+        .orbita-mini-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 78px;
+            height: 78px;
+            border-radius: 50%;
+            border: 4px solid var(--orbita-ink);
+        }
+        .orbita-mini-logo::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--orbita-ink);
+            transform: translate(-50%, -50%);
+        }
+        .orbita-mini-satelite-orbita {
+            position: absolute;
+            inset: 0;
+            animation: orbita-mini-girar 5s linear infinite;
+        }
+        .orbita-mini-satelite {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 13px;
+            height: 13px;
+            margin-left: -6.5px;
+            border-radius: 50%;
+            background: var(--orbita-ink);
+        }
+        @keyframes orbita-mini-girar { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            .orbita-mini-satelite-orbita { animation: none; }
         }
         .orbita-status-msg {
             font-size: 0.9rem;
@@ -173,6 +260,26 @@
             max-width: 26rem;
             margin-left: auto;
             margin-right: auto;
+        }
+        .orbita-empty-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--orbita-ink);
+            text-decoration: none;
+        }
+        .orbita-empty-link svg {
+            transition: transform 0.15s ease;
+        }
+        .orbita-empty-link:hover {
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .orbita-empty-link:hover svg {
+            transform: translateX(3px);
         }
 
         /* ---------- Grade de cards ---------- */
@@ -309,7 +416,11 @@
             transform: none;
         }
         .orbita-card--em-breve .orbita-card-banner {
-            background: var(--orbita-surface-2);
+            /* Um pouco mais escuro que --orbita-surface-2 puro, já que o
+               bloco de fundo novo em volta da grade usa essa mesma cor —
+               sem essa diferença, o banner "Em breve" ficava quase invisível
+               contra o fundo ao redor. */
+            background: color-mix(in srgb, var(--orbita-surface-2) 55%, var(--orbita-border) 45%);
             color: var(--orbita-ink-soft);
         }
         .orbita-card--em-breve .orbita-card-banner::before,
@@ -512,46 +623,65 @@
                 <h1 class="orbita-brand-name">Órbita</h1>
             </div>
             <p class="orbita-tagline">plataforma de concursos culturais</p>
+            <a href="./criadores.html" class="orbita-header-link">Para criadores e marcas</a>
         </div>
     </header>
 
     <main class="orbita-main">
-        <p class="orbita-intro">
-            Órbita é a plataforma por trás de concursos culturais de fotografia:
-            participantes enviam suas fotos, o público vota nas favoritas, e os
-            vencedores de cada edição entram para o histórico de concursos.
-            Para votar, usamos o login do Google de forma segura — apenas para
-            confirmar sua identidade e garantir que cada pessoa vote uma única
-            vez por foto, sem acesso a nenhum outro dado da sua conta.
-        </p>
-
-        <p class="orbita-section-label">concursos ativos</p>
-
-        <!-- Estado: carregando lista de concursos -->
-        <p id="conteudo-carregando" class="orbita-status-msg">Carregando concursos ativos...</p>
-
-        <!-- Estado: nenhum concurso ativo -->
-        <div id="sem-concurso" class="orbita-empty hidden">
-            <p class="orbita-empty-title">Nenhum concurso ativo no momento</p>
-            <p class="orbita-empty-text">
-                Volte em breve! Assim que uma nova temporada de concurso começar, ela aparece aqui.
+        <div class="orbita-intro-linha">
+            <p class="orbita-intro">
+                Órbita é a plataforma por trás de concursos culturais de fotografia:
+                participantes enviam suas fotos, o público vota nas favoritas, e os
+                vencedores de cada edição entram para o histórico de concursos.
+                Para votar, usamos o login do Google de forma segura — apenas para
+                confirmar sua identidade e garantir que cada pessoa vote uma única
+                vez por foto, sem acesso a nenhum outro dado da sua conta.
             </p>
+
+            <!-- Objeto decorativo (a marca da Órbita com um ponto girando
+                 ao redor) — só visual, sem link nem texto. -->
+            <div class="orbita-mini-orbit" aria-hidden="true">
+                <div class="orbita-mini-orbit-stage">
+                    <span class="orbita-mini-logo"></span>
+                    <div class="orbita-mini-satelite-orbita">
+                        <span class="orbita-mini-satelite"></span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Grade de concursos ativos -->
-        <div id="grid-concursos" class="orbita-grid hidden"></div>
+        <div class="orbita-bloco-concursos">
+            <p class="orbita-section-label">concursos ativos</p>
+
+            <!-- Estado: carregando lista de concursos -->
+            <p id="conteudo-carregando" class="orbita-status-msg">Carregando concursos ativos...</p>
+
+            <!-- Estado: nenhum concurso ativo -->
+            <div id="sem-concurso" class="orbita-empty hidden">
+                <p class="orbita-empty-title">Nenhum concurso ativo no momento</p>
+                <p class="orbita-empty-text">
+                    Volte em breve! Assim que uma nova temporada de concurso começar, ela aparece aqui.
+                </p>
+                <a href="./historico.html" class="orbita-empty-link">
+                    Ver concursos já finalizados
+                    <svg class="icon-inline icon-inline--tight" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </a>
+            </div>
+
+            <!-- Grade de concursos ativos -->
+            <div id="grid-concursos" class="orbita-grid hidden"></div>
+        </div>
     </main>
 
     <footer class="orbita-footer">
         <p class="orbita-footer-slogan">Órbita — a plataforma por trás do seu concurso cultural</p>
         <nav class="orbita-footer-links">
             <button type="button" id="btn-abrir-contato">Contato</button>
+            <a href="./criadores.html">Para criadores e marcas</a>
             <a href="./privacy.html">Privacidade</a>
             <a href="./terms.html">Termos</a>
             <a href="./historico.html">Histórico de concursos</a>
-            <a href="./status.html">Acompanhar minha foto</a>
-            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
-        </nav>
+            <a href="./status.html">Acompanhar minha foto</a>        </nav>
     </footer>
 
     <!-- Popup "Contato" — separa quem quer falar sobre a experiência no site

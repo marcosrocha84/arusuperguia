@@ -457,6 +457,7 @@
             <div class="orbita-card-page-header">
                 <p class="orbita-eyebrow">Votação pública</p>
                 <h1 id="titulo-votacao" class="orbita-card-page-titulo"><span id="icone-titulo-votacao" class="icone-titulo-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span><span id="texto-titulo-votacao">Escolha a melhor foto!</span></h1>
+                <p id="patrocinador-info-votacao" class="orbita-card-page-subtitulo hidden" style="margin-top:2px; font-size:0.78rem;"></p>
                 <p id="subtitulo-votacao" class="orbita-card-page-subtitulo">
                     Vote nas suas fotos favoritas. Entre com sua conta Google para validar seu voto.
                 </p>
@@ -540,9 +541,7 @@
                 <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Regulamento do concurso</a>
             </span>
             <a href="./historico.html">Histórico de concursos</a>
-            <a href="./status.html">Acompanhar minha foto</a>
-            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
-        </nav>
+            <a href="./status.html">Acompanhar minha foto</a>        </nav>
     </footer>
 
     <!-- Popup "Contato" — separa quem quer falar sobre a experiência no site
@@ -813,6 +812,30 @@
 
         // Exibe/oculta o link do regulamento no rodapé conforme o concurso
         // ativo tem (ou não) um PDF cadastrado na curadoria.
+        // "Fulano" / "Fulano e Beltrano" / "Fulano, Beltrano e Sicrano".
+        function formatarListaNomes(nomes) {
+            if (nomes.length === 0) return '';
+            if (nomes.length === 1) return nomes[0];
+            return nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1];
+        }
+
+        // Diferente de exibirPremiacoesEPatrocinadores (só aparece quando o
+        // concurso encerra, no pódio), essa linha mostra o patrocinador
+        // sempre — inclusive durante a votação ainda em andamento.
+        const patrocinadorInfoVotacao = document.getElementById('patrocinador-info-votacao');
+        function atualizarInfoPatrocinador(concurso) {
+            const patrocinadores = (concurso.concursos_patrocinadores || [])
+                .map(v => v.patrocinadores)
+                .filter(p => p && p.ativo);
+
+            if (patrocinadores.length > 0) {
+                patrocinadorInfoVotacao.textContent = `Concurso cultural promovido por ${formatarListaNomes(patrocinadores.map(p => p.nome))}.`;
+                patrocinadorInfoVotacao.classList.remove('hidden');
+            } else {
+                patrocinadorInfoVotacao.classList.add('hidden');
+            }
+        }
+
         function atualizarLinkRegulamento(url) {
             if (url) {
                 linkRegulamento.href = url;
@@ -1206,6 +1229,7 @@
                 const qtdVencedores = concursoAtivo.qtd_vencedores || 3;
 
                 atualizarLinkRegulamento(concursoAtivo.regulamento_pdf_url);
+                atualizarInfoPatrocinador(concursoAtivo);
 
                 // Concurso encerrado: não faz mais sentido oferecer login/voto
                 areaLogin.classList.toggle('hidden', encerrado);

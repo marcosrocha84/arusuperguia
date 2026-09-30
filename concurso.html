@@ -371,6 +371,12 @@
             line-height: 1.5;
             color: var(--orbita-ink-soft);
         }
+        .orbita-patrocinador-info {
+            margin: 4px auto 0;
+            max-width: 30rem;
+            font-size: 0.78rem;
+            color: var(--orbita-ink-soft);
+        }
 
         /* ---------- Contagem regressiva ---------- */
         .orbita-countdown {
@@ -610,6 +616,7 @@
                     </div>
                 </div>
                 <h1 id="concurso-titulo" class="orbita-hero-titulo">Concurso Cultural</h1>
+                <p id="concurso-patrocinador-info" class="orbita-patrocinador-info hidden"></p>
                 <p id="concurso-subtitulo" class="orbita-hero-subtitulo">
                     Participe e concorra a prêmios!<span id="concurso-nome-data"></span>.
                 </p>
@@ -676,9 +683,7 @@
             <a href="./terms.html">Termos</a>
             <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer" class="hidden"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Regulamento do concurso</a>
             <a href="./index.html">Ver outros concursos ativos</a>
-            <a href="./status.html">Acompanhar minha foto</a>
-            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
-        </nav>
+            <a href="./status.html">Acompanhar minha foto</a>        </nav>
     </footer>
 
     <!-- Popup "Contato" — separa quem quer falar sobre a experiência no site
@@ -759,6 +764,13 @@
             if (textos.cta_participar) document.getElementById('texto-cta-participar').textContent = textos.cta_participar;
         }
 
+        // "Fulano" / "Fulano e Beltrano" / "Fulano, Beltrano e Sicrano".
+        function formatarListaNomes(nomes) {
+            if (nomes.length === 0) return '';
+            if (nomes.length === 1) return nomes[0];
+            return nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1];
+        }
+
         function exibirPremiacoesEPatrocinadores(concurso) {
             const medalhaPorPosicao = { 1: '🥇', 2: '🥈', 3: '🥉' };
             const premiacoes = (concurso.concursos_premiacoes || [])
@@ -767,6 +779,14 @@
             const patrocinadores = (concurso.concursos_patrocinadores || [])
                 .map(v => v.patrocinadores)
                 .filter(p => p && p.ativo);
+
+            const patrocinadorInfo = document.getElementById('concurso-patrocinador-info');
+            if (patrocinadores.length > 0) {
+                patrocinadorInfo.textContent = `Concurso cultural promovido por ${formatarListaNomes(patrocinadores.map(p => p.nome))}.`;
+                patrocinadorInfo.classList.remove('hidden');
+            } else {
+                patrocinadorInfo.classList.add('hidden');
+            }
 
             const blocoPremiacoes = document.getElementById('bloco-premiacoes');
             const listaPremiacoes = document.getElementById('lista-premiacoes');

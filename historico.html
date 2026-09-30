@@ -358,9 +358,7 @@
         <nav class="orbita-footer-links">
             <button type="button" id="btn-abrir-contato">Contato</button>
             <a href="./privacy.html">Privacidade</a>
-            <a href="./terms.html">Termos</a>
-            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
-        </nav>
+            <a href="./terms.html">Termos</a>        </nav>
     </footer>
 
     <!-- Popup "Contato" — separa quem quer falar sobre a experiência no site
@@ -533,6 +531,22 @@
             return data || [];
         }
 
+        // "Fulano" / "Fulano e Beltrano" / "Fulano, Beltrano e Sicrano".
+        function formatarListaNomes(nomes) {
+            if (nomes.length === 0) return '';
+            if (nomes.length === 1) return nomes[0];
+            return nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1];
+        }
+
+        function montarTextoPromovidoPor(concurso) {
+            const patrocinadores = (concurso.concursos_patrocinadores || [])
+                .map(v => v.patrocinadores)
+                .filter(p => p && p.ativo);
+
+            if (patrocinadores.length === 0) return '';
+            return `<p class="text-xs text-[var(--ink-soft)] mt-0.5">Concurso cultural promovido por ${escapeHTML(formatarListaNomes(patrocinadores.map(p => p.nome)))}.</p>`;
+        }
+
         function montarBlocoPatrocinadores(concurso) {
             const patrocinadores = (concurso.concursos_patrocinadores || [])
                 .map(v => v.patrocinadores)
@@ -632,6 +646,7 @@
                 <div class="ticket-sm overflow-hidden">
                     <div class="p-4 md:p-6 pb-2">
                         <h2 class="font-display text-xl md:text-2xl text-[var(--ink)]">${ICONE_PREMIO} ${escapeHTML(concurso.nome || concurso.descricao)}</h2>
+                        ${montarTextoPromovidoPor(concurso)}
                         <p class="text-sm text-[var(--ink-soft)] mt-1">Encerrado em ${dataFormatada}</p>
                     </div>
                     ${gridHtml}

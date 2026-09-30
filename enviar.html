@@ -231,6 +231,7 @@
             <div class="orbita-card-page-header">
                 <p class="orbita-eyebrow">Envio de fotos</p>
                 <h2 id="titulo-enviar" class="orbita-card-page-titulo"><svg class="icon-inline icon-inline--titulo" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="texto-titulo-enviar">Participe do Concurso!</span></h2>
+                <p id="patrocinador-info-enviar" class="orbita-card-page-subtitulo hidden" style="margin-top:2px; font-size:0.78rem;"></p>
                 <p id="subtitulo-enviar" class="orbita-card-page-subtitulo">Envie sua melhor foto para concorrer a prêmios.</p>
             </div>
 
@@ -353,9 +354,7 @@
             <a href="./terms.html">Termos</a>
             <span id="regulamento-link-wrap" style="display: none;">
                 <a id="link-regulamento" href="#" target="_blank" rel="noopener noreferrer"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Regulamento do concurso</a>
-            </span>
-            <a href="./curadoria.html" target="_blank" rel="noopener noreferrer">Acesso administrativo</a>
-        </nav>
+            </span>        </nav>
     </footer>
 
     <!-- Popup "Contato" — separa quem quer falar sobre a experiência no site
@@ -435,6 +434,27 @@
         // o curador tiver preenchido, o título/subtítulo desta tela (sem
         // isso, a tela ficaria com um texto genérico "Participe do
         // Concurso!" pra qualquer concurso, em vez do nome/tema dele).
+        // "Fulano" / "Fulano e Beltrano" / "Fulano, Beltrano e Sicrano".
+        function formatarListaNomes(nomes) {
+            if (nomes.length === 0) return '';
+            if (nomes.length === 1) return nomes[0];
+            return nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1];
+        }
+
+        function atualizarInfoPatrocinador(concurso) {
+            const elemento = document.getElementById('patrocinador-info-enviar');
+            const patrocinadores = (concurso.concursos_patrocinadores || [])
+                .map(v => v.patrocinadores)
+                .filter(p => p && p.ativo);
+
+            if (patrocinadores.length > 0) {
+                elemento.textContent = `Concurso cultural promovido por ${formatarListaNomes(patrocinadores.map(p => p.nome))}.`;
+                elemento.classList.remove('hidden');
+            } else {
+                elemento.classList.add('hidden');
+            }
+        }
+
         function aplicarTema(themeConfig) {
             if (!themeConfig) return;
             const root = document.documentElement.style;
@@ -471,7 +491,7 @@
 
             const { data: concurso, error } = await supabase
                 .from('concursos')
-                .select('id, ativo, regulamento_pdf_url, theme_config')
+                .select('id, ativo, regulamento_pdf_url, theme_config, concursos_patrocinadores ( patrocinadores ( nome, ativo ) )')
                 .eq('slug', slug)
                 .maybeSingle();
 
@@ -483,6 +503,7 @@
 
             concursoAtual = concurso;
             aplicarTema(concurso.theme_config);
+            atualizarInfoPatrocinador(concurso);
 
             const hrefConcurso = `./concurso.html?c=${encodeURIComponent(slug)}`;
             linkPaginaInicial.href = hrefConcurso;

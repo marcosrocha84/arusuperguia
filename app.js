@@ -123,6 +123,8 @@ const concursoDataInput = document.getElementById('concurso-data');
 const concursoAtivoInput = document.getElementById('concurso-ativo');
 const concursoEncerradoInput = document.getElementById('concurso-encerrado');
 const concursoMostrarOptinMarketingInput = document.getElementById('concurso-mostrar-optin-marketing');
+const concursoMostrarCaseInput = document.getElementById('concurso-mostrar-case');
+const concursoComentarioPatrocinadorInput = document.getElementById('concurso-comentario-patrocinador');
 const concursoQtdVencedoresInput = document.getElementById('concurso-qtd-vencedores');
 const concursoTemaCorPrimariaInput = document.getElementById('concurso-tema-cor-primaria');
 const concursoTemaCorSecundariaInput = document.getElementById('concurso-tema-cor-secundaria');
@@ -1179,12 +1181,26 @@ async function carregarListasVinculo() {
     aplicarLimitePremiacoes();
 }
 
+// A textarea de comentário do patrocinador só faz sentido preenchida se o
+// concurso for realmente exibido como case — desabilitada (e opcional)
+// enquanto o checkbox estiver desmarcado, pra não coletar texto que nunca
+// vai aparecer em público.
+function atualizarEstadoComentarioPatrocinador() {
+    const habilitado = concursoMostrarCaseInput.checked;
+    concursoComentarioPatrocinadorInput.disabled = !habilitado;
+    concursoComentarioPatrocinadorInput.required = habilitado;
+}
+concursoMostrarCaseInput.addEventListener('change', atualizarEstadoComentarioPatrocinador);
+
 function resetConcursoForm() {
     concursoForm.reset();
     concursoIdInput.value = '';
     concursoAtivoInput.checked = true;
     concursoEncerradoInput.checked = false;
     concursoMostrarOptinMarketingInput.checked = false;
+    concursoMostrarCaseInput.checked = false;
+    concursoComentarioPatrocinadorInput.value = '';
+    atualizarEstadoComentarioPatrocinador();
     concursoTemaCorPrimariaInput.value = '#3C8156';
     concursoTemaCorSecundariaInput.value = '#C1452C';
     concursoTemaCorFundoInput.value = '#152A20';
@@ -1217,6 +1233,9 @@ window.editarConcurso = function(id) {
     concursoAtivoInput.checked = concurso.ativo;
     concursoEncerradoInput.checked = concurso.encerrado;
     concursoMostrarOptinMarketingInput.checked = concurso.mostrar_optin_marketing;
+    concursoMostrarCaseInput.checked = concurso.mostrar_case;
+    concursoComentarioPatrocinadorInput.value = concurso.comentario_patrocinador || '';
+    atualizarEstadoComentarioPatrocinador();
 
     const tema = concurso.theme_config || {};
     const cores = tema.cores || {};
@@ -1353,6 +1372,8 @@ if (concursoForm) {
             ativo: concursoAtivoInput.checked,
             encerrado: concursoEncerradoInput.checked,
             mostrar_optin_marketing: concursoMostrarOptinMarketingInput.checked,
+            mostrar_case: concursoMostrarCaseInput.checked,
+            comentario_patrocinador: concursoComentarioPatrocinadorInput.value.trim() || null,
             qtd_vencedores: Number(concursoQtdVencedoresInput.value),
             theme_config: {
                 cores: {
