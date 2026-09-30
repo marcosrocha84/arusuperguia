@@ -74,6 +74,35 @@ let paginaAtualModeracao = 1;
 const navItems = document.querySelectorAll('.nav-item');
 const views = document.querySelectorAll('.view');
 
+// Recolher/expandir o menu lateral — preferência lembrada por navegador
+// (localStorage), não por usuário, já que é só uma questão de espaço de tela.
+const CHAVE_SIDEBAR_RECOLHIDA = 'orbita-curadoria-sidebar-recolhida';
+const sidebar = document.getElementById('sidebar');
+const btnRecolherSidebar = document.getElementById('btn-recolher-sidebar');
+
+if (sidebar && btnRecolherSidebar) {
+    if (localStorage.getItem(CHAVE_SIDEBAR_RECOLHIDA) === 'true') {
+        sidebar.classList.add('collapsed');
+        btnRecolherSidebar.setAttribute('aria-expanded', 'false');
+        btnRecolherSidebar.title = 'Expandir menu';
+    }
+
+    btnRecolherSidebar.addEventListener('click', () => {
+        const recolhida = sidebar.classList.toggle('collapsed');
+        localStorage.setItem(CHAVE_SIDEBAR_RECOLHIDA, recolhida ? 'true' : 'false');
+        btnRecolherSidebar.setAttribute('aria-expanded', recolhida ? 'false' : 'true');
+        btnRecolherSidebar.title = recolhida ? 'Expandir menu' : 'Recolher menu';
+    });
+}
+
+// Auditoria de votos
+const auditoriaConcursoInput = document.getElementById('auditoria-concurso');
+const auditoriaBtn = document.getElementById('auditoria-btn');
+const auditoriaContainer = document.getElementById('auditoria-container');
+const auditoriaAjudaBtn = document.getElementById('auditoria-ajuda-btn');
+const auditoriaAjudaModal = document.getElementById('auditoria-ajuda-modal');
+const auditoriaAjudaFechar = document.getElementById('auditoria-ajuda-fechar');
+
 // Dashboard
 const metricTotal = document.getElementById('metric-total');
 const metricAprovadas = document.getElementById('metric-aprovadas');
@@ -232,6 +261,7 @@ function switchView(viewName) {
     else if (viewName === 'patrocinadores') carregarPatrocinadores();
     else if (viewName === 'premiacoes') carregarPremiacoes();
     else if (viewName === 'campanhas') { carregarOpcoesCampanha(); carregarCampanhas(); }
+    else if (viewName === 'auditoria') carregarOpcoesAuditoria();
 }
 navItems.forEach(item => item.addEventListener('click', () => switchView(item.dataset.view)));
 
@@ -808,6 +838,159 @@ window.enviarResultadoConcurso = async function(id) {
         alert('Não foi possível enviar o resultado: ' + erro.message);
     }
 };
+
+// 12. Auditoria de votos — sinais de possível fraude na votação, sem
+// nenhuma coluna nova no banco (ver Edge Function auditar-votos-concurso).
+async function carregarOpcoesAuditoria() {
+    if (!auditoriaConcursoInput) return;
+
+    const { data, error } = await supabase
+        .from('concursos')
+        .select('id, nome, descricao')
+        .order('criado_em', { ascending: false });
+
+    const selecionado = auditoriaConcursoInput.value;
+    auditoriaConcursoInput.innerHTML = (data || [])
+        .map(c => `<option value="${c.id}">${escapeHTML(c.nome || c.descricao)}</option>`)
+        .join('') || '<option value="">Nenhum concurso cadastrado</option>';
+    auditoriaConcursoInput.value = selecionado;
+
+    if (error) console.error('Erro ao carregar concursos para auditoria:', error);
+}
+
+// Chama a Edge Function auditar-votos-concurso com o JWT do admin logado
+// (mesmo padrão de chamarEnvioResultado/chamarDisparoCampanha).
+async function chamarAuditoriaVotos(concursoId) {
+    const { data: sessao } = await supabase.auth.getSession();
+    const token = sessao.session?.access_token;
+    if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+    const resposta = await fetch(`${SUPABASE_URL}/functions/v1/auditar-votos-concurso`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ concurso_id: concursoId }),
+    });
+
+    const resultado = await resposta.json();
+    if (!resposta.ok || resultado.error) throw new Error(resultado.error || 'Falha ao auditar a votação.');
+    return resultado;
+}
+
+// Classifica o percentual de "votante de foto única" em faixas visuais —
+// mesmas classes .stamp-* já usadas no resto do painel.
+function stampPercentualSuspeita(percentual) {
+    if (percentual > 0.5) return 'stamp-ember';
+    if (percentual > 0.2) return 'stamp-amber';
+    return 'stamp-fern';
+}
+
+function formatarPercentual(fracao) {
+    return `${Math.round(fracao * 100)}%`;
+}
+
+// Mesmo instante em que sql/030_votos_realizados_criado_em.sql rodou (ver
+// comentário equivalente na Edge Function) — votos com esse "votou_em" não
+// têm hora real, então a tela mostra um traço informativo em vez da data,
+// pra não parecer que sabemos quando esse voto aconteceu de verdade.
+const MOMENTO_MIGRACAO_VOTOS_MS = Date.parse('2026-09-30T13:46:40Z'); // 10:46:40 -03:00
+const TOLERANCIA_MOMENTO_MIGRACAO_VOTOS_MS = 5000;
+
+function formatarVotouEm(votouEm) {
+    if (!votouEm) return '—';
+    const momento = new Date(votouEm).getTime();
+    if (Math.abs(momento - MOMENTO_MIGRACAO_VOTOS_MS) <= TOLERANCIA_MOMENTO_MIGRACAO_VOTOS_MS) {
+        return '<span class="text-[var(--ink-soft)]" title="Voto anterior ao registro de data/hora — sem horário real disponível">— sem registro</span>';
+    }
+    return new Date(votouEm).toLocaleString('pt-BR');
+}
+
+function renderizarAuditoria(fotos) {
+    if (!auditoriaContainer) return;
+
+    if (fotos.length === 0) {
+        auditoriaContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhuma foto encontrada para este concurso.</p>';
+        return;
+    }
+
+    auditoriaContainer.innerHTML = fotos.map((foto, indice) => {
+        const idDetalhe = `auditoria-detalhe-${indice}`;
+        const linhasVotantes = foto.votantes.map(v => `
+            <tr class="border-t border-[var(--bone-2)]">
+                <td class="py-1.5 pr-3">${escapeHTML(v.email || '(e-mail indisponível)')}</td>
+                <td class="py-1.5 pr-3">${formatarVotouEm(v.votou_em)}</td>
+                <td class="py-1.5 pr-3">${v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}</td>
+                <td class="py-1.5 pr-3">${v.dias_de_conta ?? '—'}</td>
+                <td class="py-1.5">${v.votou_so_nesta_foto ? '<span class="stamp stamp-ember">Só esta foto</span>' : ''}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="ticket-sm p-4">
+                <p class="font-semibold text-[var(--ink)] mb-1">${escapeHTML(foto.nome_participante)}</p>
+                <div class="flex flex-wrap items-center gap-2 mb-2">
+                    <p class="text-xs text-[var(--ink-soft)]">${foto.votos} voto(s) · ${foto.total_votantes} votante(s) distinto(s)</p>
+                    <span class="stamp ${foto.aprovada ? 'stamp-fern' : (foto.reprovada ? 'stamp-ember' : 'stamp-amber')}">
+                        ${foto.aprovada ? 'Aprovada (visível)' : (foto.reprovada ? 'Reprovada' : 'Pendente')}
+                    </span>
+                </div>
+                <div class="flex flex-wrap gap-2 items-center">
+                    <span class="stamp ${stampPercentualSuspeita(foto.percentual_foto_unica)}">${formatarPercentual(foto.percentual_foto_unica)} votante de foto única</span>
+                    <span class="stamp ${stampPercentualSuspeita(foto.percentual_rajada_votos)}">Rajada de votos: ${foto.maior_rajada_votos}/${foto.total_votantes} (10min)</span>
+                    <span class="stamp ${stampPercentualSuspeita(foto.percentual_cluster_criacao)}">Cluster de 1º login: ${foto.maior_cluster_criacao}/${foto.total_votantes}</span>
+                    ${foto.conta_mais_nova_dias !== null ? `<span class="stamp stamp-amber">1º login mais recente: ${foto.conta_mais_nova_dias}d atrás</span>` : ''}
+                    <button type="button" class="btn btn-ghost text-xs !py-1 !px-2" onclick="document.getElementById('${idDetalhe}').classList.toggle('hidden')">Ver votantes</button>
+                </div>
+                <div id="${idDetalhe}" class="hidden mt-3 overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead>
+                            <tr class="text-[var(--ink-soft)]">
+                                <th class="pb-1.5 pr-3 font-semibold">E-mail</th>
+                                <th class="pb-1.5 pr-3 font-semibold">Votou em</th>
+                                <th class="pb-1.5 pr-3 font-semibold">1º login no Órbita</th>
+                                <th class="pb-1.5 pr-3 font-semibold">Dias desde o 1º login</th>
+                                <th class="pb-1.5 font-semibold"></th>
+                            </tr>
+                        </thead>
+                        <tbody>${linhasVotantes || '<tr><td colspan="5" class="py-2 text-center text-[var(--ink-soft)]">Nenhum votante.</td></tr>'}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+if (auditoriaBtn) {
+    auditoriaBtn.addEventListener('click', async () => {
+        const concursoId = auditoriaConcursoInput.value;
+        if (!concursoId) {
+            alert('Escolha um concurso primeiro.');
+            return;
+        }
+
+        auditoriaBtn.disabled = true;
+        auditoriaContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Auditando votação...</p>';
+
+        try {
+            const resultado = await chamarAuditoriaVotos(concursoId);
+            renderizarAuditoria(resultado.fotos || []);
+        } catch (erro) {
+            auditoriaContainer.innerHTML = `<p class="text-[var(--ember-dark)] text-center font-semibold">${escapeHTML(erro.message)}</p>`;
+        } finally {
+            auditoriaBtn.disabled = false;
+        }
+    });
+}
+
+if (auditoriaAjudaBtn) {
+    auditoriaAjudaBtn.addEventListener('click', () => auditoriaAjudaModal.classList.remove('hidden'));
+    auditoriaAjudaFechar.addEventListener('click', () => auditoriaAjudaModal.classList.add('hidden'));
+    auditoriaAjudaModal.addEventListener('click', (evento) => {
+        if (evento.target === auditoriaAjudaModal) auditoriaAjudaModal.classList.add('hidden');
+    });
+}
 
 // Marca visualmente qual opção de troféu está selecionada e guarda o
 // valor (1, 2 ou 3) no input escondido usado no payload do formulário.

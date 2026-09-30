@@ -180,7 +180,37 @@
             color: rgba(255, 255, 255, 0.85);
             display: flex;
             flex-direction: column;
+            transition: width 0.15s ease;
         }
+        .orbita-sidebar-topo {
+            display: flex;
+            justify-content: flex-end;
+            padding: 8px 12px 0;
+        }
+        .orbita-sidebar-toggle {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.65);
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+        }
+        .orbita-sidebar-toggle:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        /* Recolhido: a sidebar vira uma faixa só com ícone (texto do nav-item
+           some via font-size:0 — o ícone tem width/height em px, não em em,
+           então não encolhe junto; a seta do botão de recolher gira 180°
+           pra indicar "expandir"). Título dos botões (atributo title=) vira
+           o tooltip nativo do navegador nesse estado, já que o texto some. */
+        .orbita-sidebar.collapsed { width: 4.5rem; }
+        .orbita-sidebar.collapsed .orbita-sidebar-topo { justify-content: center; padding: 8px 0 0; }
+        .orbita-sidebar.collapsed .orbita-sidebar-toggle { transform: rotate(180deg); }
+        .orbita-sidebar.collapsed .nav-item { font-size: 0; text-align: center; padding: 10px 0; }
+        .orbita-sidebar.collapsed .nav-item .icon-inline { margin-right: 0; }
         .nav-item {
             display: block;
             width: 100%;
@@ -251,18 +281,24 @@
         <div class="flex-1 flex items-stretch">
             <!-- Menu lateral fixo -->
             <aside id="sidebar" class="orbita-sidebar md:sticky md:top-0 md:h-screen">
+                <div class="orbita-sidebar-topo">
+                    <button id="btn-recolher-sidebar" type="button" class="orbita-sidebar-toggle" title="Recolher menu" aria-label="Recolher menu" aria-expanded="true">
+                        <svg class="icon-inline" style="margin:0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                </div>
                 <nav class="p-3 space-y-1">
-                    <button data-view="dashboard" class="nav-item active"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Dashboard</button>
-                    <button data-view="moderacao" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Moderação de fotos</button>
-                    <button data-view="concursos" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Concursos</button>
-                    <button data-view="patrocinadores" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Patrocinadores</button>
-                    <button data-view="premiacoes" class="nav-item"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Premiações</button>
+                    <button data-view="dashboard" class="nav-item active" title="Dashboard"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Dashboard</button>
+                    <button data-view="moderacao" class="nav-item" title="Moderação de fotos"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Moderação de fotos</button>
+                    <button data-view="concursos" class="nav-item" title="Concursos"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Concursos</button>
+                    <button data-view="patrocinadores" class="nav-item" title="Patrocinadores"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Patrocinadores</button>
+                    <button data-view="premiacoes" class="nav-item" title="Premiações"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Premiações</button>
+                    <button data-view="auditoria" class="nav-item" title="Auditoria de votos"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Auditoria de votos</button>
                     <!-- Menu desabilitado: a base de preferencias_marketing não recebe mais
                          opt-ins novos desde que o banner de votacao.html passou a perguntar
                          sobre aviso de resultado por concurso (preferencias_resultado_concurso)
                          em vez de marketing. Código, dados e Edge Function (disparar-campanha)
                          continuam intactos — só a entrada de menu foi escondida. -->
-                    <button data-view="campanhas" class="nav-item hidden"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg> Campanhas</button>
+                    <button data-view="campanhas" class="nav-item hidden" title="Campanhas"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg> Campanhas</button>
                 </nav>
             </aside>
 
@@ -665,6 +701,49 @@
                                 <p class="col-span-2 text-center text-[var(--ink-soft)]">Carregando...</p>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: Auditoria de votos — sinais de possível fraude na votação,
+                     calculados sem nenhuma coluna nova no banco (ver Edge Function
+                     auditar-votos-concurso). Puramente informativo: não bloqueia
+                     foto nem invalida voto sozinho, é o curador quem decide. -->
+                <section id="view-auditoria" class="view hidden">
+                    <div class="flex items-center justify-between mb-6 gap-4">
+                        <div class="flex items-center gap-2">
+                            <h2 class="font-display text-2xl text-[var(--ink)]">Auditoria de votos</h2>
+                            <button type="button" id="auditoria-ajuda-btn" class="w-7 h-7 shrink-0 rounded-full border-2 border-[var(--ink)] flex items-center justify-center text-sm font-bold text-[var(--ink)] hover:bg-[var(--amber)] hover:text-white hover:border-[var(--amber)] transition" aria-label="Ajuda sobre a auditoria de votos">?</button>
+                        </div>
+                    </div>
+
+                    <div class="ticket-sm p-5 mb-6 flex flex-wrap items-end gap-3">
+                        <div class="flex-1 min-w-[220px]">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Concurso</label>
+                            <select id="auditoria-concurso" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                <option value="">Carregando...</option>
+                            </select>
+                        </div>
+                        <button type="button" id="auditoria-btn" class="btn btn-fern text-sm !py-2 !px-4">Auditar votação</button>
+                    </div>
+
+                    <!-- Popup de ajuda — explica os termos usados nas tags de análise. -->
+                    <div id="auditoria-ajuda-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                        <div class="ticket w-full max-w-lg p-6">
+                            <div class="flex items-center justify-between mb-4 gap-3">
+                                <h3 class="font-display text-xl text-[var(--ink)]">Como ler a auditoria</h3>
+                                <button type="button" id="auditoria-ajuda-fechar" class="btn btn-ghost !py-1 !px-3 text-sm">Fechar</button>
+                            </div>
+                            <p class="text-[var(--ink-soft)] text-sm mb-3">
+                                "Votante de foto única" = % de quem votou só nessa foto e em nenhuma outra do mesmo concurso — um votante orgânico costuma navegar e votar em várias. "Rajada de votos" = maior grupo de votos NESSA foto concentrados numa janela de 10 minutos. "Cluster de 1º login" = maior grupo de votantes cujo primeiro login no Órbita caiu numa janela de 7 dias entre si (não é a data de criação da conta Google — o Google não expõe isso pra nenhum site).
+                            </p>
+                            <p class="text-[var(--ink-soft)] text-xs">
+                                Votos registrados antes de 30/09/2026 10:46:40 (horário em que a coluna de data/hora foi criada) não têm hora real — a "Rajada de votos" já ignora automaticamente esse instante específico, pra não confundir a migração com fraude de verdade.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div id="auditoria-container" class="space-y-3">
+                        <p class="text-[var(--ink-soft)] text-center">Escolha um concurso e clique em "Auditar votação".</p>
                     </div>
                 </section>
 
