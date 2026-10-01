@@ -46,23 +46,32 @@
             --font-display: 'Unbounded', 'Arial Rounded MT Bold', system-ui, sans-serif;
             --font-body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
             --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+            /* Mesmos "planetas" discretos do fundo de index.html, só que num
+               tile que se repete pela página inteira em vez de só 2 cantos
+               (essa página rola bem mais que a home). Cor fixa por tema
+               (não dá pra usar var() dentro de um data-URI de SVG). */
+            --padrao-fundo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Ccircle cx='70' cy='90' r='28' fill='none' stroke='rgba(20,26,58,0.07)' stroke-width='1'/%3E%3Ccircle cx='70' cy='90' r='58' fill='none' stroke='rgba(20,26,58,0.05)' stroke-width='1'/%3E%3Ccircle cx='92' cy='64' r='3' fill='rgba(20,26,58,0.09)'/%3E%3Ccircle cx='480' cy='60' r='20' fill='none' stroke='rgba(20,26,58,0.06)' stroke-width='1'/%3E%3Ccircle cx='480' cy='60' r='42' fill='none' stroke='rgba(20,26,58,0.045)' stroke-width='1'/%3E%3Ccircle cx='460' cy='42' r='2.5' fill='rgba(20,26,58,0.08)'/%3E%3Ccircle cx='340' cy='140' r='3' fill='rgba(20,26,58,0.07)'/%3E%3C/svg%3E");
         }
         @media (prefers-color-scheme: dark) {
             :root:not([data-theme="light"]) {
                 --bg: #0d1128; --surface: #161b3a; --ink: #eef0ff; --muted: #a3a9cc; --line: #2a3160;
                 --accent: #7d89ff; --accent-ink: #0d1128; --sun: #f5b957; --soft: #1f2552;
+                --padrao-fundo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Ccircle cx='70' cy='90' r='28' fill='none' stroke='rgba(238,240,255,0.06)' stroke-width='1'/%3E%3Ccircle cx='70' cy='90' r='58' fill='none' stroke='rgba(238,240,255,0.04)' stroke-width='1'/%3E%3Ccircle cx='92' cy='64' r='3' fill='rgba(238,240,255,0.08)'/%3E%3Ccircle cx='480' cy='60' r='20' fill='none' stroke='rgba(238,240,255,0.05)' stroke-width='1'/%3E%3Ccircle cx='480' cy='60' r='42' fill='none' stroke='rgba(238,240,255,0.035)' stroke-width='1'/%3E%3Ccircle cx='460' cy='42' r='2.5' fill='rgba(238,240,255,0.07)'/%3E%3Ccircle cx='340' cy='140' r='3' fill='rgba(238,240,255,0.06)'/%3E%3C/svg%3E");
             }
         }
         :root[data-theme="dark"] {
             --bg: #0d1128; --surface: #161b3a; --ink: #eef0ff; --muted: #a3a9cc; --line: #2a3160;
             --accent: #7d89ff; --accent-ink: #0d1128; --sun: #f5b957; --soft: #1f2552;
+            --padrao-fundo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Ccircle cx='70' cy='90' r='28' fill='none' stroke='rgba(238,240,255,0.06)' stroke-width='1'/%3E%3Ccircle cx='70' cy='90' r='58' fill='none' stroke='rgba(238,240,255,0.04)' stroke-width='1'/%3E%3Ccircle cx='92' cy='64' r='3' fill='rgba(238,240,255,0.08)'/%3E%3Ccircle cx='480' cy='60' r='20' fill='none' stroke='rgba(238,240,255,0.05)' stroke-width='1'/%3E%3Ccircle cx='480' cy='60' r='42' fill='none' stroke='rgba(238,240,255,0.035)' stroke-width='1'/%3E%3Ccircle cx='460' cy='42' r='2.5' fill='rgba(238,240,255,0.07)'/%3E%3Ccircle cx='340' cy='140' r='3' fill='rgba(238,240,255,0.06)'/%3E%3C/svg%3E");
         }
 
         * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            background: var(--bg);
+            background-color: var(--bg);
+            background-image: var(--padrao-fundo);
+            background-repeat: repeat;
             color: var(--ink);
             font-family: var(--font-body);
             font-size: 17px;
@@ -117,10 +126,22 @@
             display: inline-flex; align-items: center; gap: 8px;
             padding: 13px 22px; border-radius: 999px; font-weight: 600;
             text-decoration: none; font-size: 1rem; border: 2px solid var(--accent);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+        }
+        /* Hover "tradicional" pra qualquer botão: leve elevação + sombra.
+           As variantes abaixo somam a isso uma mudança de cor de fundo
+           própria, pra reforçar que são clicáveis. */
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgb(20 26 58 / 0.18);
         }
         .btn.primary { background: var(--accent); color: var(--accent-ink); }
-        .btn.ghost { color: var(--accent); background: transparent; }
+        .btn.primary:hover { background: color-mix(in srgb, var(--accent) 82%, black); }
+        .btn.ghost { color: var(--accent); background: color-mix(in srgb, var(--bg) 92%, black); }
+        .btn.ghost:hover { background: var(--soft); }
         .btn.on-accent { background: var(--accent-ink); color: var(--accent); border-color: var(--accent-ink); }
+        .btn.on-accent:hover { background: color-mix(in srgb, var(--accent-ink) 88%, var(--accent)); }
         /* Botão de destaque do card de preço: usa --sun (o mesmo tom de "até
            100%" do alerta de sorteio) em vez do branco/azul do resto do
            card, pra chamar mais atenção como CTA principal. Texto escuro
@@ -264,7 +285,7 @@
         .mockup-browser-barra { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(--soft); border-bottom: 1px solid var(--line); }
         .mockup-browser-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
         .mockup-browser-url { margin-left: 10px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
-        .mockup-browser-conteudo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 20px; }
+        .mockup-browser-conteudo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 20px 20px 6px; }
         /* Card individual, no mesmo espírito do card real de votacao.html:
            foto, nome, data/hora + compartilhar, contagem de votos e o
            botão (Votar ou Votado, conforme o estado). */
@@ -279,9 +300,9 @@
            os fundos aqui (dourado/coral) não mudam de tom entre os temas —
            texto de tom claro/escuro fixo garante contraste nos dois. */
         .mockup-selo { display: inline-flex; align-items: center; gap: 3px; width: fit-content; font-size: 0.64rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; margin-bottom: 2px; }
-        .mockup-selo.ouro { background: var(--sun); color: #141a3a; }
-        .mockup-selo.prata { background: var(--soft); color: var(--muted); }
-        .mockup-selo.bronze { background: #e2735a; color: #ffffff; }
+        .mockup-selo.ouro { background: var(--sun); color: #000000; }
+        .mockup-selo.prata { background: #c4c9d4; color: #000000; }
+        .mockup-selo.bronze { background: #e2735a; color: #000000; }
         .mockup-card-nome { margin: 0; font-family: var(--font-body); font-size: 0.92rem; font-weight: 600; color: var(--ink); }
         .mockup-card-linha { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
         .mockup-card-data { display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; color: var(--muted); }
@@ -291,10 +312,21 @@
             margin-top: 4px; width: 100%; border: none; border-radius: 8px; padding: 7px 0;
             font-size: 0.74rem; font-weight: 700; cursor: pointer;
             background: var(--accent); color: var(--accent-ink);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+        }
+        .mockup-card-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgb(20 26 58 / 0.18);
+            background: color-mix(in srgb, var(--accent) 82%, black);
         }
         .mockup-card-btn.votado { background: var(--soft); color: var(--muted); cursor: default; }
+        /* Dica discreta no rodapé do mockup — mesmo padding horizontal do
+           grid acima, pra ficar alinhada embaixo do card do Kiwi (a última
+           coluna) no layout de 3 colunas. */
+        .mockup-rodape-dica { margin: 0; padding: 0 20px 10px; text-align: right; font-size: 0.68rem; color: var(--muted); }
         @media (max-width: 640px) {
-            .mockup-browser-conteudo { grid-template-columns: 1fr; gap: 10px; padding: 14px; }
+            .mockup-browser-conteudo { grid-template-columns: 1fr; gap: 10px; padding: 14px 14px 4px; }
+            .mockup-rodape-dica { padding: 0 14px 10px; }
         }
 
         /* ---------- Contatos ---------- */
@@ -478,7 +510,7 @@
                         </div>
                         <div class="mockup-card-corpo">
                             <span class="mockup-selo prata">🥈 2º lugar</span>
-                            <h3 class="mockup-card-nome">Thor</h3>
+                            <h3 class="mockup-card-nome">Zeus</h3>
                             <div class="mockup-card-linha">
                                 <span class="mockup-card-data">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -509,6 +541,7 @@
                         </div>
                     </div>
                 </div>
+                <p class="mockup-rodape-dica"><i>Vote no Kiwi e veja a animação</i> 💖</p>
             </div>
         </section>
 
@@ -648,7 +681,7 @@
                     <h2 class="text-2xl md:text-3xl">Um preço simples por concurso</h2>
                     <span class="badge-lancamento">Preço especial de lançamento. Peça um orçamento</span>
                     <div class="font-display text-5xl"><span class="line-through">R$ 299</span><small class="block font-body text-base font-medium opacity-80 mt-2 line-through">a partir de, por concurso</small></div>
-                    <a class="btn cta-destaque justify-self-start" href="#contato">Pedir orçamento</a>
+                    <a class="btn on-accent justify-self-start" href="#contato">Pedir orçamento</a>
                 </div>
                 <div class="grid gap-3 min-w-0">
                     <ul class="list-disc pl-5 grid gap-1.5">
@@ -882,20 +915,42 @@
             const statFotos = document.getElementById('stat-fotos');
             const statVotos = document.getElementById('stat-votos');
 
-            const [{ count: totalConcursos, error: erroConcursos }, { data: fotos, error: erroFotos }] = await Promise.all([
-                supabase.from('concursos').select('id', { count: 'exact', head: true }),
-                supabase.from('fotos_concurso').select('votos').eq('aprovada', true),
-            ]);
+            // Só concursos ativos (mesma regra de index.html) — exclui
+            // rascunhos/testes que o curador nunca chegou a publicar, pra
+            // não inflar os números públicos com dado que não é real.
+            const { data: concursosAtivos, error: erroConcursos } = await supabase
+                .from('concursos')
+                .select('id')
+                .eq('ativo', true);
 
-            if (erroConcursos || erroFotos) {
-                console.error('Erro ao carregar números da Órbita:', erroConcursos || erroFotos);
+            if (erroConcursos) {
+                console.error('Erro ao carregar números da Órbita:', erroConcursos);
                 return; // Mantém o "—" em vez de mostrar um número errado.
             }
 
-            const totalFotos = fotos?.length ?? 0;
-            const totalVotos = (fotos ?? []).reduce((soma, f) => soma + (f.votos || 0), 0);
+            const idsAtivos = (concursosAtivos ?? []).map((c) => c.id);
+            const totalConcursos = idsAtivos.length;
 
-            statConcursos.textContent = (totalConcursos ?? 0).toLocaleString('pt-BR');
+            let totalFotos = 0;
+            let totalVotos = 0;
+
+            if (idsAtivos.length > 0) {
+                const { data: fotos, error: erroFotos } = await supabase
+                    .from('fotos_concurso')
+                    .select('votos')
+                    .eq('aprovada', true)
+                    .in('concurso_id', idsAtivos);
+
+                if (erroFotos) {
+                    console.error('Erro ao carregar números da Órbita:', erroFotos);
+                    return;
+                }
+
+                totalFotos = fotos?.length ?? 0;
+                totalVotos = (fotos ?? []).reduce((soma, f) => soma + (f.votos || 0), 0);
+            }
+
+            statConcursos.textContent = totalConcursos.toLocaleString('pt-BR');
             statFotos.textContent = totalFotos.toLocaleString('pt-BR');
             statVotos.textContent = totalVotos.toLocaleString('pt-BR');
         })();
