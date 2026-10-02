@@ -25,6 +25,14 @@
 //     a data antes de desconfiar.
 //   - conta_mais_nova_dias: dias desde o 1º login no Órbita do votante mais
 //     recente da foto.
+//   - maior_grupo_ip: maior grupo de votantes DESSA foto que compartilham o
+//     mesmo ip_hash (sql/032_votos_realizados_ip_hash.sql — hash do IP de
+//     origem, gravado pela função votar_em_foto no momento do voto). Não é
+//     uma janela de tempo como a rajada: é simplesmente "quantas contas
+//     diferentes votaram nesta foto saindo do mesmo endereço IP", o sinal
+//     mais direto de uma pessoa votando com várias contas na própria foto
+//     (ou várias pessoas legítimas na mesma rede — por isso é um sinal pra
+//     revisão manual, não um bloqueio automático).
 //
 // Deploy:
 //   supabase functions deploy auditar-votos-concurso
@@ -153,7 +161,7 @@ Deno.serve(async (req) => {
         // 3) Todos os votos dessas fotos.
         const { data: votos, error: votosError } = await supabaseAdmin
             .from("votos_realizados")
-            .select("user_id, foto_id, criado_em")
+            .select("user_id, foto_id, criado_em, ip_hash")
             .in("foto_id", fotoIds);
 
         if (votosError) {
@@ -163,12 +171,12 @@ Deno.serve(async (req) => {
             });
         }
 
-        const votosPorFoto = new Map<string, { user_id: string; criado_em: string }[]>();
+        const votosPorFoto = new Map<string, { user_id: string; criado_em: string; ip_hash: string | null }[]>();
         const fotosPorUsuario = new Map<string, Set<string>>();
 
         for (const voto of votos ?? []) {
             if (!votosPorFoto.has(voto.foto_id)) votosPorFoto.set(voto.foto_id, []);
-            votosPorFoto.get(voto.foto_id)!.push({ user_id: voto.user_id, criado_em: voto.criado_em });
+            votosPorFoto.get(voto.foto_id)!.push({ user_id: voto.user_id, criado_em: voto.criado_em, ip_hash: voto.ip_hash });
 
             if (!fotosPorUsuario.has(voto.user_id)) fotosPorUsuario.set(voto.user_id, new Set());
             fotosPorUsuario.get(voto.user_id)!.add(voto.foto_id);
@@ -201,7 +209,7 @@ Deno.serve(async (req) => {
             const votosDaFoto = votosPorFoto.get(foto.id) ?? [];
             const totalVotantes = votosDaFoto.length;
 
-            const votantes = votosDaFoto.map(({ user_id: userId, criado_em: votoCriadoEm }) => {
+            const votantes = votosDaFoto.map(({ user_id: userId, criado_em: votoCriadoEm, ip_hash: ipHash }) => {
                 const dados = dadosUsuario.get(userId) ?? { email: null, created_at: null };
                 const diasDeConta = dados.created_at
                     ? Math.floor((agora - new Date(dados.created_at).getTime()) / (24 * 60 * 60 * 1000))
@@ -213,8 +221,22 @@ Deno.serve(async (req) => {
                     dias_de_conta: diasDeConta,
                     votou_em: votoCriadoEm,
                     votou_so_nesta_foto: (fotosPorUsuario.get(userId)?.size ?? 0) === 1,
+                    // Só os 8 primeiros caracteres do hash — o suficiente pra um
+                    // humano notar visualmente "esses dois batem" na tabela de
+                    // votantes, sem precisar expor o hash inteiro.
+                    ip_hash_curto: ipHash ? ipHash.slice(0, 8) : null,
                 };
             });
+
+            // Maior grupo de votantes DESSA foto que compartilham o mesmo
+            // ip_hash (ignora votos sem IP registrado, ex.: anteriores à
+            // migration 032).
+            const votantesPorIp = new Map<string, number>();
+            for (const v of votantes) {
+                if (!v.ip_hash_curto) continue;
+                votantesPorIp.set(v.ip_hash_curto, (votantesPorIp.get(v.ip_hash_curto) ?? 0) + 1);
+            }
+            const maiorGrupoIp = votantesPorIp.size > 0 ? Math.max(...votantesPorIp.values()) : 0;
 
             const votantesFotoUnica = votantes.filter((v) => v.votou_so_nesta_foto).length;
             const percentualFotoUnica = totalVotantes > 0 ? votantesFotoUnica / totalVotantes : 0;
@@ -234,6 +256,7 @@ Deno.serve(async (req) => {
 
             const diasValidos = votantes.map((v) => v.dias_de_conta).filter((d): d is number => d !== null);
             const contaMaisNovaDias = diasValidos.length > 0 ? Math.min(...diasValidos) : null;
+            const percentualGrupoIp = totalVotantes > 0 ? maiorGrupoIp / totalVotantes : 0;
 
             return {
                 foto_id: foto.id,
@@ -249,6 +272,8 @@ Deno.serve(async (req) => {
                 maior_rajada_votos: maiorRajada,
                 percentual_rajada_votos: percentualRajada,
                 conta_mais_nova_dias: contaMaisNovaDias,
+                maior_grupo_ip: maiorGrupoIp,
+                percentual_grupo_ip: percentualGrupoIp,
                 votantes,
             };
         });

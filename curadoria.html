@@ -742,10 +742,10 @@
                                 <button type="button" id="auditoria-ajuda-fechar" class="btn btn-ghost !py-1 !px-3 text-sm">Fechar</button>
                             </div>
                             <p class="text-[var(--ink-soft)] text-sm mb-3">
-                                "Votante de foto única" = % de quem votou só nessa foto e em nenhuma outra do mesmo concurso — um votante orgânico costuma navegar e votar em várias. "Rajada de votos" = maior grupo de votos NESSA foto concentrados numa janela de 10 minutos. "Cluster de 1º login" = maior grupo de votantes cujo primeiro login no Órbita caiu numa janela de 7 dias entre si (não é a data de criação da conta Google — o Google não expõe isso pra nenhum site).
+                                "Votante de foto única" = % de quem votou só nessa foto e em nenhuma outra do mesmo concurso — um votante orgânico costuma navegar e votar em várias. "Rajada de votos" = maior grupo de votos NESSA foto concentrados numa janela de 10 minutos. "Cluster de 1º login" = maior grupo de votantes cujo primeiro login no Órbita caiu numa janela de 7 dias entre si (não é a data de criação da conta Google — o Google não expõe isso pra nenhum site). "Mesmo IP" = maior grupo de votantes DESSA foto que votaram a partir do mesmo endereço IP (contas diferentes, mesma rede) — o sinal mais direto de uma pessoa votando com várias contas na própria foto, mas também pode ser gente legítima na mesma casa/wi-fi, por isso é pra revisão manual, não corte automático.
                             </p>
                             <p class="text-[var(--ink-soft)] text-xs">
-                                Votos registrados antes de 30/09/2026 10:46:40 (horário em que a coluna de data/hora foi criada) não têm hora real — a "Rajada de votos" já ignora automaticamente esse instante específico, pra não confundir a migração com fraude de verdade.
+                                Votos registrados antes de 30/09/2026 10:46:40 (horário em que a coluna de data/hora foi criada) não têm hora real — a "Rajada de votos" já ignora automaticamente esse instante específico, pra não confundir a migração com fraude de verdade. Votos anteriores à coluna de IP (sql/032) não entram no cálculo de "Mesmo IP".
                             </p>
                         </div>
                     </div>

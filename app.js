@@ -925,6 +925,7 @@ function renderizarAuditoria(fotos) {
                 <td class="py-1.5 pr-3">${formatarVotouEm(v.votou_em)}</td>
                 <td class="py-1.5 pr-3">${v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}</td>
                 <td class="py-1.5 pr-3">${v.dias_de_conta ?? '—'}</td>
+                <td class="py-1.5 pr-3 font-mono text-[var(--ink-soft)]">${v.ip_hash_curto ? escapeHTML(v.ip_hash_curto) : '—'}</td>
                 <td class="py-1.5">${v.votou_so_nesta_foto ? '<span class="stamp stamp-ember">Só esta foto</span>' : ''}</td>
             </tr>
         `).join('');
@@ -942,6 +943,7 @@ function renderizarAuditoria(fotos) {
                     <span class="stamp ${stampPercentualSuspeita(foto.percentual_foto_unica)}">${formatarPercentual(foto.percentual_foto_unica)} votante de foto única</span>
                     <span class="stamp ${stampPercentualSuspeita(foto.percentual_rajada_votos)}">Rajada de votos: ${foto.maior_rajada_votos}/${foto.total_votantes} (10min)</span>
                     <span class="stamp ${stampPercentualSuspeita(foto.percentual_cluster_criacao)}">Cluster de 1º login: ${foto.maior_cluster_criacao}/${foto.total_votantes}</span>
+                    <span class="stamp ${stampPercentualSuspeita(foto.percentual_grupo_ip)}">Mesmo IP: ${foto.maior_grupo_ip}/${foto.total_votantes}</span>
                     ${foto.conta_mais_nova_dias !== null ? `<span class="stamp stamp-amber">1º login mais recente: ${foto.conta_mais_nova_dias}d atrás</span>` : ''}
                     <button type="button" class="btn btn-ghost text-xs !py-1 !px-2" onclick="document.getElementById('${idDetalhe}').classList.toggle('hidden')">Ver votantes</button>
                 </div>
@@ -953,10 +955,11 @@ function renderizarAuditoria(fotos) {
                                 <th class="pb-1.5 pr-3 font-semibold">Votou em</th>
                                 <th class="pb-1.5 pr-3 font-semibold">1º login no Órbita</th>
                                 <th class="pb-1.5 pr-3 font-semibold">Dias desde o 1º login</th>
+                                <th class="pb-1.5 pr-3 font-semibold">IP (hash)</th>
                                 <th class="pb-1.5 font-semibold"></th>
                             </tr>
                         </thead>
-                        <tbody>${linhasVotantes || '<tr><td colspan="5" class="py-2 text-center text-[var(--ink-soft)]">Nenhum votante.</td></tr>'}</tbody>
+                        <tbody>${linhasVotantes || '<tr><td colspan="6" class="py-2 text-center text-[var(--ink-soft)]">Nenhum votante.</td></tr>'}</tbody>
                     </table>
                 </div>
             </div>
