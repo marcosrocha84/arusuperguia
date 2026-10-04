@@ -68,7 +68,7 @@
         /* ---------- Cabeçalho / rodapé ---------- */
         .orbita-header { background: var(--orbita-surface-2); border-bottom: 1px solid var(--orbita-border); }
         .orbita-header-inner { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-        .orbita-brand { display: flex; align-items: center; gap: 10px; }
+        .orbita-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
         .orbita-logo-mark { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--orbita-ink); position: relative; flex-shrink: 0; }
         .orbita-logo-mark::after { content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--orbita-ink); transform: translate(-50%, -50%); }
         .orbita-brand-name { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; color: var(--orbita-ink); }
@@ -116,6 +116,12 @@
         .orbita-refresh-bar { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 24px 20px; font-size: 0.85rem; color: var(--orbita-ink-soft); border-top: 1px solid var(--orbita-border); padding-top: 20px; }
 
         .orbita-grid-fotos { padding: 0 24px 24px; }
+        /* Concurso encerrado = no máximo "qtd_vencedores" cards (pódio), que
+           quase nunca enche as 3 colunas do grid de votação — em vez de
+           ficar alinhado à esquerda com buracos à direita, centraliza os
+           cards existentes. */
+        .orbita-grid-fotos--encerrado { display: flex; flex-wrap: wrap; justify-content: center; }
+        .orbita-grid-fotos--encerrado > .foto-card { flex: 0 1 320px; max-width: 320px; }
 
         .orbita-secao { padding: 0 24px 24px; }
         .orbita-secao-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--orbita-ink-soft); margin: 0 0 12px; text-align: center; }
@@ -441,10 +447,10 @@
 
     <header class="orbita-header">
         <div class="orbita-header-inner">
-            <div class="orbita-brand">
+            <a href="./index.html" class="orbita-brand">
                 <span class="orbita-logo-mark" aria-hidden="true"></span>
                 <span class="orbita-brand-name">Órbita</span>
-            </div>
+            </a>
             <p class="orbita-tagline">plataforma de concursos culturais</p>
         </div>
     </header>
@@ -1254,12 +1260,7 @@
                 // ficavam misturados no mesmo elemento).
                 const iconeTituloVotacao = document.getElementById('icone-titulo-votacao');
                 const textoTituloVotacao = document.getElementById('texto-titulo-votacao');
-                if (encerrado) {
-                    const dataFormatada = new Date(concursoAtivo.data + 'T00:00:00').toLocaleDateString('pt-BR');
-                    iconeTituloVotacao.innerHTML = ICONE_PREMIO_TITULO;
-                    textoTituloVotacao.textContent = 'Fotos campeãs da temporada!';
-                    subtituloVotacao.textContent = `O concurso "${concursoAtivo.nome || concursoAtivo.descricao}" foi encerrado em ${dataFormatada}. Confira abaixo as fotos mais votadas.`;
-                } else {
+                if (!encerrado) {
                     // Concurso em andamento: usa o título/subtítulo do
                     // theme_config, se o curador tiver preenchido, em vez do
                     // texto genérico fixo (evita a página de votação de um
@@ -1269,6 +1270,11 @@
                     textoTituloVotacao.textContent = textos.titulo || 'Escolha a melhor foto!';
                     if (textos.subtitulo) subtituloVotacao.textContent = textos.subtitulo;
                 }
+                // O título de "encerrado" depende de QUANTAS fotos vão
+                // aparecer no pódio (singular/plural) — só sabemos isso
+                // depois de buscar e cortar `fotosExibidas` abaixo, então
+                // esse branch fica pra lá (ver mais abaixo, perto do
+                // confete).
 
                 const { data: fotos, error } = await supabase
                     .from('fotos_concurso')
@@ -1286,6 +1292,21 @@
                 // Com o concurso encerrado, mostra só o pódio (top N vencedores)
                 const fotosExibidas = encerrado ? fotos.slice(0, qtdVencedores) : fotos;
 
+                // Troca a classe do container inteiro (em vez de só somar uma
+                // classe) pra não depender de ordem/especificidade entre o
+                // "grid" do Tailwind e o "flex" daqui — os dois setam
+                // `display` e um precisa vencer de forma garantida.
+                gridFotos.className = encerrado
+                    ? 'flex flex-wrap gap-4 orbita-grid-fotos orbita-grid-fotos--encerrado'
+                    : 'grid grid-cols-1 md:grid-cols-3 gap-4 orbita-grid-fotos';
+
+                if (encerrado) {
+                    const dataFormatada = new Date(concursoAtivo.data + 'T00:00:00').toLocaleDateString('pt-BR');
+                    iconeTituloVotacao.innerHTML = ICONE_PREMIO_TITULO;
+                    textoTituloVotacao.textContent = fotosExibidas.length === 1 ? 'Foto campeã!' : 'Fotos campeãs!';
+                    subtituloVotacao.textContent = `O concurso "${concursoAtivo.nome || concursoAtivo.descricao}" foi encerrado em ${dataFormatada}. Confira abaixo as fotos mais votadas.`;
+                }
+
                 if (encerrado && fotosExibidas.length > 0) {
                     iniciarChuvaDeConfete();
                 }
@@ -1293,7 +1314,7 @@
                 if (fotosExibidas.length === 0) {
                     fotosExibidasCache = [];
                     gridFotos.innerHTML = `
-                        <div class="col-span-2 md:col-span-3 text-center ticket-sm p-6">
+                        <div class="col-span-2 md:col-span-3 w-full text-center ticket-sm p-6">
                             <p class="text-lg font-medium text-[var(--ink)]">${ICONE_INBOX} ${encerrado ? 'Este concurso encerrou sem nenhuma foto aprovada.' : 'Nenhuma foto aprovada para votação no momento.'}</p>
                         </div>
                     `;
@@ -1358,7 +1379,7 @@
                     }
 
                     return `
-                        <div class="ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
+                        <div class="foto-card ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
                             <div class="foto-card-imagem relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" ${selo ? `style="box-shadow: inset 0 0 0 4px ${selo.cor};"` : ''} onclick="abrirModalFoto('${foto.id}')" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHTML(foto.nome_participante)}" onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===this){event.preventDefault();abrirModalFoto('${foto.id}');}">
                                 <img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto do Concurso" loading="lazy" class="object-cover w-full h-full">
                                 <span class="foto-card-lupa" aria-hidden="true">${ICONE_ZOOM}</span>

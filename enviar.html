@@ -52,7 +52,7 @@
         /* ---------- Cabeçalho / rodapé ---------- */
         .orbita-header { background: var(--orbita-surface-2); border-bottom: 1px solid var(--orbita-border); }
         .orbita-header-inner { max-width: 560px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-        .orbita-brand { display: flex; align-items: center; gap: 10px; }
+        .orbita-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
         .orbita-logo-mark { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--orbita-ink); position: relative; flex-shrink: 0; }
         .orbita-logo-mark::after { content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--orbita-ink); transform: translate(-50%, -50%); }
         .orbita-brand-name { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; color: var(--orbita-ink); }
@@ -217,10 +217,10 @@
 
     <header class="orbita-header">
         <div class="orbita-header-inner">
-            <div class="orbita-brand">
+            <a href="./index.html" class="orbita-brand">
                 <span class="orbita-logo-mark" aria-hidden="true"></span>
                 <span class="orbita-brand-name">Órbita</span>
-            </div>
+            </a>
             <p class="orbita-tagline">plataforma de concursos culturais</p>
         </div>
     </header>

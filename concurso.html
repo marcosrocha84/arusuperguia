@@ -71,6 +71,8 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            text-decoration: none;
+            color: inherit;
         }
         .orbita-logo-mark {
             width: 26px;
@@ -101,6 +103,11 @@
             margin: 0;
             font-size: 0.8rem;
             color: var(--orbita-ink-soft);
+        }
+        .orbita-divisor {
+            border: none;
+            border-top: 1px solid var(--orbita-border);
+            margin: 20px 0;
         }
         .orbita-footer {
             background: var(--orbita-surface-2);
@@ -475,18 +482,6 @@
         .orbita-btn-secundaria {
             background: var(--accent-secundaria, #C1452C);
         }
-        .orbita-btn[aria-disabled="true"] {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        .orbita-prazo-encerrado {
-            margin: 8px 0 0;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-align: center;
-            color: var(--orbita-ink);
-            color: color-mix(in srgb, var(--accent-secundaria, #C1452C) 80%, black);
-        }
         .orbita-disclaimer {
             margin: 16px 0 0;
             font-size: 0.75rem;
@@ -583,10 +578,10 @@
 
     <header class="orbita-header">
         <div class="orbita-header-inner">
-            <div class="orbita-brand">
+            <a href="./index.html" class="orbita-brand">
                 <span class="orbita-logo-mark" aria-hidden="true"></span>
                 <span class="orbita-brand-name">Órbita</span>
-            </div>
+            </a>
             <p class="orbita-tagline">plataforma de concursos culturais</p>
         </div>
     </header>
@@ -627,36 +622,48 @@
                     <p id="contador-data-encerramento" class="orbita-countdown-data"></p>
                 </div>
 
-                <div class="orbita-etapas">
-                    <div class="orbita-etapa-card">
-                        <p class="orbita-etapa-label orbita-etapa-label--primaria">Etapa 1</p>
-                        <h3 class="orbita-etapa-titulo"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Envio de fotos</h3>
-                        <p class="orbita-etapa-texto">
-                            Registrou um momento incrível? Envie sua foto, aceite o termo de imagem e participe da seleção oficial.
-                        </p>
+                <div id="bloco-participar">
+                    <div class="orbita-etapas">
+                        <div class="orbita-etapa-card">
+                            <p class="orbita-etapa-label orbita-etapa-label--primaria">Etapa 1</p>
+                            <h3 class="orbita-etapa-titulo"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Envio de fotos</h3>
+                            <p class="orbita-etapa-texto">
+                                Registrou um momento incrível? Envie sua foto, aceite o termo de imagem e participe da seleção oficial.
+                            </p>
+                        </div>
+                        <div class="orbita-etapa-card">
+                            <p class="orbita-etapa-label orbita-etapa-label--secundaria">Etapa 2</p>
+                            <h3 class="orbita-etapa-titulo"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Votação pública</h3>
+                            <p class="orbita-etapa-texto">
+                                Vote nos seus registros favoritos em tempo real. Para garantir uma disputa 100% justa, entre com sua conta Google para validar o voto.
+                            </p>
+                        </div>
                     </div>
-                    <div class="orbita-etapa-card">
-                        <p class="orbita-etapa-label orbita-etapa-label--secundaria">Etapa 2</p>
-                        <h3 class="orbita-etapa-titulo"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Votação pública</h3>
-                        <p class="orbita-etapa-texto">
-                            Vote nos seus registros favoritos em tempo real. Para garantir uma disputa 100% justa, entre com sua conta Google para validar o voto.
-                        </p>
+
+                    <div class="orbita-ctas">
+                        <a id="btn-enviar-foto" href="./enviar.html" class="orbita-btn orbita-btn-primaria">
+                            <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> <span id="texto-cta-participar">Enviar minha foto</span>
+                        </a>
+                        <a id="btn-ir-votacao" href="./votacao.html" class="orbita-btn orbita-btn-secundaria">
+                            <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Ir para a votação
+                        </a>
                     </div>
+
+                    <p class="orbita-disclaimer">
+                        Todos os envios passam pela curadoria da nossa equipe antes de entrarem na votação pública.
+                    </p>
                 </div>
 
-                <div class="orbita-ctas">
-                    <a id="btn-enviar-foto" href="./enviar.html" class="orbita-btn orbita-btn-primaria">
-                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> <span id="texto-cta-participar">Enviar minha foto</span>
-                    </a>
-                    <a id="btn-ir-votacao" href="./votacao.html" class="orbita-btn orbita-btn-secundaria">
-                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Ir para a votação
-                    </a>
-                </div>
-                <p id="texto-prazo-encerrado" class="hidden orbita-prazo-encerrado">
-                    <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> O prazo para envio de fotos já encerrou.
-                </p>
-
-                <p class="orbita-disclaimer">
+                <!-- Substitui todo o "bloco-participar" quando o concurso já
+                     encerrou — nesse ponto, enviar foto não é mais possível e
+                     "votação" já virou a tela de resultado, então um único
+                     CTA direto é melhor que mostrar etapas/botão desabilitado
+                     explicando por que não dá pra participar. -->
+                <hr id="divisor-resultado" class="hidden orbita-divisor">
+                <a id="btn-ver-resultado" href="./votacao.html" class="hidden orbita-btn orbita-btn-primaria">
+                    <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Ver resultado do concurso
+                </a>
+                <p id="disclaimer-resultado" class="hidden orbita-disclaimer">
                     Todos os envios passam pela curadoria da nossa equipe antes de entrarem na votação pública.
                 </p>
             </div>
@@ -838,7 +845,8 @@
             const contadorDataEncerramento = document.getElementById('contador-data-encerramento');
             const btnEnviarFoto = document.getElementById('btn-enviar-foto');
             const btnIrVotacao = document.getElementById('btn-ir-votacao');
-            const textoPrazoEncerrado = document.getElementById('texto-prazo-encerrado');
+            const blocoParticipar = document.getElementById('bloco-participar');
+            const btnVerResultado = document.getElementById('btn-ver-resultado');
             const linkRegulamento = document.getElementById('link-regulamento');
 
             const slug = new URLSearchParams(window.location.search).get('c');
@@ -897,12 +905,18 @@
                     contadorTexto.textContent = '🔥 Hoje é o último dia para participar!';
                     contadorDataEncerramento.textContent = `Encerra hoje, ${dataFormatada}`;
                 } else {
-                    contadorTexto.textContent = 'O prazo para participar já encerrou.';
+                    contadorTexto.textContent = 'O prazo para participar já encerrou';
                     contadorDataEncerramento.textContent = `Encerrou em ${dataFormatada}`;
 
-                    btnEnviarFoto.removeAttribute('href');
-                    btnEnviarFoto.setAttribute('aria-disabled', 'true');
-                    textoPrazoEncerrado.classList.remove('hidden');
+                    // Concurso encerrado: nem "enviar foto" nem "etapas" fazem
+                    // sentido mais — troca o bloco inteiro por um único CTA
+                    // direto pro resultado (votacao.html já se adapta solo
+                    // pra mostrar o pódio quando o concurso está encerrado).
+                    blocoParticipar.classList.add('hidden');
+                    btnVerResultado.href = `./votacao.html?c=${encodeURIComponent(slug)}`;
+                    btnVerResultado.classList.remove('hidden');
+                    document.getElementById('divisor-resultado').classList.remove('hidden');
+                    document.getElementById('disclaimer-resultado').classList.remove('hidden');
                 }
 
                 conteudoAtivo.classList.remove('hidden');

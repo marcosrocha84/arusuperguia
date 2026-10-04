@@ -60,7 +60,7 @@
         /* ---------- Cabeçalho / rodapé ---------- */
         .orbita-header { background: var(--orbita-surface-2); border-bottom: 1px solid var(--orbita-border); }
         .orbita-header-inner { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-        .orbita-brand { display: flex; align-items: center; gap: 10px; }
+        .orbita-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
         .orbita-logo-mark { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--orbita-ink); position: relative; flex-shrink: 0; }
         .orbita-logo-mark::after { content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--orbita-ink); transform: translate(-50%, -50%); }
         .orbita-brand-name { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; color: var(--orbita-ink); }
@@ -97,7 +97,51 @@
         .orbita-card-page-titulo { margin: 8px 0 0; font-size: 1.6rem; font-weight: 700; color: var(--orbita-ink); }
         .orbita-card-page-subtitulo { margin: 8px auto 0; max-width: 30rem; font-size: 0.9rem; color: var(--orbita-ink-soft); }
         .orbita-lista { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+
+        /* ---------- Filtros (data de encerramento + patrocinador) ---------- */
+        .orbita-filtros {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 16px;
+            padding: 0 24px 20px;
+        }
+        .orbita-filtro-campo { display: flex; flex-direction: column; gap: 4px; }
+        .orbita-filtro-campo label { font-size: 0.78rem; font-weight: 600; color: var(--orbita-ink-soft); }
+        .orbita-filtro-campo input,
+        .orbita-filtro-campo select {
+            border: 1px solid var(--orbita-border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            background: var(--orbita-surface);
+            color: var(--orbita-ink);
+        }
+        .orbita-filtro-data-intervalo { display: flex; align-items: center; gap: 6px; }
+        .orbita-filtro-data-sep { font-size: 0.78rem; color: var(--orbita-ink-soft); }
+        .orbita-filtro-limpar {
+            border: none;
+            background: none;
+            color: var(--orbita-ink-soft);
+            font-size: 0.8rem;
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 8px 0;
+        }
+        .orbita-filtro-limpar:hover { color: var(--orbita-ink); }
+        .orbita-filtro-erro {
+            margin: -8px 24px 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--ember-dark, #b91c1c);
+        }
+        /* .btn-block dá width: 100% (relativo ao container, não contando
+           margin) — sem o calc abaixo, as margens de 24px somadas a esse
+           100% empurravam o botão pra fora do card à direita. Seletor com
+           as duas classes (maior especificidade) pra garantir que vence o
+           width:100% de .btn-block, que vem depois no arquivo. */
         .orbita-btn-margem { margin: 0 24px 24px; }
+        .btn-block.orbita-btn-margem { width: calc(100% - 48px); }
 
         /* ---------- Compat: .eyebrow (label pequena, usada no cabeçalho
            estático e no bloco de patrocinadores gerado por JS) ---------- */
@@ -108,6 +152,41 @@
             letter-spacing: 0.1em;
         }
         .orbita-card-page-header .eyebrow { color: var(--orbita-ink-soft); }
+
+        /* Pódio de cada concurso tem no máximo "qtd_vencedores" fotos (até
+           3, configurável por concurso) — quase nunca enche 3 colunas, então
+           em vez de um grid fixo (que deixa buraco à direita quando sobra
+           1 ou 2 fotos), usa flex-wrap centralizado com largura máxima por
+           card. */
+        .historico-grid-fotos > .foto-card { flex: 0 1 320px; max-width: 320px; }
+
+        /* ---------- Accordion (ex: "Todos os participantes") ---------- */
+        .orbita-accordion {
+            background: var(--orbita-surface-2);
+            border: 1px solid var(--orbita-border);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .orbita-accordion summary {
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--orbita-ink);
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .orbita-accordion summary::-webkit-details-marker { display: none; }
+        .orbita-accordion summary::after {
+            content: '+';
+            font-weight: 700;
+            color: var(--orbita-ink-soft);
+            flex-shrink: 0;
+        }
+        .orbita-accordion[open] summary::after { content: '−'; }
+        .orbita-accordion-conteudo { margin-top: 14px; }
 
         /* ---------- Compat: .ticket-sm (card de cada concurso/foto) ---------- */
         .ticket-sm {
@@ -319,10 +398,10 @@
 
     <header class="orbita-header">
         <div class="orbita-header-inner">
-            <div class="orbita-brand">
+            <a href="./index.html" class="orbita-brand">
                 <span class="orbita-logo-mark" aria-hidden="true"></span>
                 <span class="orbita-brand-name">Órbita</span>
-            </div>
+            </a>
             <p class="orbita-tagline">plataforma de concursos culturais</p>
         </div>
     </header>
@@ -339,6 +418,22 @@
                     Relembre as fotos campeãs de cada concurso
                 </p>
             </div>
+
+            <!-- Filtro: data de encerramento (intervalo) — filtra em memória
+                 sobre a lista já carregada, sem nova consulta ao banco (ver
+                 aplicarFiltrosHistorico). -->
+            <div class="orbita-filtros">
+                <div class="orbita-filtro-campo">
+                    <label for="filtro-data-de">Data de encerramento</label>
+                    <div class="orbita-filtro-data-intervalo">
+                        <input type="date" id="filtro-data-de" aria-label="De">
+                        <span class="orbita-filtro-data-sep">até</span>
+                        <input type="date" id="filtro-data-ate" aria-label="Até">
+                    </div>
+                </div>
+                <button type="button" id="filtro-limpar" class="orbita-filtro-limpar hidden">Limpar filtros</button>
+            </div>
+            <p id="filtro-erro" class="hidden orbita-filtro-erro" role="alert">A data final não pode ser anterior à data inicial.</p>
 
             <!-- Lista de concursos encerrados -->
             <div id="lista-concursos-encerrados" class="orbita-lista">
@@ -417,6 +512,7 @@
                 <h3 id="modal-foto-nome" class="text-lg font-semibold text-[var(--ink)]"></h3>
                 <p id="modal-foto-data" class="text-xs text-[var(--ink-soft)] mt-1"></p>
                 <p id="modal-foto-votos" class="text-sm text-[var(--ink-soft)] font-medium mt-1"></p>
+                <a id="modal-foto-tamanho-real" href="" target="_blank" rel="noopener noreferrer" class="text-xs underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)] mt-2 inline-block">Ver em tamanho real</a>
             </div>
         </div>
     </div>
@@ -433,6 +529,10 @@
         const ICONE_ARQUIVO = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
 
         const listaConcursosEncerrados = document.getElementById('lista-concursos-encerrados');
+        const filtroDataDe = document.getElementById('filtro-data-de');
+        const filtroDataAte = document.getElementById('filtro-data-ate');
+        const filtroLimparBtn = document.getElementById('filtro-limpar');
+        const filtroErro = document.getElementById('filtro-erro');
         const modalFoto = document.getElementById('modal-foto');
         const modalFotoBackdrop = document.getElementById('modal-foto-backdrop');
         const modalFotoFechar = document.getElementById('modal-foto-fechar');
@@ -442,6 +542,7 @@
         const modalFotoNome = document.getElementById('modal-foto-nome');
         const modalFotoData = document.getElementById('modal-foto-data');
         const modalFotoVotos = document.getElementById('modal-foto-votos');
+        const modalFotoTamanhoReal = document.getElementById('modal-foto-tamanho-real');
 
         // Guarda todas as fotos vencedoras já renderizadas (de todos os
         // concursos encerrados), pra alimentar a modal de visualização
@@ -471,6 +572,7 @@
             modalFotoNome.textContent = foto.nome_participante;
             modalFotoData.innerHTML = `${ICONE_CALENDARIO} ${escapeHTML(foto.dataFormatada)}`;
             modalFotoVotos.textContent = `${foto.votos} voto${foto.votos === 1 ? '' : 's'}`;
+            modalFotoTamanhoReal.href = foto.url_foto;
 
             if (foto.selo) {
                 modalFotoSelo.textContent = `${foto.selo.medalha} ${foto.selo.texto}`;
@@ -583,6 +685,64 @@
             `;
         }
 
+        const DIAS_VISIBILIDADE_PARTICIPANTES = 7;
+
+        // Mostra TODAS as fotos aprovadas do concurso (não só as do pódio),
+        // no mesmo estilo de card da tela de votação — nome, data/hora e
+        // total de votos, mas sem botão de votar (concurso já encerrado).
+        // Só até 7 dias depois do encerramento; passado esse prazo, a seção
+        // some de vez (não é só escondida via CSS; nem chega a ser montada).
+        function montarBlocoParticipantes(concurso, fotosDoConcurso) {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const dataEncerramento = new Date(concurso.data + 'T00:00:00');
+            const diasDesdeEncerramento = Math.floor((hoje - dataEncerramento) / (1000 * 60 * 60 * 24));
+
+            if (diasDesdeEncerramento > DIAS_VISIBILIDADE_PARTICIPANTES) return '';
+            if (fotosDoConcurso.length === 0) return '';
+
+            const fotosHtml = fotosDoConcurso.map(foto => {
+                const dataEnvio = new Date(foto.criado_em).toLocaleString('pt-BR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+
+                fotosExibidasCache.push({
+                    id: foto.id,
+                    url_foto: foto.url_foto,
+                    nome_participante: foto.nome_participante,
+                    votos: foto.votos,
+                    dataFormatada: dataEnvio,
+                    selo: null,
+                });
+
+                return `
+                    <div class="foto-card ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
+                        <div class="foto-card-imagem relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" onclick="abrirModalFoto('${foto.id}')" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHTML(foto.nome_participante)}" onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===this){event.preventDefault();abrirModalFoto('${foto.id}');}">
+                            <img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto do Concurso" loading="lazy" class="object-cover w-full h-full">
+                            <span class="foto-card-lupa" aria-hidden="true">${ICONE_ZOOM}</span>
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold text-[var(--ink)] text-sm sm:text-base truncate">${escapeHTML(foto.nome_participante)}</h3>
+                            <p class="text-xs text-[var(--ink-soft)] mt-0.5">${ICONE_CALENDARIO} ${dataEnvio}</p>
+                            <p class="text-xs text-[var(--ink-soft)] font-medium mt-0.5">${foto.votos} voto${foto.votos === 1 ? '' : 's'}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="px-4 md:px-6 pb-5">
+                    <details class="orbita-accordion">
+                        <summary>Todos os participantes deste concurso</summary>
+                        <div class="orbita-accordion-conteudo">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">${fotosHtml}</div>
+                            <p class="text-xs text-[var(--ink-soft)] mt-3 text-center">Esta lista fica disponível até ${DIAS_VISIBILIDADE_PARTICIPANTES} dias após o encerramento do concurso.</p>
+                        </div>
+                    </details>
+                </div>
+            `;
+        }
+
         // Monta o card de um concurso encerrado, com o pódio de fotos
         // vencedoras (mesma lógica de seleção/premiação da tela de votação).
         function montarBlocoConcurso(concurso, fotosDoConcurso) {
@@ -604,7 +764,7 @@
                 `;
             } else {
                 gridHtml = `
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 md:p-6">
+                    <div class="flex flex-wrap justify-center gap-4 p-4 md:p-6 historico-grid-fotos">
                         ${fotosExibidas.map((foto, indice) => {
                             const selo = selosPosicao(indice, foto.votos, qtdVencedores);
                             const dataEnvio = new Date(foto.criado_em).toLocaleString('pt-BR', {
@@ -621,7 +781,7 @@
                             });
 
                             return `
-                                <div class="ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
+                                <div class="foto-card ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
                                     <div class="foto-card-imagem relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" ${selo ? `style="box-shadow: inset 0 0 0 4px ${selo.cor};"` : ''} onclick="abrirModalFoto('${foto.id}')" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHTML(foto.nome_participante)}" onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===this){event.preventDefault();abrirModalFoto('${foto.id}');}">
                                         <img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto do Concurso" loading="lazy" class="object-cover w-full h-full">
                                         <span class="foto-card-lupa" aria-hidden="true">${ICONE_ZOOM}</span>
@@ -652,9 +812,59 @@
                     ${gridHtml}
                     ${montarBlocoPatrocinadores(concurso)}
                     ${montarLinkRegulamento(concurso)}
+                    ${montarBlocoParticipantes(concurso, fotosDoConcurso)}
                 </div>
             `;
         }
+
+        // Cache em memória de tudo que já foi carregado do banco — os
+        // filtros abaixo nunca disparam uma nova consulta, só recortam e
+        // re-renderizam a partir daqui (lista pequena, não justifica ida ao
+        // banco a cada mudança de filtro).
+        let concursosCache = [];
+        let fotosPorConcursoCache = {};
+
+        function aplicarFiltrosHistorico() {
+            const dataDe = filtroDataDe.value; // 'YYYY-MM-DD' ou ''
+            const dataAte = filtroDataAte.value;
+
+            filtroLimparBtn.classList.toggle('hidden', !dataDe && !dataAte);
+
+            if (dataDe && dataAte && dataAte < dataDe) {
+                filtroErro.classList.remove('hidden');
+                return; // Mantém a lista como estava até o intervalo ficar válido.
+            }
+            filtroErro.classList.add('hidden');
+
+            const concursosFiltrados = concursosCache.filter(concurso => {
+                if (dataDe && concurso.data < dataDe) return false;
+                if (dataAte && concurso.data > dataAte) return false;
+                return true;
+            });
+
+            if (concursosFiltrados.length === 0) {
+                listaConcursosEncerrados.innerHTML = `
+                    <div class="text-center text-[var(--ink-soft)] py-12">
+                        <span class="text-lg font-semibold">${ICONE_INBOX} Nenhum concurso encontrado com esses filtros.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            fotosExibidasCache = [];
+            listaConcursosEncerrados.innerHTML = concursosFiltrados
+                .map(concurso => montarBlocoConcurso(concurso, fotosPorConcursoCache[concurso.id] || []))
+                .join('');
+        }
+
+        [filtroDataDe, filtroDataAte].forEach(campo => {
+            campo.addEventListener('change', aplicarFiltrosHistorico);
+        });
+        filtroLimparBtn.addEventListener('click', () => {
+            filtroDataDe.value = '';
+            filtroDataAte.value = '';
+            aplicarFiltrosHistorico();
+        });
 
         async function carregarHistorico() {
             try {
@@ -686,6 +896,9 @@
                     if (!fotosPorConcurso[foto.concurso_id]) fotosPorConcurso[foto.concurso_id] = [];
                     fotosPorConcurso[foto.concurso_id].push(foto);
                 });
+
+                concursosCache = concursos;
+                fotosPorConcursoCache = fotosPorConcurso;
 
                 fotosExibidasCache = [];
                 listaConcursosEncerrados.innerHTML = concursos
