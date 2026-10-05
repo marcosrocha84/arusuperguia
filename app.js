@@ -150,6 +150,9 @@ const concursoSubmitBtn = document.getElementById('concurso-submit-btn');
 const concursoCancelBtn = document.getElementById('concurso-cancel-btn');
 const concursoError = document.getElementById('concurso-error');
 const concursosContainer = document.getElementById('concursos-container');
+const destinatariosResultadoModal = document.getElementById('destinatarios-resultado-modal');
+const destinatariosResultadoConteudo = document.getElementById('destinatarios-resultado-conteudo');
+const destinatariosResultadoFechar = document.getElementById('destinatarios-resultado-fechar');
 const concursoPatrocinadoresLista = document.getElementById('concurso-patrocinadores-lista');
 const concursoPremiacoesLista = document.getElementById('concurso-premiacoes-lista');
 const concursoPremiacoesLimiteTexto = document.getElementById('concurso-premiacoes-limite-texto');
@@ -789,14 +792,20 @@ function renderizarConcursos() {
 function botaoResultadoConcurso(concurso) {
     if (!concurso.encerrado) return '';
 
+    const btnVerDestinatarios = `<button onclick="verDestinatariosResultado('${concurso.id}')" class="btn btn-ghost text-xs !py-1 !px-2">Ver destinatários</button>`;
+
     if (!concurso.resultado_enviado_em) {
-        return `<button onclick="enviarResultadoConcurso('${concurso.id}')" class="btn btn-fern text-sm !py-1.5 !px-3">Enviar resultado</button>`;
+        return `
+            <button onclick="enviarResultadoConcurso('${concurso.id}')" class="btn btn-fern text-sm !py-1.5 !px-3">Enviar resultado</button>
+            ${btnVerDestinatarios}
+        `;
     }
 
     const dataEnvio = new Date(concurso.resultado_enviado_em).toLocaleString('pt-BR');
     return `
         <span class="text-xs text-[var(--ink-soft)]">Resultado enviado em ${dataEnvio}</span>
         <button onclick="enviarResultadoConcurso('${concurso.id}')" class="btn btn-ghost text-xs !py-1 !px-2">Reenviar mesmo assim</button>
+        ${btnVerDestinatarios}
     `;
 }
 
@@ -819,6 +828,63 @@ async function chamarEnvioResultado(concursoId) {
     const resultado = await resposta.json();
     if (!resposta.ok || resultado.error) throw new Error(resultado.error || 'Falha ao enviar o resultado.');
     return resultado;
+}
+
+// Mesma Edge Function, mas com modo_preview: true — só devolve a lista de
+// e-mails, sem calcular vencedores nem enviar nada.
+async function chamarPreviewDestinatarios(concursoId) {
+    const { data: sessao } = await supabase.auth.getSession();
+    const token = sessao.session?.access_token;
+    if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+    const resposta = await fetch(`${SUPABASE_URL}/functions/v1/enviar-resultado-concurso`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ concurso_id: concursoId, modo_preview: true }),
+    });
+
+    const resultado = await resposta.json();
+    if (!resposta.ok || resultado.error) throw new Error(resultado.error || 'Falha ao buscar os destinatários.');
+    return resultado;
+}
+
+window.verDestinatariosResultado = async function(id) {
+    if (!destinatariosResultadoModal) return;
+
+    destinatariosResultadoConteudo.innerHTML = '<p class="text-center text-[var(--ink-soft)]">Carregando...</p>';
+    destinatariosResultadoModal.classList.remove('hidden');
+
+    try {
+        const resultado = await chamarPreviewDestinatarios(id);
+
+        if (resultado.emails.length === 0) {
+            destinatariosResultadoConteudo.innerHTML = '<p class="text-center text-[var(--ink-soft)]">Nenhum usuário optou por receber o resultado deste concurso ainda.</p>';
+            return;
+        }
+
+        destinatariosResultadoConteudo.innerHTML = `
+            <p class="text-[var(--ink-soft)] mb-3">${resultado.total} pessoa${resultado.total === 1 ? '' : 's'} receberia${resultado.total === 1 ? '' : 'm'} o e-mail de resultado agora:</p>
+            <ul class="space-y-1 max-h-80 overflow-y-auto">
+                ${resultado.emails.map(email => `<li class="px-3 py-1.5 rounded-lg bg-[var(--bone-2)] text-[var(--ink)]">${escapeHTML(email)}</li>`).join('')}
+            </ul>
+        `;
+    } catch (erro) {
+        destinatariosResultadoConteudo.innerHTML = `<p class="text-center text-[var(--ember-dark)] font-semibold">${escapeHTML(erro.message)}</p>`;
+    }
+};
+
+if (destinatariosResultadoFechar) {
+    destinatariosResultadoFechar.addEventListener('click', () => {
+        destinatariosResultadoModal.classList.add('hidden');
+    });
+}
+if (destinatariosResultadoModal) {
+    destinatariosResultadoModal.addEventListener('click', (evento) => {
+        if (evento.target === destinatariosResultadoModal) destinatariosResultadoModal.classList.add('hidden');
+    });
 }
 
 window.enviarResultadoConcurso = async function(id) {

@@ -5,6 +5,11 @@
 // por votos) e envia um e-mail avisando o resultado para quem aceitou saber
 // (preferencias_resultado_concurso.quer_resultado = true naquele concurso).
 //
+// Passando { concurso_id, modo_preview: true } em vez disso, devolve só a
+// lista de e-mails que receberiam o resultado agora — sem calcular
+// vencedores, sem enviar nada e sem carimbar resultado_enviado_em (usado
+// pelo botão "Ver destinatários" em curadoria.html).
+//
 // Mesmo motivo de existir como Edge Function que disparar-campanha: a API
 // key do Resend não pode ficar no front-end, e a lista de e-mails dos
 // usuários (auth.users) só é acessível via Service Role Key.
@@ -181,7 +186,7 @@ Deno.serve(async (req) => {
     }
 
     try {
-        const { concurso_id } = await req.json();
+        const { concurso_id, modo_preview } = await req.json();
 
         if (!concurso_id || typeof concurso_id !== "string") {
             return new Response(JSON.stringify({ error: "concurso_id é obrigatório." }), {
@@ -234,6 +239,39 @@ Deno.serve(async (req) => {
         if (!concurso) {
             return new Response(JSON.stringify({ error: "Concurso não encontrado." }), {
                 status: 404,
+                headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+            });
+        }
+
+        // 2b) Modo preview: só devolve a lista de e-mails que receberiam o
+        // resultado agora, sem calcular vencedores, sem enviar nada e sem
+        // carimbar resultado_enviado_em — usado pelo botão "Ver
+        // destinatários" em curadoria.html antes do envio de verdade.
+        if (modo_preview === true) {
+            const { data: optinsPreview, error: optinPreviewError } = await supabaseAdmin
+                .from("preferencias_resultado_concurso")
+                .select("user_id")
+                .eq("concurso_id", concurso_id)
+                .eq("quer_resultado", true);
+
+            if (optinPreviewError) {
+                return new Response(JSON.stringify({ error: optinPreviewError.message }), {
+                    status: 500,
+                    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+                });
+            }
+
+            const emails: string[] = [];
+            for (const optin of optinsPreview ?? []) {
+                const { data: usuario, error: usuarioError } = await supabaseAdmin.auth.admin.getUserById(optin.user_id);
+                if (!usuarioError && usuario?.user?.email) {
+                    emails.push(usuario.user.email);
+                }
+            }
+            emails.sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+            return new Response(JSON.stringify({ success: true, preview: true, emails, total: emails.length }), {
+                status: 200,
                 headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
             });
         }
