@@ -191,7 +191,6 @@ let premiacoesCache = [];
 // Campanhas de e-mail marketing
 const campanhaForm = document.getElementById('campanha-form');
 const campanhaIdInput = document.getElementById('campanha-id');
-const campanhaPatrocinadorInput = document.getElementById('campanha-patrocinador');
 const campanhaConcursoInput = document.getElementById('campanha-concurso');
 const campanhaAssuntoInput = document.getElementById('campanha-assunto');
 const campanhaCorpoInput = document.getElementById('campanha-corpo');
@@ -1853,26 +1852,18 @@ const ROTULOS_EVENTO_EMAIL = {
     complained: 'Reclamações',
 };
 
-// Popula os selects de patrocinador/concurso do formulário — refeito toda
-// vez que a aba é aberta, pra refletir cadastros novos feitos noutra aba.
+// Popula o select de concurso do formulário — refeito toda vez que a aba é
+// aberta, pra refletir cadastros novos feitos noutra aba.
 async function carregarOpcoesCampanha() {
-    const [patrocinadoresRes, concursosRes] = await Promise.all([
-        supabase.from('patrocinadores').select('id, nome').eq('ativo', true).order('nome', { ascending: true }),
-        supabase.from('concursos').select('id, nome, descricao').order('criado_em', { ascending: false }),
-    ]);
-
-    if (campanhaPatrocinadorInput) {
-        const selecionado = campanhaPatrocinadorInput.value;
-        campanhaPatrocinadorInput.innerHTML = (patrocinadoresRes.data || [])
-            .map(p => `<option value="${p.id}">${escapeHTML(p.nome)}</option>`)
-            .join('') || '<option value="">Nenhum patrocinador ativo cadastrado</option>';
-        campanhaPatrocinadorInput.value = selecionado;
-    }
+    const { data: concursos } = await supabase
+        .from('concursos')
+        .select('id, nome, descricao')
+        .order('criado_em', { ascending: false });
 
     if (campanhaConcursoInput) {
         const selecionado = campanhaConcursoInput.value;
-        campanhaConcursoInput.innerHTML = '<option value="">Toda a base (opt-in)</option>' +
-            (concursosRes.data || [])
+        campanhaConcursoInput.innerHTML = '<option value="">Selecione um concurso</option>' +
+            (concursos || [])
                 .map(c => `<option value="${c.id}">${escapeHTML(c.nome || c.descricao)}</option>`)
                 .join('');
         campanhaConcursoInput.value = selecionado;
@@ -1885,7 +1876,7 @@ async function carregarCampanhas() {
 
     const { data, error } = await supabase
         .from('campanhas_marketing')
-        .select('*, patrocinadores(nome), concursos(nome, descricao)')
+        .select('*, concursos(nome, descricao)')
         .order('criado_em', { ascending: false });
 
     if (error) {
@@ -1932,8 +1923,7 @@ function renderizarCampanhas() {
                 <p class="font-semibold text-[var(--ink)]">${escapeHTML(campanha.assunto)}</p>
                 <div class="flex flex-wrap items-center gap-2 mt-1">
                     <span class="stamp ${STAMP_POR_STATUS_CAMPANHA[campanha.status] || 'stamp-amber'}">${ROTULO_POR_STATUS_CAMPANHA[campanha.status] || campanha.status}</span>
-                    <span class="text-sm text-[var(--ink-soft)]">${escapeHTML(campanha.patrocinadores?.nome || 'Patrocinador removido')}</span>
-                    <span class="text-sm text-[var(--ink-soft)]">· ${campanha.concursos ? 'Votantes de ' + escapeHTML(campanha.concursos.nome || campanha.concursos.descricao) : 'Toda a base'}</span>
+                    <span class="text-sm text-[var(--ink-soft)]">${campanha.concursos ? escapeHTML(campanha.concursos.nome || campanha.concursos.descricao) : 'Concurso removido'}</span>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -1961,7 +1951,6 @@ window.editarCampanha = function (id) {
     if (!campanha) return;
 
     campanhaIdInput.value = campanha.id;
-    campanhaPatrocinadorInput.value = campanha.patrocinador_id;
     campanhaConcursoInput.value = campanha.concurso_id || '';
     campanhaAssuntoInput.value = campanha.assunto;
     campanhaCorpoInput.value = campanha.corpo_html;
@@ -1978,13 +1967,12 @@ window.editarCampanha = function (id) {
 async function salvarCampanhaDoFormulario() {
     const id = campanhaIdInput.value;
     const payload = {
-        patrocinador_id: campanhaPatrocinadorInput.value,
         concurso_id: campanhaConcursoInput.value || null,
         assunto: campanhaAssuntoInput.value.trim(),
         corpo_html: campanhaCorpoInput.value,
     };
 
-    if (!payload.patrocinador_id) throw new Error('Selecione um patrocinador.');
+    if (!payload.concurso_id) throw new Error('Selecione um concurso.');
 
     if (id) {
         const { error } = await supabase.from('campanhas_marketing').update(payload).eq('id', id);

@@ -293,12 +293,7 @@
                     <button data-view="patrocinadores" class="nav-item" title="Patrocinadores"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Patrocinadores</button>
                     <button data-view="premiacoes" class="nav-item" title="Premiações"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Premiações</button>
                     <button data-view="auditoria" class="nav-item" title="Auditoria de votos"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Auditoria de votos</button>
-                    <!-- Menu desabilitado: a base de preferencias_marketing não recebe mais
-                         opt-ins novos desde que o banner de votacao.html passou a perguntar
-                         sobre aviso de resultado por concurso (preferencias_resultado_concurso)
-                         em vez de marketing. Código, dados e Edge Function (disparar-campanha)
-                         continuam intactos — só a entrada de menu foi escondida. -->
-                    <button data-view="campanhas" class="nav-item hidden" title="Campanhas"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg> Campanhas</button>
+                    <button data-view="campanhas" class="nav-item" title="Aviso de resultado"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg> Aviso de resultado</button>
                 </nav>
             </aside>
 
@@ -655,24 +650,19 @@
                     </div>
                 </section>
 
-                <!-- VIEW: Campanhas de e-mail marketing -->
+                <!-- VIEW: Aviso de resultado (antiga "Campanhas de e-mail
+                     marketing") -->
                 <section id="view-campanhas" class="view hidden">
                     <div class="flex items-center justify-between mb-6 gap-4">
-                        <h2 class="font-display text-2xl text-[var(--ink)]">Campanhas de e-mail marketing <span id="contador-campanhas" class="text-base font-normal text-[var(--ink-soft)]"></span></h2>
+                        <h2 class="font-display text-2xl text-[var(--ink)]">Aviso de resultado <span id="contador-campanhas" class="text-base font-normal text-[var(--ink-soft)]"></span></h2>
                     </div>
 
                     <form id="campanha-form" class="ticket-sm p-5 mb-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                         <input type="hidden" id="campanha-id">
-                        <div>
-                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Patrocinador</label>
-                            <select id="campanha-patrocinador" required class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
-                                <option value="">Carregando...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Destinatários</label>
-                            <select id="campanha-concurso" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
-                                <option value="">Toda a base (opt-in)</option>
+                        <div class="md:col-span-2">
+                            <label class="block text-[var(--ink)] text-sm font-semibold mb-1">Concurso</label>
+                            <select id="campanha-concurso" required class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                <option value="">Selecione um concurso</option>
                             </select>
                         </div>
                         <div class="md:col-span-2">

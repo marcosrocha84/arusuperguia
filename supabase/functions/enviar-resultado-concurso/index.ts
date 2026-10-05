@@ -98,20 +98,34 @@ function montarHtmlResultado(nomeConcurso: string, vencedores: { nome_participan
     const linhas = vencedores
         .map((v, i) => linhaVencedor(v.nome_participante || "Participante", i))
         .join("");
+    const assunto = `Resultado do concurso "${nomeConcurso}"`;
 
-    return `
+    // Documento completo (doctype + head com charset/viewport), não só o
+    // fragmento <div>/<table> de antes — a maioria dos provedores de envio
+    // (Resend incluso) envolve um fragmento automaticamente, mas isso evita
+    // depender desse comportamento e dá consistência maior em clientes mais
+    // antigos (Outlook desktop é o pior caso de renderização de e-mail).
+    return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(assunto)}</title>
+</head>
+<body style="margin:0;padding:0;">
         <div style="background:#F5F1E8;padding:32px 12px;font-family:Arial,Helvetica,sans-serif;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e8e4da;">
                 <tr>
                     <td style="background:${COR_SURFACE_2};border-bottom:1px solid ${COR_BORDER};padding:28px 24px;text-align:center;">
                         <div style="font-size:15px;color:${COR_INK};font-weight:bold;">Órbita</div>
-                        <div style="font-size:20px;color:${COR_INK};font-weight:bold;margin-top:6px;">Resultado do concurso</div>
+                        <div style="font-size:11px;color:${COR_INK_SOFT};letter-spacing:.03em;margin-top:2px;">plataforma de concursos culturais</div>
+                        <div style="font-size:20px;color:${COR_INK};font-weight:bold;margin-top:14px;">Resultado do concurso</div>
                         <div style="font-size:16px;color:${COR_INK_SOFT};margin-top:2px;">${escapeHtml(nomeConcurso)}</div>
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:20px 24px 4px;">
-                        <p style="font-size:14px;color:${COR_INK};line-height:1.5;margin:0;">O concurso foi encerrado e o resultado já está disponível. Confira quem foram os vencedores:</p>
+                        <p style="font-size:14px;color:${COR_INK};line-height:1.5;margin:0;">${vencedores.length === 1 ? 'O concurso foi encerrado e o resultado já está disponível. Confira quem foi o vencedor:' : 'O concurso foi encerrado e o resultado já está disponível. Confira quem foram os vencedores:'}</p>
                     </td>
                 </tr>
                 <tr>
@@ -123,12 +137,40 @@ function montarHtmlResultado(nomeConcurso: string, vencedores: { nome_participan
                 </tr>
                 <tr>
                     <td style="padding:20px 24px 28px;text-align:center;">
-                        <p style="font-size:12px;color:#8a8578;margin:0;">Você recebeu este e-mail porque optou por saber o resultado deste concurso na tela de votação do Órbita.</p>
+                        <p style="font-size:12px;color:#8a8578;margin:0;">Você recebeu este e-mail porque optou por saber o resultado deste concurso na tela de votação da Órbita.</p>
+                        <p style="font-size:12px;margin:8px 0 0;"><a href="https://orbita.art.br" style="color:${COR_FERN};text-decoration:underline;">orbita.art.br</a></p>
                     </td>
                 </tr>
             </table>
         </div>
-    `;
+</body>
+</html>`;
+}
+
+// Alternativa em texto puro do mesmo e-mail — ajuda a passar por filtros de
+// spam e cobre clientes/leitores de tela que não renderizam HTML. Resend
+// aceita o campo "text" junto de "html" na mesma chamada.
+function montarTextoResultado(nomeConcurso: string, vencedores: { nome_participante: string }[]): string {
+    const introducao = vencedores.length === 1
+        ? "O concurso foi encerrado e o resultado já está disponível. Confira quem foi o vencedor:"
+        : "O concurso foi encerrado e o resultado já está disponível. Confira quem foram os vencedores:";
+
+    const linhas = vencedores
+        .map((v, i) => `${NOMES_POSICAO[i] || `${i + 1}º lugar`}: ${v.nome_participante || "Participante"}`)
+        .join("\n");
+
+    return [
+        "Órbita — plataforma de concursos culturais",
+        "",
+        `Resultado do concurso: ${nomeConcurso}`,
+        "",
+        introducao,
+        "",
+        linhas,
+        "",
+        "Você recebeu este e-mail porque optou por saber o resultado deste concurso na tela de votação da Órbita.",
+        "https://orbita.art.br",
+    ].join("\n");
 }
 
 Deno.serve(async (req) => {
@@ -274,6 +316,7 @@ Deno.serve(async (req) => {
         const nomeConcurso = concurso.nome || concurso.descricao || "Concurso";
         const assunto = `Resultado do concurso "${nomeConcurso}"`;
         const html = montarHtmlResultado(nomeConcurso, vencedores);
+        const text = montarTextoResultado(nomeConcurso, vencedores);
 
         // 5) Envia em lotes de até 100 destinatários (limite da API de batch
         // do Resend), um e-mail individual por destinatário.
@@ -287,6 +330,7 @@ Deno.serve(async (req) => {
                     to: [destinatario.email],
                     subject: assunto,
                     html,
+                    text,
                 }));
 
                 const resendResp = await fetch("https://api.resend.com/emails/batch", {
