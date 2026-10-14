@@ -907,48 +907,35 @@
             secaoCasos.classList.remove('hidden');
         })();
 
-        // Barra de números — soma de TODOS os concursos (não só os
-        // marcados como case), pra dar prova social mesmo antes de existir
-        // algum case cadastrado.
+        // Barra de números — soma de TODOS os concursos que já tiveram
+        // participação real (não os marcados como case, nem só os
+        // atualmente ativos). "Real" aqui é decidido pela EVIDÊNCIA de que
+        // o concurso rodou (teve ao menos 1 foto aprovada), não pelo campo
+        // `ativo` — esse campo só controla se o concurso aparece na lista
+        // de ativos do index.html, e o curador costuma desativar concursos
+        // já encerrados pra tirá-los de lá. Filtrar por `ativo = true`
+        // fazia essa barra "perder" concursos encerrados assim que eles
+        // eram desativados, mesmo tendo fotos/votos reais. Um rascunho/
+        // teste nunca publicado não tem foto aprovada, então já fica de
+        // fora naturalmente, sem precisar checar `ativo`.
         (async () => {
             const statConcursos = document.getElementById('stat-concursos');
             const statFotos = document.getElementById('stat-fotos');
             const statVotos = document.getElementById('stat-votos');
 
-            // Só concursos ativos (mesma regra de index.html) — exclui
-            // rascunhos/testes que o curador nunca chegou a publicar, pra
-            // não inflar os números públicos com dado que não é real.
-            const { data: concursosAtivos, error: erroConcursos } = await supabase
-                .from('concursos')
-                .select('id')
-                .eq('ativo', true);
+            const { data: fotos, error: erroFotos } = await supabase
+                .from('fotos_concurso')
+                .select('concurso_id, votos')
+                .eq('aprovada', true);
 
-            if (erroConcursos) {
-                console.error('Erro ao carregar números da Órbita:', erroConcursos);
+            if (erroFotos) {
+                console.error('Erro ao carregar números da Órbita:', erroFotos);
                 return; // Mantém o "—" em vez de mostrar um número errado.
             }
 
-            const idsAtivos = (concursosAtivos ?? []).map((c) => c.id);
-            const totalConcursos = idsAtivos.length;
-
-            let totalFotos = 0;
-            let totalVotos = 0;
-
-            if (idsAtivos.length > 0) {
-                const { data: fotos, error: erroFotos } = await supabase
-                    .from('fotos_concurso')
-                    .select('votos')
-                    .eq('aprovada', true)
-                    .in('concurso_id', idsAtivos);
-
-                if (erroFotos) {
-                    console.error('Erro ao carregar números da Órbita:', erroFotos);
-                    return;
-                }
-
-                totalFotos = fotos?.length ?? 0;
-                totalVotos = (fotos ?? []).reduce((soma, f) => soma + (f.votos || 0), 0);
-            }
+            const totalConcursos = new Set((fotos ?? []).map((f) => f.concurso_id)).size;
+            const totalFotos = fotos?.length ?? 0;
+            const totalVotos = (fotos ?? []).reduce((soma, f) => soma + (f.votos || 0), 0);
 
             statConcursos.textContent = totalConcursos.toLocaleString('pt-BR');
             statFotos.textContent = totalFotos.toLocaleString('pt-BR');

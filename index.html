@@ -893,7 +893,7 @@
             `;
 
             try {
-                const { data, error } = await supabase
+                const { data: concursos, error } = await supabase
                     .from('concursos')
                     .select('id, slug, nome, descricao, data, theme_config')
                     .eq('ativo', true)
@@ -901,7 +901,21 @@
 
                 if (error) throw error;
 
-                if (data && data.length > 0) {
+                if (concursos && concursos.length > 0) {
+                    // Concursos em andamento primeiro, depois os já com prazo
+                    // encerrado (mas ainda `ativo`, até o curador desativar) —
+                    // dentro de cada grupo, mantém a ordenação já vinda da
+                    // query (data ascendente), já que a lista toda já chega
+                    // nessa ordem e só precisamos separar os dois grupos sem
+                    // misturar os encerrados na frente de quem ainda vale a
+                    // pena participar.
+                    const hojeStr = new Date().toISOString().slice(0, 10);
+                    const emAndamento = concursos.filter(c => c.data >= hojeStr);
+                    // Encerrados: do mais recente pro mais antigo — a query já
+                    // veio ascendente, então só inverte esse recorte.
+                    const jaEncerrados = concursos.filter(c => c.data < hojeStr).reverse();
+                    const data = [...emAndamento, ...jaEncerrados];
+
                     // Nomes distintos (não contagem de fotos) com foto aprovada,
                     // por concurso — uma pessoa pode enviar mais de uma foto, e
                     // "participantes" deve contar gente, não fotos. Uma única

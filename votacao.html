@@ -193,7 +193,10 @@
             left: var(--x);
             top: var(--y);
             pointer-events: none;
-            z-index: 9999;
+            /* Acima do modal de foto ampliada (.modal-foto, z-index 10000) —
+               sem isso, votar com o modal aberto explodia os corações atrás
+               dele, escondidos pelo fundo escurecido. */
+            z-index: 10001;
             font-size: var(--size);
             animation: coracao-explodir 0.8s ease-out forwards;
             will-change: transform, opacity;
@@ -1304,7 +1307,7 @@
                     const dataFormatada = new Date(concursoAtivo.data + 'T00:00:00').toLocaleDateString('pt-BR');
                     iconeTituloVotacao.innerHTML = ICONE_PREMIO_TITULO;
                     textoTituloVotacao.textContent = fotosExibidas.length === 1 ? 'Foto campeã!' : 'Fotos campeãs!';
-                    subtituloVotacao.textContent = `O concurso "${concursoAtivo.nome || concursoAtivo.descricao}" foi encerrado em ${dataFormatada}. Confira abaixo as fotos mais votadas.`;
+                    subtituloVotacao.textContent = `O concurso "${concursoAtivo.nome || concursoAtivo.descricao}" foi encerrado em ${dataFormatada}. Confira abaixo a${fotosExibidas.length === 1 ? '' : 's'} foto${fotosExibidas.length === 1 ? '' : 's'} mais votada${fotosExibidas.length === 1 ? '' : 's'}.`;
                 }
 
                 if (encerrado && fotosExibidas.length > 0) {
