@@ -156,13 +156,31 @@
             box-shadow: 0 10px 22px rgb(0 0 0 / 0.25);
             filter: brightness(1.06);
         }
-        .badge-lancamento {
-            display: inline-block; width: fit-content;
-            background: var(--accent-ink); color: var(--accent);
-            font-size: 0.78rem; font-weight: 600;
-            padding: 5px 14px; border-radius: 999px;
+        /* Pulso suave no card de preço, pra chamar atenção pro valor de
+           lançamento — mesmo tipo de anel de sombra usado em index.html
+           pro destaque de "último dia". */
+        .preco-card-pulso {
+            animation: preco-pulso 2.2s ease-in-out infinite;
         }
-
+        @keyframes preco-pulso {
+            0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+            50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .preco-card-pulso { animation: none; }
+        }
+        /* Destaque temporário na seção pra onde um .btn-scroll-destaque
+           aponta, quando o visitante chega até ela clicando num desses
+           botões — pra ficar claro pra onde o clique levou, já que a
+           âncora sozinha (scroll instantâneo) pode não deixar isso óbvio.
+           Generalizado por classe, não por id: qualquer seção-alvo (hoje
+           #contato e #como-funciona) entra só marcando o <section> com
+           .secao-destacavel. */
+        .secao-destacavel { transition: background-color 0.5s ease, box-shadow 0.5s ease; border-radius: 16px; }
+        .secao-destacavel.secao-destaque-ativo {
+            background: var(--soft);
+            box-shadow: 0 0 0 3px var(--sun);
+        }
         /* ---------- Hero: sistema orbital ---------- */
         .orbit { position: relative; aspect-ratio: 1; width: 100%; max-width: 380px; margin-inline: auto; }
         @media (min-width: 768px) { .orbit { max-width: none; } }
@@ -357,8 +375,8 @@
                 <h1 class="text-4xl md:text-6xl tracking-tight text-ink">Premie sua comunidade <em class="not-italic text-accent">sem depender de sorteio</em></h1>
                 <p class="lead">Com a Órbita, você cria um concurso cultural de fotografia em que seu público envia fotos, vota nas favoritas e os melhores levam o prêmio. Você escolhe o tema e o prêmio. A gente cuida do resto.</p>
                 <div class="flex flex-wrap gap-3">
-                    <a class="btn primary" href="#contato">Quero criar meu concurso</a>
-                    <a class="btn ghost" href="#como-funciona">Ver como funciona</a>
+                    <a class="btn ghost btn-scroll-destaque" href="#contato">Quero criar meu concurso</a>
+                    <a class="btn ghost btn-scroll-destaque" href="#como-funciona">Ver como funciona</a>
                 </div>
             </div>
             <div class="orbit" aria-hidden="true">
@@ -415,7 +433,9 @@
              case), populado em tempo de execução (ver script no fim do
              arquivo). Fica com valores em branco até a consulta terminar,
              sem "pulo" de layout. -->
-        <section class="py-8 border-t border-line">
+        <section class="py-8 border-t border-line grid gap-4">
+            <span class="eyebrow">Números</span>
+            <h2 class="text-2xl md:text-3xl text-ink">A Órbita em números</h2>
             <div class="grid grid-cols-3 gap-4 text-center">
                 <div>
                     <b id="stat-concursos" class="font-display text-3xl md:text-4xl text-ink block">—</b>
@@ -449,7 +469,7 @@
         </section>
 
         <!-- Como funciona -->
-        <section class="py-14 border-t border-line grid gap-6" id="como-funciona">
+        <section class="py-14 border-t border-line grid gap-6 secao-destacavel" id="como-funciona">
             <span class="eyebrow">Como funciona</span>
             <h2 class="text-2xl md:text-3xl text-ink">Seu concurso no ar em 3 passos</h2>
             <ol class="steps grid grid-cols-1 md:grid-cols-3 gap-5 list-none p-0 m-0">
@@ -657,8 +677,8 @@
         <!-- CTA intermediário — pra quem já se convenceu antes de chegar
              no fechamento lá embaixo. -->
         <section class="py-10 border-t border-line grid gap-4 justify-items-center text-center">
-            <h2 class="text-xl md:text-2xl text-ink">Curtiu até aqui? Vamos criar o seu concurso.</h2>
-            <a class="btn primary" href="#contato">Quero criar meu concurso</a>
+            <h2 class="text-xl md:text-2xl text-ink">Curtiu até aqui? Vamos criar o seu concurso!</h2>
+            <a class="btn ghost btn-scroll-destaque" href="#contato">Quero criar meu concurso</a>
         </section>
 
         <!-- Casos -->
@@ -676,22 +696,24 @@
         <!-- Preço -->
         <section class="py-14 border-t border-line grid gap-6">
             <span class="eyebrow">Preço</span>
-            <div class="bg-accent rounded-2xl p-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div class="grid gap-4 min-w-0">
-                    <h2 class="text-2xl md:text-3xl">Um preço simples por concurso</h2>
-                    <span class="badge-lancamento">Preço especial de lançamento. Peça um orçamento</span>
-                    <div class="font-display text-5xl"><span class="line-through">R$ 299</span><small class="block font-body text-base font-medium opacity-80 mt-2 line-through">a partir de, por concurso</small></div>
-                    <a class="btn on-accent justify-self-start" href="#contato">Pedir orçamento</a>
-                </div>
-                <div class="grid gap-3 min-w-0">
-                    <ul class="list-disc pl-5 grid gap-1.5">
-                        <li>Página do concurso e regulamento</li>
-                        <li>Moderação das fotos</li>
-                        <li>Votação protegida e apuração</li>
-                        <li>Página dos vencedores</li>
-                        <li>E-mail aos vencedores</li>
-                    </ul>
-                    <p class="text-sm opacity-80">O prêmio é escolhido e entregue por você e não está incluído no valor.</p>
+            <div class="bg-surface border border-line rounded-2xl overflow-hidden preco-card-pulso">
+                <div class="flex flex-col md:flex-row">
+                    <div class="p-8 grid gap-4 min-w-0 md:flex-1 bg-soft">
+                        <h2 class="text-2xl md:text-3xl text-ink">Um preço simples</h2>
+                        <div class="font-display text-6xl font-bold" style="color: var(--ink);"><span style="background: color-mix(in srgb, var(--accent) 75%, black); color: var(--accent-ink); padding: 2px 14px; border-radius: 10px;">R$ 49,90*</span> <span class="line-through text-2xl font-body font-normal opacity-60">R$ 299 </span><small class="font-body text-base font-medium opacity-80 mt-2">por concurso</small></div>
+                        <a class="btn ghost justify-self-center btn-scroll-destaque" href="#contato">Clique aqui e entre em contato</a>
+                    </div>
+                    <div class="p-8 grid gap-3 min-w-0 md:flex-1">
+                        <ul class="list-disc pl-5 grid gap-1.5">
+                            <li>Página do concurso e regulamento</li>
+                            <li>Moderação das fotos</li>
+                            <li>Votação protegida e apuração</li>
+                            <li>Página dos vencedores</li>
+                            <li>E-mail aos vencedores</li>
+                        </ul>
+                        <p class="text-sm opacity-80">O prêmio é escolhido e entregue por você e não está incluído no valor.</p>
+                        <p class="text-sm italic text-right opacity-80" style="color: var(--ink);">* Preço especial para os primeiros concursos</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -708,10 +730,6 @@
                 <details class="p-4 md:p-5">
                     <summary class="text-ink">Preciso ter CNPJ?</summary>
                     <p class="text-muted mt-2">Não. O concurso cultural pode ser promovido por pessoa física, como a maioria dos criadores de conteúdo.</p>
-                </details>
-                <details class="p-4 md:p-5">
-                    <summary class="text-ink">Posso dar um produto do meu canal ou da minha marca como prêmio?</summary>
-                    <p class="text-muted mt-2">Não. A regra não permite prêmio que seja produto ou serviço de quem promove o concurso. Vale-presente, gift card, livros, equipamentos e ingressos funcionam bem.</p>
                 </details>
                 <details class="p-4 md:p-5">
                     <summary class="text-ink">Posso pedir para as pessoas me seguirem para participar?</summary>
@@ -753,12 +771,12 @@
         </section>
 
         <!-- Fechamento com contatos -->
-        <section class="py-14 border-t border-line grid gap-5" id="contato">
+        <section class="py-14 border-t border-line grid gap-5 secao-destacavel" id="contato">
             <span class="eyebrow">Vamos conversar</span>
             <h2 class="text-2xl md:text-3xl text-ink">Bora criar o concurso da sua comunidade?</h2>
             <p class="lead">Conta pra gente sobre o seu canal ou a sua marca e a gente sugere um tema.</p>
             <div class="flex flex-wrap gap-3">
-                <a class="btn primary" href="https://wa.me/5548988164814" target="_blank" rel="noopener noreferrer">Falar no WhatsApp</a>
+                <a class="btn ghost" href="https://wa.me/5548988164814" target="_blank" rel="noopener noreferrer">Falar no WhatsApp</a>
                 <a class="btn ghost" href="https://www.instagram.com/orbita.art.br/" target="_blank" rel="noopener noreferrer">Ver o Instagram</a>
             </div>
             <div class="contacts flex flex-wrap gap-x-7 gap-y-2">
@@ -794,6 +812,24 @@
         linkChecklist.addEventListener('click', (evento) => {
             evento.preventDefault();
             avisoChecklist.classList.remove('hidden');
+        });
+
+        // Botões que levam pra outra seção da própria página (âncora no
+        // próprio href, ex: "#contato", "#como-funciona"): rolam até lá e
+        // piscam um destaque na seção, pra deixar claro pra onde o clique
+        // levou (a âncora sozinha, com scroll instantâneo, nem sempre
+        // deixa isso óbvio). O alvo vem do href de cada botão — não precisa
+        // de um handler por seção, só marcar a seção com .secao-destacavel.
+        document.querySelectorAll('.btn-scroll-destaque').forEach((botao) => {
+            const alvo = document.querySelector(botao.getAttribute('href'));
+            if (!alvo) return;
+
+            botao.addEventListener('click', (evento) => {
+                evento.preventDefault();
+                alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                alvo.classList.add('secao-destaque-ativo');
+                setTimeout(() => alvo.classList.remove('secao-destaque-ativo'), 1800);
+            });
         });
 
         // Mesmo efeito de votacao.html: corações "explodem" a partir do
