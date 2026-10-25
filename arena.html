@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="og-title">Órbita Arena</title>
+<meta id="meta-description" name="description" content="Acompanhe o chaveamento e os combatentes ao vivo de um campeonato PvP de WoW Classic na Órbita Arena.">
+<meta id="og-description" property="og:description" content="Acompanhe o chaveamento e os combatentes ao vivo de um campeonato PvP de WoW Classic na Órbita Arena.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Manrope:wght@400;500;600;700;800&display=swap">
+
+<style>
+    :root {
+        --bg: #0B0A0D;
+        --card: #17151B;
+        --border: #3A332B;
+        --ink: #ECE6DA;
+        --ink-soft: #CFC6B4;
+        --ink-soft2: #A39A89;
+        --gold: #D9B26A;
+        --horda-bg: #9E1F17;
+        --horda-ink: #FF6A55;
+        --alianca-bg: #1D4FA8;
+        --alianca-ink: #6FA8FF;
+        --font-display: 'Cinzel', Georgia, serif;
+        --font-body: 'Manrope', system-ui, -apple-system, sans-serif;
+        color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--font-body);
+        font-size: 16px;
+        line-height: 1.5;
+    }
+    img { max-width: 100%; }
+    a { color: var(--gold); }
+    h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.04em; margin: 0; }
+    .container { max-width: 1240px; margin: 0 auto; padding: 0 20px; }
+
+    /* Cantos chanfrados — identidade visual da Arena inteira, sem
+       border-radius em lugar nenhum. */
+    .chanfro {
+        clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    }
+
+    /* ---------- Cabeçalho ---------- */
+    .arena-header {
+        border-bottom: 1px solid var(--border);
+        background: var(--card);
+    }
+    .arena-header-inner {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 16px; padding: 14px 0; flex-wrap: wrap;
+    }
+    .arena-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .arena-logo-mark {
+        width: 24px; height: 24px; border-radius: 50%;
+        border: 2px solid var(--gold); position: relative; flex-shrink: 0;
+    }
+    .arena-logo-mark::after {
+        content: ''; position: absolute; top: 50%; left: 50%;
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--gold); transform: translate(-50%, -50%);
+    }
+    .arena-brand-nome { font-family: var(--font-body); font-weight: 700; color: var(--ink); font-size: 0.95rem; }
+    .arena-brand-arena { font-family: var(--font-display); font-weight: 800; color: var(--gold); font-size: 1.1rem; letter-spacing: 0.08em; }
+    .arena-nav { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .arena-nav a { color: var(--ink-soft); text-decoration: none; font-size: 0.88rem; font-weight: 600; }
+    .arena-nav a:hover { color: var(--gold); }
+    .arena-btn-live {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--horda-bg); color: #fff;
+        font-weight: 700; font-size: 0.85rem; padding: 9px 16px;
+        text-decoration: none;
+    }
+    .arena-btn-live::before { content: '●'; color: #fff; font-size: 0.6rem; }
+
+    /* ---------- Hero ---------- */
+    .arena-hero { position: relative; overflow: hidden; padding: 64px 0 56px; }
+    .arena-hero-metade {
+        position: absolute; inset: 0; z-index: 0;
+    }
+    .arena-hero-metade--horda { background: #1C0A0A; clip-path: polygon(0 0, 54% 0, 46% 100%, 0 100%); }
+    .arena-hero-metade--alianca { background: #0A1428; clip-path: polygon(54% 0, 100% 0, 100% 100%, 46% 100%); }
+
+    /* Emblemas decorativos (machados cruzados à esquerda, espadas cruzadas
+       à direita) — atrás do conteúdo do hero, acima do fundo diagonal.
+       Ficam escondidos em telas estreitas de propósito. */
+    .arena-emblema {
+        position: absolute; top: 50%; transform: translateY(-50%);
+        width: 260px; height: 260px; opacity: 0.72; z-index: 1;
+        pointer-events: none;
+    }
+    .arena-emblema--esquerda { left: 7%; }
+    .arena-emblema--direita { right: 7%; }
+    @media (max-width: 1240px) {
+        .arena-emblema { display: none; }
+    }
+
+    .arena-hero-conteudo { position: relative; z-index: 2; text-align: center; display: grid; gap: 18px; justify-items: center; }
+    .arena-hero-titulo {
+        font-size: clamp(2.2rem, 6vw, 4rem);
+        font-weight: 800;
+        color: var(--gold);
+        text-shadow: 0 2px 18px rgb(217 178 106 / 0.35);
+        text-wrap: balance;
+    }
+    .arena-hero-subtitulo { color: var(--ink-soft); font-size: 1.05rem; max-width: 36rem; }
+
+    .arena-placar {
+        display: flex; align-items: center; gap: 18px;
+        font-family: var(--font-display); font-weight: 800;
+        font-size: clamp(1.4rem, 3vw, 2.2rem);
+    }
+    .arena-placar-lado { display: flex; align-items: center; gap: 10px; }
+    .arena-placar-lado--horda { color: var(--horda-ink); }
+    .arena-placar-lado--alianca { color: var(--alianca-ink); }
+    .arena-placar-vs { color: var(--ink-soft2); font-size: 1rem; font-weight: 600; font-family: var(--font-body); }
+
+    .arena-selo-escudo {
+        width: 38px; height: 44px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-display); font-weight: 800; font-size: 1.1rem;
+        color: #fff;
+        clip-path: polygon(0 0, 100% 0, 100% 65%, 50% 100%, 0 65%);
+    }
+    .arena-selo-escudo--horda { background: var(--horda-bg); }
+    .arena-selo-escudo--alianca { background: var(--alianca-bg); }
+
+    .arena-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .arena-chip {
+        background: rgba(217, 178, 106, 0.1);
+        border: 1px solid var(--border);
+        color: var(--ink-soft);
+        font-size: 0.8rem; font-weight: 600;
+        padding: 6px 14px;
+    }
+
+    /* ---------- Faixa de status ---------- */
+    .arena-status-faixa {
+        background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+        text-align: center; padding: 10px 20px; font-size: 0.88rem; color: var(--ink-soft);
+    }
+    .arena-status-faixa b { color: var(--gold); }
+
+    /* ---------- Seções gerais ---------- */
+    .arena-secao { padding: 56px 0; }
+    .arena-secao-titulo { font-size: 1.8rem; color: var(--ink); margin-bottom: 28px; text-align: center; }
+
+    /* ---------- Chaveamento ---------- */
+    /* Usa a largura cheia da tela (o conteúdo interno cresce/encolhe com
+       flex em vez de forçar min-width + scroll) — scroll horizontal só
+       entra como último recurso, se mesmo assim não couber. Não otimizado
+       pra mobile de propósito, por ora. */
+    .arena-chave-scroll {
+        overflow-x: auto; padding: 24px 20px;
+        background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    /* Nomes das fases (Quartas, Semifinal, Grande final...) — mesma régua
+       de flex-basis/gap/min-width das colunas de #arena-chave-conteudo
+       logo abaixo, pra alinhar certinho sem depender de medir nada em JS. */
+    .arena-chave-fases { display: flex; gap: 18px; width: fit-content; max-width: 100%; margin: 0 auto 18px; }
+    .arena-chave-fase-nome {
+        flex: 1 1 260px; min-width: 260px; text-align: center;
+        text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.78rem; font-weight: 700;
+        color: var(--ink-soft2);
+    }
+    .arena-chave-fase-nome--final { flex: 0 0 260px; color: var(--gold); }
+    .arena-chave { position: relative; margin: 0 auto; width: fit-content; max-width: 100%; }
+    .arena-chave-linhas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    .arena-chave-conteudo {
+        display: flex; align-items: center; justify-content: center;
+        gap: 18px;
+    }
+    .arena-chave-rodada { display: flex; flex-direction: column; justify-content: space-around; gap: 14px; flex: 1 1 260px; min-width: 260px; }
+    .arena-chave-final-wrap { flex-shrink: 0; min-width: 260px; }
+    .arena-chave-final-inner { display: grid; justify-items: center; gap: 10px; width: 100%; }
+    .arena-chave-troféu { font-size: 2.2rem; text-align: center; }
+    .arena-chave-campeao-nome { font-family: var(--font-display); color: var(--gold); font-weight: 800; text-align: center; min-height: 1.4em; }
+
+    .arena-card-partida {
+        background: var(--card); border: 1px solid var(--border);
+        padding: 10px 12px; display: grid; gap: 7px;
+        width: 100%; min-width: 0; overflow: hidden;
+    }
+    .arena-card-partida--ao-vivo { border-color: var(--ink-soft2); box-shadow: 0 0 0 1px var(--ink-soft2); }
+    .arena-card-partida--ao-vivo-horda { border-color: var(--horda-ink); box-shadow: 0 0 0 1px var(--horda-ink); }
+    .arena-card-partida--ao-vivo-alianca { border-color: var(--alianca-ink); box-shadow: 0 0 0 1px var(--alianca-ink); }
+
+    /* "Lutando agora" — sinalizador manual do admin (não depende de
+       placar). Usa filter:drop-shadow (não outline/box-shadow) de
+       propósito: o card tem clip-path (cantos chanfrados), que RECORTA
+       qualquer outline/box-shadow que tente passar da borda — drop-shadow
+       é calculado em cima do alpha já recortado, então contorna o
+       chanfro certinho em vez de sumir cortado. Em prefers-reduced-motion,
+       fica só o brilho fixo, sem pulsar. */
+    @keyframes arena-anim-destaque {
+        0%, 100% { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--gold) 50%, transparent)); }
+        50% { filter: drop-shadow(0 0 10px var(--gold)); }
+    }
+    .arena-card-partida--destaque {
+        animation: arena-anim-destaque 1.6s ease-in-out infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .arena-card-partida--destaque { animation: none; filter: drop-shadow(0 0 6px var(--gold)); }
+    }
+
+    /* Selo "Lutando agora" — fica DENTRO do card (não toca a borda), então
+       não sofre o corte do clip-path que o efeito de contorno/sombra
+       sofria. Pulsa só em opacidade, o jeito mais simples/seguro de
+       animar sem depender de geometria. */
+    @keyframes arena-anim-badge-pulsar {
+        0%, 100% { opacity: 0.55; }
+        50% { opacity: 1; }
+    }
+    .arena-badge-lutando {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--gold);
+        text-align: center;
+        animation: arena-anim-badge-pulsar 1.3s ease-in-out infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .arena-badge-lutando { animation: none; }
+    }
+    .arena-combatente-linha {
+        display: flex; align-items: center; gap: 7px; padding: 5px 7px;
+        min-width: 0;
+        clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    }
+    .arena-combatente-losango {
+        width: 11px; height: 11px; flex-shrink: 0; transform: rotate(45deg);
+    }
+    .arena-combatente-losango--horda { background: var(--horda-ink); }
+    .arena-combatente-losango--alianca { background: var(--alianca-ink); }
+    .arena-combatente-losango--vazio { background: var(--ink-soft2); opacity: 0.4; }
+    .arena-combatente-nome { flex: 1 1 auto; min-width: 0; font-size: 0.95rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .arena-combatente-classe { font-size: 0.78rem; color: var(--ink-soft2); flex-shrink: 0; white-space: nowrap; }
+    .arena-combatente-placar { font-weight: 800; font-size: 1rem; flex-shrink: 0; min-width: 1.4em; text-align: center; }
+    .arena-combatente-linha--vencedor .arena-combatente-placar { background: var(--gold); color: #1a1408; padding: 1px 6px; }
+    .arena-combatente-linha--perdedor { opacity: 0.5; }
+    .arena-combatente-linha--perdedor .arena-combatente-nome { text-decoration: line-through; }
+
+    /* ---------- Combatentes ---------- */
+    .arena-combatentes-grid { display: grid; grid-template-columns: 1fr; gap: 36px; }
+    @media (min-width: 860px) { .arena-combatentes-grid { grid-template-columns: 1fr 1fr; } }
+    .arena-combatentes-coluna-titulo {
+        font-family: var(--font-display); font-weight: 800; font-size: 1.1rem;
+        padding: 10px 16px; margin-bottom: 16px; color: #fff;
+    }
+    .arena-combatentes-coluna-titulo--horda { background: var(--horda-bg); }
+    .arena-combatentes-coluna-titulo--alianca { background: var(--alianca-bg); }
+    .arena-combatente-card {
+        background: var(--card); border: 1px solid var(--border);
+        padding: 14px; display: flex; gap: 12px; margin-bottom: 12px;
+    }
+    .arena-combatente-avatar { width: 56px; height: 56px; object-fit: cover; flex-shrink: 0; background: var(--border); }
+    .arena-combatente-card-info { min-width: 0; flex: 1; display: grid; gap: 2px; }
+    .arena-combatente-card-nome { font-weight: 800; font-size: 1rem; }
+    .arena-combatente-card-meta { color: var(--ink-soft); font-size: 0.82rem; }
+    .arena-combatente-card-sync { color: var(--ink-soft2); font-size: 0.72rem; margin-top: 2px; }
+    .arena-selo-status {
+        display: inline-block; font-size: 0.7rem; font-weight: 700;
+        padding: 2px 10px; margin-top: 4px; width: fit-content;
+    }
+    .arena-selo-status--na_disputa { background: rgba(217,178,106,0.15); color: var(--gold); }
+    .arena-selo-status--eliminado { background: rgba(255,255,255,0.08); color: var(--ink-soft2); }
+    .arena-selo-status--campeao { background: var(--gold); color: #1a1408; }
+    .arena-selo-status--vice { background: rgba(217,178,106,0.3); color: var(--gold); }
+
+    /* ---------- Regras / rodapé ---------- */
+    .arena-footer { border-top: 1px solid var(--border); padding: 32px 0; text-align: center; color: var(--ink-soft2); font-size: 0.8rem; }
+
+    .arena-carregando, .arena-vazio { text-align: center; color: var(--ink-soft); padding: 60px 20px; }
+    .hidden { display: none !important; }
+
+    /* ---------- Animações de atualização ao vivo (Realtime) ----------
+       Disparadas via JS ao aplicar uma mudança vinda do canal — nunca no
+       carregamento inicial da página. Todas desligadas se o visitante
+       pedir menos movimento no sistema (ver PREFERE_MENOS_MOVIMENTO no
+       script: nesse caso a classe de animação nem chega a ser aplicada,
+       só a atualização em si). */
+    @keyframes arena-anim-pisca-horda {
+        0%, 100% { box-shadow: none; }
+        25%, 75% { box-shadow: inset 0 0 0 4px var(--horda-ink); }
+    }
+    @keyframes arena-anim-pisca-alianca {
+        0%, 100% { box-shadow: none; }
+        25%, 75% { box-shadow: inset 0 0 0 4px var(--alianca-ink); }
+    }
+    .anim-pisca-horda { animation: arena-anim-pisca-horda 1.1s ease-in-out 3; }
+    .anim-pisca-alianca { animation: arena-anim-pisca-alianca 1.1s ease-in-out 3; }
+
+    @keyframes arena-anim-placar-gira {
+        0% { transform: rotateX(90deg); opacity: 0; }
+        50% { transform: rotateX(0deg); opacity: 1; }
+        100% { transform: rotateX(0deg); }
+    }
+    .anim-gira { animation: arena-anim-placar-gira 0.8s ease-out; }
+
+    @keyframes arena-anim-pulsar {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.6); }
+    }
+    .anim-pulsar { animation: arena-anim-pulsar 1s ease-in-out 2; }
+
+    @keyframes arena-anim-slide-in {
+        from { transform: translateX(-16px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    .anim-slide-in { animation: arena-anim-slide-in 0.4s ease-out; }
+
+    @keyframes arena-anim-brilho-campeao {
+        0%, 100% { text-shadow: 0 0 10px rgba(217, 178, 106, 0.6); }
+        50% { text-shadow: 0 0 26px var(--gold), 0 0 44px rgba(217, 178, 106, 0.8); }
+    }
+    .anim-brilho-campeao { animation: arena-anim-brilho-campeao 1.8s ease-in-out infinite; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .anim-pisca-horda, .anim-pisca-alianca, .anim-gira, .anim-pulsar, .anim-slide-in, .anim-brilho-campeao {
+            animation: none !important;
+        }
+    }
+
+    /* ---------- Confete do campeão ----------
+       Overlay fixo cobrindo a página inteira, só com os pedacinhos de
+       confete (sem fundo, sem bloquear clique). Removido do DOM sozinho
+       quando a última peça termina de cair (ver dispararConfeteCampeao). */
+    #arena-confete-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 9999; overflow: hidden; }
+    .arena-confete-peca {
+        position: absolute;
+        top: -24px;
+        width: 10px;
+        height: 16px;
+        opacity: 0.9;
+        animation: arena-anim-confete-cair linear forwards;
+    }
+    @keyframes arena-anim-confete-cair {
+        to { transform: translateY(110vh) rotate(var(--arena-confete-rotacao)); }
+    }
+</style>
+</head>
+<body>
+
+<div id="arena-carregando" class="arena-carregando">Carregando campeonato...</div>
+<div id="arena-nao-encontrado" class="arena-vazio hidden">Campeonato não encontrado.</div>
+
+<div id="arena-conteudo" class="hidden">
+
+    <header class="arena-header">
+        <div class="container arena-header-inner">
+            <a href="./index.html" class="arena-brand">
+                <span class="arena-logo-mark" aria-hidden="true"></span>
+                <span class="arena-brand-nome">Órbita</span>
+                <span class="arena-brand-arena">ARENA</span>
+            </a>
+            <nav class="arena-nav">
+                <a href="#chaveamento">Chaveamento</a>
+                <a href="#combatentes">Combatentes</a>
+                <a href="#regras">Regras</a>
+                <a id="arena-link-live" href="#" target="_blank" rel="noopener noreferrer" class="arena-btn-live hidden">Assistir ao vivo</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="arena-hero">
+        <div class="arena-hero-metade arena-hero-metade--horda" aria-hidden="true"></div>
+        <div class="arena-hero-metade arena-hero-metade--alianca" aria-hidden="true"></div>
+        <img src="assets/arena/emblema-horda.svg" alt="" class="arena-emblema arena-emblema--esquerda">
+        <img src="assets/arena/emblema-alianca.svg" alt="" class="arena-emblema arena-emblema--direita">
+
+        <!-- Emblema decorativo esquerdo (machados cruzados) — SVG entra aqui. -->
+        <div class="arena-emblema arena-emblema--esquerda" id="arena-emblema-horda" aria-hidden="true"></div>
+        <!-- Emblema decorativo direito (espadas cruzadas) — SVG entra aqui. -->
+        <div class="arena-emblema arena-emblema--direita" id="arena-emblema-alianca" aria-hidden="true"></div>
+
+        <div class="container arena-hero-conteudo">
+            <h1 id="arena-hero-titulo" class="arena-hero-titulo">ARENA</h1>
+            <p id="arena-hero-subtitulo" class="arena-hero-subtitulo"></p>
+
+            <div class="arena-placar">
+                <span class="arena-placar-lado arena-placar-lado--horda">
+                    <span class="arena-selo-escudo arena-selo-escudo--horda">H</span>
+                    Horda <span id="arena-placar-horda">0</span>
+                </span>
+                <span class="arena-placar-vs">VITÓRIAS</span>
+                <span class="arena-placar-lado arena-placar-lado--alianca">
+                    <span id="arena-placar-alianca">0</span> Aliança
+                    <span class="arena-selo-escudo arena-selo-escudo--alianca">A</span>
+                </span>
+            </div>
+
+            <div id="arena-chips" class="arena-chips"></div>
+        </div>
+    </section>
+
+    <div id="arena-status-faixa" class="arena-status-faixa" role="status" aria-live="polite">
+        Acompanhe o chaveamento abaixo.
+    </div>
+
+    <section class="arena-secao" id="chaveamento">
+        <h2 class="arena-secao-titulo">Chaveamento</h2>
+        <!-- Fora do .container de propósito: o chaveamento usa a largura
+             cheia da tela (não trava em 1240px como o resto da página) pra
+             caber mais rodadas lado a lado sem precisar de scroll. -->
+        <div class="arena-chave-scroll">
+            <div id="arena-chave-fases" class="arena-chave-fases"></div>
+            <!-- #arena-chave só posiciona; quem recebe innerHTML a cada
+                 render é #arena-chave-conteudo — assim o SVG de linhas
+                 (irmão dele, não filho) nunca é apagado num re-render. -->
+            <div id="arena-chave" class="arena-chave">
+                <svg id="arena-chave-linhas" class="arena-chave-linhas" aria-hidden="true"></svg>
+                <div id="arena-chave-conteudo" class="arena-chave-conteudo"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="arena-secao" id="combatentes" style="background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+        <div class="container">
+            <h2 class="arena-secao-titulo">Combatentes</h2>
+            <div class="arena-combatentes-grid">
+                <div>
+                    <p class="arena-combatentes-coluna-titulo arena-combatentes-coluna-titulo--horda chanfro">Horda</p>
+                    <div id="arena-combatentes-horda"></div>
+                </div>
+                <div>
+                    <p class="arena-combatentes-coluna-titulo arena-combatentes-coluna-titulo--alianca chanfro">Aliança</p>
+                    <div id="arena-combatentes-alianca"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="arena-secao" id="regras">
+        <div class="container" style="max-width: 760px;">
+            <h2 class="arena-secao-titulo">Regras</h2>
+            <div id="arena-regras" class="arena-combatente-card chanfro" style="display: block;">
+                <p id="arena-regras-formato" class="arena-combatente-card-meta"></p>
+                <p id="arena-regras-premio" class="arena-combatente-card-meta"></p>
+                <p id="arena-regras-final" class="arena-combatente-card-meta"></p>
+                <p id="arena-regras-gerais" class="arena-combatente-card-meta" style="white-space: pre-line; margin-top: 10px;"></p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="arena-footer">
+        <p>Evento organizado pela comunidade. Sem afiliação, patrocínio ou endosso da Blizzard Entertainment.</p>
+    </footer>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+<script src="./supabase-client.js?v=1.0"></script>
+<script>
+    // Configuração do Supabase e helper escapeHTML() vêm de supabase-client.js.
+    // Página pública, sem login (mesmo padrão de index.html/criadores.html).
+
+    // Cores oficiais de classe do WoW (só as classes que existem no
+    // Classic: sem Monge/Cavaleiro da Morte/Caçador das Trevas/Evocador).
+    const COR_CLASSE = {
+        Warrior: '#C79C6E', Paladin: '#F58CBA', Hunter: '#ABD473', Rogue: '#FFF569',
+        Priest: '#FFFFFF', Shaman: '#0070DE', Mage: '#69CCF0', Warlock: '#9482C9', Druid: '#FF7D0A',
+    };
+
+    const ROTULO_STATUS_PARTICIPANTE = { na_disputa: 'Na disputa', eliminado: 'Eliminado', campeao: 'Campeão', vice: 'Vice-campeão' };
+
+    function formatarMinutosDesde(dataIso) {
+        if (!dataIso) return null;
+        const minutos = Math.floor((Date.now() - new Date(dataIso).getTime()) / 60000);
+        if (minutos < 1) return 'agora mesmo';
+        if (minutos < 60) return `há ${minutos} min`;
+        const horas = Math.floor(minutos / 60);
+        if (horas < 24) return `há ${horas}h`;
+        return `há ${Math.floor(horas / 24)}d`;
+    }
+
+    // ---------- Estado ao vivo ----------
+    // Cache em memória, mantido em sincronia pelos eventos do Realtime (ou
+    // pelo polling de 30s, se o canal cair) — é a partir daqui que as
+    // atualizações incrementais são calculadas (o que mudou desde o
+    // último estado conhecido, pra saber qual animação disparar).
+    let arenaCampeonato = null;
+    let arenaParticipantesPorId = new Map();
+    let arenaPartidasPorId = new Map();
+    let arenaTotalRodadas = 0;
+    let arenaUltimoPlacarHorda = 0;
+    let arenaUltimoPlacarAlianca = 0;
+    let arenaCanal = null;
+    let arenaPollingId = null;
+    const PREFERE_MENOS_MOVIMENTO = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    (async () => {
+        const slug = new URLSearchParams(window.location.search).get('arena');
+        const elCarregando = document.getElementById('arena-carregando');
+        const elNaoEncontrado = document.getElementById('arena-nao-encontrado');
+        const elConteudo = document.getElementById('arena-conteudo');
+
+        if (!slug) {
+            elCarregando.classList.add('hidden');
+            elNaoEncontrado.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const { data: campeonato, error: erroCampeonato } = await supabase
+                .from('arena_campeonatos')
+                .select('*')
+                .eq('slug', slug)
+                .maybeSingle();
+
+            if (erroCampeonato || !campeonato) {
+                elCarregando.classList.add('hidden');
+                elNaoEncontrado.classList.remove('hidden');
+                return;
+            }
+
+            arenaCampeonato = campeonato;
+
+            const [{ data: participantes }, { data: partidas }] = await Promise.all([
+                supabase.from('arena_participantes').select('*').eq('campeonato_id', campeonato.id),
+                supabase.from('arena_partidas').select('*').eq('campeonato_id', campeonato.id).order('rodada').order('posicao'),
+            ]);
+
+            arenaParticipantesPorId = new Map((participantes || []).map(p => [p.id, p]));
+            arenaPartidasPorId = new Map((partidas || []).map(p => [p.id, p]));
+            arenaTotalRodadas = (partidas && partidas.length > 0) ? Math.max(...partidas.map(p => p.rodada)) : 0;
+
+            renderizarArena(campeonato, participantes || [], partidas || []);
+            // Guarda o placar inicial pra não animar "mudança" na primeira
+            // atualização que chegar depois do load.
+            arenaUltimoPlacarHorda = parseInt(document.getElementById('arena-placar-horda').textContent, 10) || 0;
+            arenaUltimoPlacarAlianca = parseInt(document.getElementById('arena-placar-alianca').textContent, 10) || 0;
+
+            elCarregando.classList.add('hidden');
+            elConteudo.classList.remove('hidden');
+
+            iniciarRealtimeArena(campeonato.id);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') buscarEstadoCompletoEAtualizar();
+            });
+        } catch (erro) {
+            console.error(erro);
+            elCarregando.classList.add('hidden');
+            elNaoEncontrado.classList.remove('hidden');
+            elNaoEncontrado.textContent = 'Não foi possível carregar este campeonato. Tente recarregar a página.';
+        }
+    })();
+
+    // ---------- Realtime: assina arena_partidas/arena_participantes deste
+    // campeonato e aplica cada evento como atualização incremental (não
+    // recarrega a página). Se o canal não conseguir conectar ou cair, cai
+    // pra polling a cada 30s até reconectar. ----------
+    function iniciarRealtimeArena(campeonatoId) {
+        if (arenaCanal) supabase.removeChannel(arenaCanal);
+
+        arenaCanal = supabase
+            .channel(`arena-${campeonatoId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'arena_partidas', filter: `campeonato_id=eq.${campeonatoId}` }, lidarComEventoPartida)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'arena_participantes', filter: `campeonato_id=eq.${campeonatoId}` }, lidarComEventoParticipante)
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    pararPollingArena();
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                    iniciarPollingArena();
+                }
+            });
+    }
+
+    function iniciarPollingArena() {
+        if (arenaPollingId) return;
+        arenaPollingId = setInterval(buscarEstadoCompletoEAtualizar, 30000);
+    }
+
+    function pararPollingArena() {
+        if (!arenaPollingId) return;
+        clearInterval(arenaPollingId);
+        arenaPollingId = null;
+    }
+
+    // Catch-up completo (fallback de polling e ao voltar o foco da aba) —
+    // sem animação: é só sincronizar o estado real, não o "momento ao
+    // vivo" que o evento do Realtime representa.
+    async function buscarEstadoCompletoEAtualizar() {
+        if (!arenaCampeonato) return;
+        try {
+            const [{ data: participantes }, { data: partidas }] = await Promise.all([
+                supabase.from('arena_participantes').select('*').eq('campeonato_id', arenaCampeonato.id),
+                supabase.from('arena_partidas').select('*').eq('campeonato_id', arenaCampeonato.id).order('rodada').order('posicao'),
+            ]);
+
+            arenaParticipantesPorId = new Map((participantes || []).map(p => [p.id, p]));
+            arenaPartidasPorId = new Map((partidas || []).map(p => [p.id, p]));
+            arenaTotalRodadas = (partidas && partidas.length > 0) ? Math.max(...partidas.map(p => p.rodada)) : 0;
+
+            renderizarChaveamento(partidas || [], arenaParticipantesPorId, arenaTotalRodadas);
+            renderizarCombatentes(participantes || []);
+            recalcularPlacarHero();
+        } catch (erro) {
+            console.error('Falha ao sincronizar estado da Arena:', erro);
+        }
+    }
+
+    function dispararAnimacao(el, classe) {
+        if (!el || PREFERE_MENOS_MOVIMENTO) return;
+        // Reinicia a animação mesmo que a classe já tenha tocado nesse
+        // elemento antes (ex: pontuou 2x seguidas na mesma partida):
+        // remove a classe, força reflow, reaplica no próximo frame.
+        el.classList.remove(classe);
+        void el.offsetWidth;
+        requestAnimationFrame(() => el.classList.add(classe));
+        el.addEventListener('animationend', () => el.classList.remove(classe), { once: true });
+    }
+
+    // Partida inserida/atualizada — repinta só o card dela (não o
+    // chaveamento inteiro) e dispara a animação certa conforme o que
+    // mudou: pontuou (pisca na cor de quem pontuou + placar "gira"),
+    // definiu vencedor (perdedor risca/esmaece, placar do vencedor fica
+    // dourado, e o card seguinte entra deslizando com o nome novo).
+    function lidarComEventoPartida(payload) {
+        const nova = payload.new;
+        if (!nova || !nova.id) return;
+
+        const antiga = arenaPartidasPorId.get(nova.id);
+        arenaPartidasPorId.set(nova.id, nova);
+        if (nova.rodada > arenaTotalRodadas) arenaTotalRodadas = nova.rodada;
+
+        const vitoriasMudaram = !antiga || antiga.vitorias_a !== nova.vitorias_a || antiga.vitorias_b !== nova.vitorias_b;
+        const venceuAgora = nova.vencedor_id && (!antiga || antiga.vencedor_id !== nova.vencedor_id);
+
+
+        atualizarCardPartidaNaTela(nova, { pontuou: vitoriasMudaram, venceuAgora, antiga });
+
+        // Vencedor definido agora: o slot da próxima partida foi
+        // preenchido no banco — repinta ela também, com o nome entrando
+        // deslizando. A linha de conexão até ela vira dourada logo abaixo
+        // (redesenharLinhasChaveamento olha partida.status de novo).
+        if (venceuAgora && nova.proxima_partida_id) {
+            const proxima = arenaPartidasPorId.get(nova.proxima_partida_id);
+            if (proxima) atualizarCardPartidaNaTela(proxima, { entrouNovo: true });
+        }
+
+        if (venceuAgora) {
+            recalcularPlacarHero();
+            if (!ehPartidaFolga(nova)) atualizarFaixaStatus(nova);
+            redesenharLinhasChaveamento();
+        }
+
+        if (venceuAgora && !nova.proxima_partida_id) {
+            atualizarCampeaoNaTela(nova.vencedor_id);
+        }
+    }
+
+    // Atualiza um card de partida SEM recriar o elemento (sem outerHTML) —
+    // só troca texto/classe dos nós já existentes. Descoberto testando:
+    // animação CSS aplicada a um elemento recém-criado via outerHTML na
+    // mesma função que o criou não dispara de forma confiável (o
+    // navegador não detecta a mudança de estado a tempo, mesmo com reflow
+    // forçado); em elementos que já existiam antes, funciona sempre. Por
+    // isso a atualização em lugar, em vez de mais truques de timing.
+    function atualizarLinhaEmLugar(linhaEl, participanteId, placar, eVencedor, partidaEncerrada, ehFolga) {
+        if (!linhaEl) return;
+        const p = participanteId ? arenaParticipantesPorId.get(participanteId) : null;
+
+        linhaEl.classList.toggle('arena-combatente-linha--vencedor', !!(partidaEncerrada && p && eVencedor && !ehFolga));
+        linhaEl.classList.toggle('arena-combatente-linha--perdedor', !!(partidaEncerrada && p && !eVencedor && !ehFolga));
+
+        const losangoEl = linhaEl.querySelector('.arena-combatente-losango');
+        const nomeEl = linhaEl.querySelector('.arena-combatente-nome');
+        const classeEl = linhaEl.querySelector('.arena-combatente-classe');
+        const placarEl = linhaEl.querySelector('.arena-combatente-placar');
+
+        if (!p) {
+            losangoEl.className = 'arena-combatente-losango arena-combatente-losango--vazio';
+            nomeEl.textContent = ehFolga ? '-' : 'A definir';
+            nomeEl.style.color = 'var(--ink-soft2)';
+            nomeEl.removeAttribute('title');
+            classeEl.textContent = '';
+            placarEl.textContent = '';
+            return;
+        }
+
+        losangoEl.className = `arena-combatente-losango arena-combatente-losango--${p.faccao === 'horda' ? 'horda' : 'alianca'}`;
+        nomeEl.textContent = p.personagem;
+        nomeEl.title = p.personagem;
+        nomeEl.style.color = COR_CLASSE[p.classe] || 'var(--ink)';
+        classeEl.textContent = p.classe || '';
+        placarEl.textContent = ehFolga ? '' : (placar ?? '');
+    }
+
+    function atualizarCardPartidaNaTela(partida, opcoes = {}) {
+        const el = document.querySelector(`[data-partida-id="${partida.id}"]`);
+        if (!el) return; // essa partida ainda não está renderizada na tela (ex: rodada futura)
+
+        const encerrada = partida.status === 'encerrada';
+        const folga = ehPartidaFolga(partida);
+        el.classList.remove('arena-card-partida--ao-vivo', 'arena-card-partida--ao-vivo-horda', 'arena-card-partida--ao-vivo-alianca');
+        const classeAoVivoAtual = classeAoVivo(partida, arenaParticipantesPorId);
+        if (classeAoVivoAtual) el.classList.add(classeAoVivoAtual);
+        el.classList.toggle('arena-card-partida--destaque', !!partida.em_destaque);
+        el.querySelector('.arena-badge-lutando')?.classList.toggle('hidden', !partida.em_destaque);
+        atualizarLinhaEmLugar(el.querySelector('[data-lado="a"]'), partida.participante_a_id, partida.vitorias_a, partida.vencedor_id === partida.participante_a_id, encerrada, folga);
+        atualizarLinhaEmLugar(el.querySelector('[data-lado="b"]'), partida.participante_b_id, partida.vitorias_b, partida.vencedor_id === partida.participante_b_id, encerrada, folga);
+
+        if (opcoes.entrouNovo) {
+            dispararAnimacao(el, 'anim-slide-in');
+        }
+
+        if (opcoes.pontuou) {
+            const antiga = opcoes.antiga;
+            const ladoQuePontuou = (!antiga || antiga.vitorias_a !== partida.vitorias_a) ? partida.participante_a_id : partida.participante_b_id;
+            const faccaoQuePontuou = arenaParticipantesPorId.get(ladoQuePontuou)?.faccao;
+            dispararAnimacao(el, faccaoQuePontuou === 'alianca' ? 'anim-pisca-alianca' : 'anim-pisca-horda');
+            el.querySelectorAll('.arena-combatente-placar').forEach(span => dispararAnimacao(span, 'anim-gira'));
+        }
+    }
+
+    function recalcularPlacarHero() {
+        let vitoriasHorda = 0;
+        let vitoriasAlianca = 0;
+        arenaPartidasPorId.forEach(partida => {
+            if (partida.status !== 'encerrada' || !partida.vencedor_id) return;
+            // Folga (bye) não é combate de verdade — não conta ponto pra
+            // nenhuma facção.
+            if (ehPartidaFolga(partida)) return;
+            const vencedor = arenaParticipantesPorId.get(partida.vencedor_id);
+            if (vencedor?.faccao === 'horda') vitoriasHorda++;
+            else if (vencedor?.faccao === 'alianca') vitoriasAlianca++;
+        });
+
+        const elHorda = document.getElementById('arena-placar-horda');
+        const elAlianca = document.getElementById('arena-placar-alianca');
+
+        if (vitoriasHorda !== arenaUltimoPlacarHorda) {
+            elHorda.textContent = vitoriasHorda;
+            dispararAnimacao(elHorda.closest('.arena-placar-lado'), 'anim-pulsar');
+        }
+        if (vitoriasAlianca !== arenaUltimoPlacarAlianca) {
+            elAlianca.textContent = vitoriasAlianca;
+            dispararAnimacao(elAlianca.closest('.arena-placar-lado'), 'anim-pulsar');
+        }
+        arenaUltimoPlacarHorda = vitoriasHorda;
+        arenaUltimoPlacarAlianca = vitoriasAlianca;
+    }
+
+    function atualizarFaixaStatus(partida) {
+        const vencedor = arenaParticipantesPorId.get(partida.vencedor_id);
+        const perdedorId = partida.vencedor_id === partida.participante_a_id ? partida.participante_b_id : partida.participante_a_id;
+        const perdedor = arenaParticipantesPorId.get(perdedorId);
+        document.getElementById('arena-status-faixa').innerHTML =
+            `Último resultado: <b>${escapeHTML(vencedor?.personagem || '?')}</b> venceu ${escapeHTML(perdedor?.personagem || '?')} (${partida.vitorias_a}-${partida.vitorias_b})`;
+    }
+
+    function atualizarCampeaoNaTela(vencedorId) {
+        const el = document.getElementById('arena-chave-campeao-nome');
+        if (!el) return;
+        el.textContent = arenaParticipantesPorId.get(vencedorId)?.personagem || '';
+        if (!PREFERE_MENOS_MOVIMENTO) {
+            el.classList.add('anim-brilho-campeao');
+            dispararConfeteCampeao();
+        }
+    }
+
+    // Chuva de confete cobrindo a página inteira, só no momento em que o
+    // campeão é anunciado em tempo real (nunca no carregamento inicial de
+    // um campeonato já encerrado). Overlay descartável: some sozinho
+    // depois que a última peça termina de cair.
+    const ARENA_CORES_CONFETE = ['var(--gold)', 'var(--horda-ink)', 'var(--alianca-ink)', '#ECE6DA', '#9E1F17', '#1D4FA8'];
+    function dispararConfeteCampeao() {
+        const overlay = document.createElement('div');
+        overlay.id = 'arena-confete-overlay';
+        document.body.appendChild(overlay);
+
+        const totalPecas = 140;
+        for (let i = 0; i < totalPecas; i++) {
+            const peca = document.createElement('div');
+            peca.className = 'arena-confete-peca';
+            const duracao = 2.6 + Math.random() * 1.8;
+            const atraso = Math.random() * 1.2;
+            peca.style.left = `${Math.random() * 100}vw`;
+            peca.style.background = ARENA_CORES_CONFETE[Math.floor(Math.random() * ARENA_CORES_CONFETE.length)];
+            peca.style.setProperty('--arena-confete-rotacao', `${360 + Math.random() * 720}deg`);
+            peca.style.animationDuration = `${duracao}s`;
+            peca.style.animationDelay = `${atraso}s`;
+            overlay.appendChild(peca);
+        }
+
+        setTimeout(() => overlay.remove(), 5200);
+    }
+
+    // Participante inserido/atualizado/removido — repinta só o card dele
+    // na seção Combatentes (ou anexa/remove), e repinta qualquer card de
+    // partida em que ele apareça (ex: status virou "eliminado" por causa
+    // de um resultado lançado em outra aba/outra pessoa).
+    function lidarComEventoParticipante(payload) {
+        if (payload.eventType === 'DELETE') {
+            const id = payload.old?.id;
+            if (!id) return;
+            arenaParticipantesPorId.delete(id);
+            document.querySelector(`[data-participante-id="${id}"]`)?.remove();
+            return;
+        }
+
+        const participante = payload.new;
+        if (!participante?.id) return;
+        arenaParticipantesPorId.set(participante.id, participante);
+
+        const elExistente = document.querySelector(`[data-participante-id="${participante.id}"]`);
+        if (elExistente) {
+            elExistente.outerHTML = montarCombatenteCard(participante);
+        } else {
+            const coluna = document.getElementById(participante.faccao === 'alianca' ? 'arena-combatentes-alianca' : 'arena-combatentes-horda');
+            if (coluna) {
+                coluna.querySelector('.arena-vazio')?.remove();
+                coluna.insertAdjacentHTML('beforeend', montarCombatenteCard(participante));
+            }
+        }
+
+        arenaPartidasPorId.forEach(partida => {
+            if (partida.participante_a_id === participante.id || partida.participante_b_id === participante.id) {
+                atualizarCardPartidaNaTela(partida);
+            }
+        });
+    }
+
+    function renderizarArena(campeonato, participantes, partidas) {
+        const nomeConcurso = campeonato.nome || 'Arena';
+        document.getElementById('og-title').textContent = `Órbita Arena — ${nomeConcurso}`;
+        document.getElementById('arena-hero-titulo').textContent = nomeConcurso.toUpperCase();
+
+        const subtitulo = [campeonato.organizador, campeonato.premio].filter(Boolean).join(' · ');
+        document.getElementById('arena-hero-subtitulo').textContent = subtitulo;
+
+        const linkLive = document.getElementById('arena-link-live');
+        if (campeonato.link_live) {
+            linkLive.href = campeonato.link_live;
+            linkLive.classList.remove('hidden');
+        }
+
+        const participantesPorId = new Map(participantes.map(p => [p.id, p]));
+
+        // Placar da faixa Horda x Aliança: 1 ponto por partida encerrada
+        // COM COMBATE DE VERDADE (folga/bye não conta), pra facção de quem
+        // venceu.
+        let vitoriasHorda = 0;
+        let vitoriasAlianca = 0;
+        partidas.forEach(partida => {
+            if (partida.status !== 'encerrada' || !partida.vencedor_id) return;
+            if (ehPartidaFolga(partida)) return;
+            const vencedor = participantesPorId.get(partida.vencedor_id);
+            if (vencedor?.faccao === 'horda') vitoriasHorda++;
+            else if (vencedor?.faccao === 'alianca') vitoriasAlianca++;
+        });
+        document.getElementById('arena-placar-horda').textContent = vitoriasHorda;
+        document.getElementById('arena-placar-alianca').textContent = vitoriasAlianca;
+
+        // Chips: organização, rodada atual, data da final.
+        const totalRodadas = partidas.length > 0 ? Math.max(...partidas.map(p => p.rodada)) : 0;
+        const rodadaAtual = partidas
+            .filter(p => p.status !== 'encerrada' && p.participante_a_id && p.participante_b_id)
+            .reduce((min, p) => Math.min(min, p.rodada), totalRodadas || 1);
+        const chips = [];
+        if (campeonato.organizador) chips.push(`Organização: ${campeonato.organizador}`);
+        if (totalRodadas > 0) chips.push(`Rodada atual: ${rodadaAtual}/${totalRodadas}`);
+        if (campeonato.data_final) chips.push(`Final em ${new Date(campeonato.data_final + 'T00:00:00').toLocaleDateString('pt-BR')}`);
+        document.getElementById('arena-chips').innerHTML = chips.map(c => `<span class="arena-chip">${escapeHTML(c)}</span>`).join('');
+
+        // Faixa de status: último acontecimento (partida encerrada mais
+        // recente) — depois do load, quem mantém isso atualizado é
+        // atualizarFaixaStatus(), chamada pelo handler do Realtime.
+        const ultimaEncerrada = partidas
+            .filter(p => p.status === 'encerrada' && !ehPartidaFolga(p))
+            .sort((a, b) => new Date(b.atualizado_em) - new Date(a.atualizado_em))[0];
+        if (ultimaEncerrada) {
+            const vencedor = participantesPorId.get(ultimaEncerrada.vencedor_id);
+            const perdedorId = ultimaEncerrada.vencedor_id === ultimaEncerrada.participante_a_id ? ultimaEncerrada.participante_b_id : ultimaEncerrada.participante_a_id;
+            const perdedor = participantesPorId.get(perdedorId);
+            document.getElementById('arena-status-faixa').innerHTML =
+                `Último resultado: <b>${escapeHTML(vencedor?.personagem || '?')}</b> venceu ${escapeHTML(perdedor?.personagem || '?')} (${ultimaEncerrada.vitorias_a}-${ultimaEncerrada.vitorias_b})`;
+        }
+
+        renderizarChaveamento(partidas, participantesPorId, totalRodadas);
+        renderizarCombatentes(participantes);
+
+        document.getElementById('arena-regras-formato').textContent = `Formato: melhor de ${campeonato.melhor_de || 3}.`;
+        document.getElementById('arena-regras-premio').textContent = campeonato.premio ? `Prêmio: ${campeonato.premio}` : '';
+        document.getElementById('arena-regras-final').textContent = campeonato.data_final
+            ? `Final prevista para ${new Date(campeonato.data_final + 'T00:00:00').toLocaleDateString('pt-BR')}.`
+            : '';
+        document.getElementById('arena-regras-gerais').textContent = campeonato.regras_gerais || '';
+    }
+
+    // As duas linhas de um card SEMPRE têm os mesmos 4 filhos (losango,
+    // nome, classe, placar), preenchidos ou vazios — de propósito, pra
+    // nunca precisar adicionar/remover nó ao atualizar em lugar (só trocar
+    // texto/classe). `lado` ('a'/'b') marca qual participante é, pra
+    // atualizarCardPartidaEmLugar() achar a linha certa depois.
+    // `ehFolga` = essa partida já nasceu encerrada porque um lado não tem
+    // adversário (número de inscritos não é potência de 2) — não houve
+    // combate de verdade, então o visual é diferente de uma vitória real:
+    // o lado vazio mostra "-" em vez de "A definir" (que fica reservado
+    // pra quando REALMENTE falta decidir quem vem da rodada anterior), e
+    // quem avançou não mostra placar nem o destaque de "vencedor".
+    function montarLinhaCombatente(lado, participanteId, participantesPorId, placar, eVencedor, partidaEncerrada, ehFolga) {
+        const p = participanteId ? participantesPorId.get(participanteId) : null;
+        if (!p) {
+            return `
+                <div class="arena-combatente-linha" data-lado="${lado}" style="background: rgba(255,255,255,0.03);">
+                    <span class="arena-combatente-losango arena-combatente-losango--vazio"></span>
+                    <span class="arena-combatente-nome" style="color: var(--ink-soft2);">${ehFolga ? '-' : 'A definir'}</span>
+                    <span class="arena-combatente-classe"></span>
+                    <span class="arena-combatente-placar"></span>
+                </div>
+            `;
+        }
+        const classeCor = COR_CLASSE[p.classe] || 'var(--ink)';
+        const classeLinha = ehFolga ? '' : (partidaEncerrada ? (eVencedor ? 'arena-combatente-linha--vencedor' : 'arena-combatente-linha--perdedor') : '');
+        return `
+            <div class="arena-combatente-linha ${classeLinha}" data-lado="${lado}" style="background: rgba(255,255,255,0.03);">
+                <span class="arena-combatente-losango arena-combatente-losango--${p.faccao === 'horda' ? 'horda' : 'alianca'}"></span>
+                <span class="arena-combatente-nome" style="color: ${classeCor};" title="${escapeHTML(p.personagem)}">${escapeHTML(p.personagem)}</span>
+                <span class="arena-combatente-classe">${escapeHTML(p.classe || '')}</span>
+                <span class="arena-combatente-placar">${ehFolga ? '' : (placar ?? '')}</span>
+            </div>
+        `;
+    }
+
+    // Uma partida é "folga" se já nasce sem os dois lados preenchidos — ou
+    // seja, encerrada sem que os dois participantes existissem (bye da
+    // rodada 1). Uma partida "A definir" de verdade (esperando o vencedor
+    // de outra partida) nunca está 'encerrada' com um lado vazio.
+    function ehPartidaFolga(partida) {
+        return partida.status === 'encerrada' && (!partida.participante_a_id || !partida.participante_b_id);
+    }
+
+    // Cor da borda de "ao vivo": reflete quem está na frente no placar
+    // parcial (vermelho = Horda, azul = Aliança), não é só um indicador
+    // genérico — com empate (inclusive 0-0 antes de qualquer ponto), fica
+    // numa cor neutra em vez de cravar uma facção que não é a que lidera.
+    function classeAoVivo(partida, participantesPorId) {
+        if (partida.status !== 'ao_vivo') return '';
+        if (partida.vitorias_a === partida.vitorias_b) return 'arena-card-partida--ao-vivo';
+
+        const ladoNaFrente = partida.vitorias_a > partida.vitorias_b ? partida.participante_a_id : partida.participante_b_id;
+        const faccao = participantesPorId.get(ladoNaFrente)?.faccao;
+        return faccao === 'alianca' ? 'arena-card-partida--ao-vivo-alianca' : 'arena-card-partida--ao-vivo-horda';
+    }
+
+    function montarCardPartida(partida, participantesPorId) {
+        const encerrada = partida.status === 'encerrada';
+        const folga = ehPartidaFolga(partida);
+        const classeExtra = `${classeAoVivo(partida, participantesPorId)} ${partida.em_destaque ? 'arena-card-partida--destaque' : ''}`.trim();
+        return `
+            <div class="arena-card-partida chanfro ${classeExtra}" data-partida-id="${partida.id}">
+                <div class="arena-badge-lutando${partida.em_destaque ? '' : ' hidden'}" aria-hidden="true">⚔️ Lutando agora ⚔️</div>
+                ${montarLinhaCombatente('a', partida.participante_a_id, participantesPorId, partida.vitorias_a, partida.vencedor_id === partida.participante_a_id, encerrada, folga)}
+                ${montarLinhaCombatente('b', partida.participante_b_id, participantesPorId, partida.vitorias_b, partida.vencedor_id === partida.participante_b_id, encerrada, folga)}
+            </div>
+        `;
+    }
+
+    // Nome curto de cada fase, contado de trás pra frente a partir da
+    // final (mesma ideia de rotuloRodadaArena em app.js, mas o painel
+    // admin usa texto mais formal/longo — aqui o espaço é curto, por
+    // coluna, então o rótulo é mais enxuto).
+    function rotuloFaseArena(rodada, totalRodadas) {
+        const faltam = totalRodadas - rodada;
+        if (faltam === 0) return 'Grande final';
+        if (faltam === 1) return 'Semifinal';
+        if (faltam === 2) return 'Quartas';
+        if (faltam === 3) return 'Oitavas';
+        return `Rodada ${rodada}`;
+    }
+
+    function renderizarFasesChaveamento(totalRodadas) {
+        const elFases = document.getElementById('arena-chave-fases');
+        if (!elFases) return;
+        if (totalRodadas === 0) {
+            elFases.innerHTML = '';
+            return;
+        }
+        let html = '';
+        for (let rodada = 1; rodada < totalRodadas; rodada++) {
+            html += `<div class="arena-chave-fase-nome">${escapeHTML(rotuloFaseArena(rodada, totalRodadas))}</div>`;
+        }
+        html += `<div class="arena-chave-fase-nome arena-chave-fase-nome--final">${escapeHTML(rotuloFaseArena(totalRodadas, totalRodadas))}</div>`;
+        elFases.innerHTML = html;
+    }
+
+    // Monta o chaveamento no formato clássico: rodadas em sequência da
+    // esquerda pra direita, final na última coluna (com o troféu acima) —
+    // mais compacto que o espelhado (usa metade da largura pra mesma
+    // quantidade de rodadas) e é o formato que a maioria já conhece.
+    function renderizarChaveamento(partidas, participantesPorId, totalRodadas) {
+        const elConteudo = document.getElementById('arena-chave-conteudo');
+        renderizarFasesChaveamento(partidas.length === 0 ? 0 : totalRodadas);
+        if (partidas.length === 0 || totalRodadas === 0) {
+            elConteudo.innerHTML = '<p class="arena-vazio">O chaveamento ainda não foi sorteado.</p>';
+            limparLinhasChaveamento();
+            return;
+        }
+
+        const porRodada = new Map();
+        partidas.forEach(p => {
+            if (!porRodada.has(p.rodada)) porRodada.set(p.rodada, []);
+            porRodada.get(p.rodada).push(p);
+        });
+
+        const colunaHtml = (lista) => `<div class="arena-chave-rodada">${lista.map(p => montarCardPartida(p, participantesPorId)).join('')}</div>`;
+
+        let html = '';
+        for (let rodada = 1; rodada < totalRodadas; rodada++) {
+            const doRodada = (porRodada.get(rodada) || []).sort((a, b) => a.posicao - b.posicao);
+            html += colunaHtml(doRodada);
+        }
+
+        const final = (porRodada.get(totalRodadas) || [])[0];
+        const nomeCampeao = final && final.status === 'encerrada'
+            ? (participantesPorId.get(final.vencedor_id)?.personagem || '')
+            : '';
+
+        html += `
+            <div class="arena-chave-final-wrap">
+                <div class="arena-chave-final-inner">
+                    <div class="arena-chave-troféu" aria-hidden="true">🏆</div>
+                    <p id="arena-chave-campeao-nome" class="arena-chave-campeao-nome${nomeCampeao && !PREFERE_MENOS_MOVIMENTO ? ' anim-brilho-campeao' : ''}">${escapeHTML(nomeCampeao)}</p>
+                    ${final ? montarCardPartida(final, participantesPorId) : ''}
+                </div>
+            </div>
+        `;
+
+        elConteudo.innerHTML = html;
+        // rAF: espera o navegador aplicar o layout do HTML que acabou de
+        // entrar antes de medir posição dos cards (senão getBoundingClientRect
+        // pode pegar o layout antigo, de antes do innerHTML trocar).
+        requestAnimationFrame(() => {
+            alinharColunasChaveamento();
+            redesenharLinhasChaveamento();
+        });
+    }
+
+    // Posiciona cada card de uma rodada exatamente no meio vertical dos
+    // seus dois alimentadores da rodada anterior (padrão clássico de
+    // chaveamento) — sem isso, cada coluna só distribuía os cards de
+    // forma uniforme, sem relação com a rodada anterior, e as linhas de
+    // conexão ficavam tortas/sobrepostas. Processa da esquerda pra
+    // direita: quando chega na coluna N, a coluna N-1 já está com a
+    // posição final certa.
+    function alinharColunasChaveamento() {
+        const elConteudo = document.getElementById('arena-chave-conteudo');
+        if (!elConteudo) return;
+
+        const colunas = [...elConteudo.querySelectorAll('.arena-chave-rodada')];
+        if (colunas.length === 0) return;
+
+        // Round 1 mantém o layout natural (flex + gap) — define a altura
+        // de referência que as rodadas seguintes (e a final) vão usar.
+        const alturaBase = colunas[0].getBoundingClientRect().height;
+
+        const finalWrap = elConteudo.querySelector('.arena-chave-final-wrap');
+        const finalInner = finalWrap?.querySelector('.arena-chave-final-inner');
+        const finalCard = finalInner?.querySelector('.arena-card-partida');
+
+        // PASSO 1: fixa altura/position:relative de TODAS as colunas (e da
+        // final) ANTES de medir qualquer coisa. Importante fazer isso
+        // separado do passo 2: o container pai centraliza verticalmente
+        // cada coluna (align-items:center) de acordo com a altura dela —
+        // então mudar a altura de uma coluna desloca o topo dela. Se isso
+        // acontecesse no meio do cálculo de posição dos cards (coluna a
+        // coluna), o primeiro card processado usaria uma medição de ANTES
+        // da coluna se mover, e os demais de DEPOIS — descasando tudo.
+        for (let i = 1; i < colunas.length; i++) {
+            colunas[i].style.position = 'relative';
+            colunas[i].style.height = alturaBase + 'px';
+        }
+        if (finalWrap) {
+            finalWrap.style.position = 'relative';
+            finalWrap.style.height = alturaBase + 'px';
+        }
+
+        // PASSO 2: com todas as colunas já no tamanho final, mede e
+        // posiciona cada card — da esquerda pra direita, pra coluna N já
+        // enxergar a coluna N-1 na posição definitiva dela.
+        function posicionarNoAlvo(coluna, elementoMovel, referencia, centroAlvoViewport) {
+            const rectColuna = coluna.getBoundingClientRect();
+            const rectMovel = elementoMovel.getBoundingClientRect();
+            const rectRef = referencia.getBoundingClientRect();
+
+            const offsetRefDentroDoMovel = rectRef.top - rectMovel.top;
+            const topoAlvoRef = centroAlvoViewport - rectRef.height / 2;
+            const topoFinalMovel = topoAlvoRef - offsetRefDentroDoMovel;
+
+            elementoMovel.style.position = 'absolute';
+            elementoMovel.style.left = '0';
+            elementoMovel.style.right = '0';
+            elementoMovel.style.top = (topoFinalMovel - rectColuna.top) + 'px';
+        }
+
+        for (let i = 1; i < colunas.length; i++) {
+            const cardsAnteriores = [...colunas[i - 1].querySelectorAll('.arena-card-partida')];
+            const cardsAtuais = [...colunas[i].querySelectorAll('.arena-card-partida')];
+
+            cardsAtuais.forEach((card, idx) => {
+                const feeder1 = cardsAnteriores[idx * 2];
+                const feeder2 = cardsAnteriores[idx * 2 + 1];
+                if (!feeder1 || !feeder2) return;
+
+                const r1 = feeder1.getBoundingClientRect();
+                const r2 = feeder2.getBoundingClientRect();
+                const centroAlvo = (r1.top + r1.height / 2 + r2.top + r2.height / 2) / 2;
+
+                posicionarNoAlvo(colunas[i], card, card, centroAlvo);
+            });
+        }
+
+        // A final usa os 2 cards da última coluna como alimentadores,
+        // mas o que precisa mover é o grupo inteiro (troféu + nome +
+        // card), não só o card — por isso o terceiro argumento
+        // (referência pro centro) é diferente do elemento movido.
+        const ultimaColuna = colunas[colunas.length - 1];
+        const cardsUltima = [...ultimaColuna.querySelectorAll('.arena-card-partida')];
+
+        if (finalWrap && finalInner && finalCard && cardsUltima.length >= 2) {
+            const r1 = cardsUltima[0].getBoundingClientRect();
+            const r2 = cardsUltima[1].getBoundingClientRect();
+            const centroAlvo = (r1.top + r1.height / 2 + r2.top + r2.height / 2) / 2;
+            posicionarNoAlvo(finalWrap, finalInner, finalCard, centroAlvo);
+        }
+    }
+
+    function limparLinhasChaveamento() {
+        const svg = document.getElementById('arena-chave-linhas');
+        if (svg) svg.innerHTML = '';
+    }
+
+    // Desenha as linhas de conexão entre cada partida e a próxima (ver
+    // proxima_partida_id/slot_na_proxima em sql/033_arena.sql), medindo a
+    // posição REAL de cada card na tela — não tenta adivinhar via CSS puro,
+    // o que seria frágil com número variável de partidas por rodada.
+    // Fica dourada quando a partida de origem já foi decidida.
+    function redesenharLinhasChaveamento() {
+        const svg = document.getElementById('arena-chave-linhas');
+        const container = document.getElementById('arena-chave');
+        if (!svg || !container) return;
+
+        const containerRect = container.getBoundingClientRect();
+        svg.setAttribute('width', container.offsetWidth);
+        svg.setAttribute('height', container.offsetHeight);
+        svg.innerHTML = '';
+
+        arenaPartidasPorId.forEach(partida => {
+            if (!partida.proxima_partida_id) return;
+
+            const origem = document.querySelector(`[data-partida-id="${partida.id}"]`);
+            const destino = document.querySelector(`[data-partida-id="${partida.proxima_partida_id}"]`);
+            if (!origem || !destino) return;
+
+            const r1 = origem.getBoundingClientRect();
+            const r2 = destino.getBoundingClientRect();
+
+            const x1 = r1.right - containerRect.left;
+            const y1 = r1.top + r1.height / 2 - containerRect.top;
+            const x2 = r2.left - containerRect.left;
+            const y2 = r2.top + r2.height / 2 - containerRect.top;
+            const xMeio = x1 + (x2 - x1) / 2;
+
+            const decidida = partida.status === 'encerrada';
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M ${x1} ${y1} H ${xMeio} V ${y2} H ${x2}`);
+            path.setAttribute('fill', 'none');
+            path.setAttribute('stroke', decidida ? 'var(--gold)' : 'var(--border)');
+            path.setAttribute('stroke-width', decidida ? '2' : '1.5');
+            svg.appendChild(path);
+        });
+    }
+
+    // Reflui as linhas se a janela mudar de tamanho (debounced) — a
+    // posição dos cards muda com a largura disponível.
+    let arenaResizeTimeoutId = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(arenaResizeTimeoutId);
+        arenaResizeTimeoutId = setTimeout(() => {
+            alinharColunasChaveamento();
+            redesenharLinhasChaveamento();
+        }, 150);
+    });
+
+    // As fontes (Cinzel/Manrope) podem trocar a largura do texto depois da
+    // primeira medição (troca de fonte de fallback pra fonte real) — remede
+    // as linhas quando elas terminarem de carregar.
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+            alinharColunasChaveamento();
+            redesenharLinhasChaveamento();
+        });
+    }
+
+    function montarCombatenteCard(p) {
+        const classeCor = COR_CLASSE[p.classe] || 'var(--ink)';
+        const sync = formatarMinutosDesde(p.sincronizado_em);
+        return `
+            <div class="arena-combatente-card chanfro" data-participante-id="${p.id}">
+                ${p.avatar_url ? `<img src="${escapeHTML(p.avatar_url)}" alt="" class="arena-combatente-avatar">` : '<div class="arena-combatente-avatar"></div>'}
+                <div class="arena-combatente-card-info">
+                    <p class="arena-combatente-card-nome" style="color: ${classeCor};">${escapeHTML(p.personagem)}</p>
+                    <p class="arena-combatente-card-meta">Nível ${p.nivel ?? '—'} · ${escapeHTML(p.raca || '—')} · ${escapeHTML(p.classe || '—')}</p>
+                    ${p.guilda ? `<p class="arena-combatente-card-meta">&lt;${escapeHTML(p.guilda)}&gt;</p>` : ''}
+                    ${p.ilvl_medio ? `<p class="arena-combatente-card-meta">iLvl médio: ${p.ilvl_medio}</p>` : ''}
+                    <span class="arena-selo-status arena-selo-status--${p.status}">${ROTULO_STATUS_PARTICIPANTE[p.status] || p.status}</span>
+                    ${sync ? `<p class="arena-combatente-card-sync">Sincronizado com a API da Blizzard ${sync}</p>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderizarCombatentes(participantes) {
+        const colunaHorda = document.getElementById('arena-combatentes-horda');
+        const colunaAlianca = document.getElementById('arena-combatentes-alianca');
+
+        const doHorda = participantes.filter(p => p.faccao === 'horda');
+        const daAlianca = participantes.filter(p => p.faccao === 'alianca');
+
+        colunaHorda.innerHTML = doHorda.length > 0 ? doHorda.map(montarCombatenteCard).join('') : '<p class="arena-vazio">Nenhum combatente da Horda alistado ainda.</p>';
+        colunaAlianca.innerHTML = daAlianca.length > 0 ? daAlianca.map(montarCombatenteCard).join('') : '<p class="arena-vazio">Nenhum combatente da Aliança alistado ainda.</p>';
+    }
+</script>
+</body>
+</html>

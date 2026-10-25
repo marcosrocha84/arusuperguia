@@ -266,6 +266,7 @@ function switchView(viewName) {
     else if (viewName === 'premiacoes') carregarPremiacoes();
     else if (viewName === 'campanhas') { carregarOpcoesCampanha(); carregarCampanhas(); }
     else if (viewName === 'auditoria') carregarOpcoesAuditoria();
+    else if (viewName === 'arena') carregarArenaCampeonatos();
 }
 navItems.forEach(item => item.addEventListener('click', () => switchView(item.dataset.view)));
 
@@ -2311,3 +2312,689 @@ if (campanhaRelatorioPdfBtn) {
         doc.save(nomeArquivo);
     });
 }
+
+// 13. Arena — campeonatos PvP 1v1 de WoW Classic (sql/033_arena.sql +
+// Edge Function blizzard-personagem). Duas sub-telas dentro da mesma
+// "view-arena" (trocadas aqui, não via switchView/nav-item): lista de
+// campeonatos (arena-lista-view) e detalhe de 1 campeonato
+// (arena-detalhe-view, com alistamento/sorteio/chaveamento).
+const arenaContadorCampeonatos = document.getElementById('arena-contador-campeonatos');
+const arenaListaView = document.getElementById('arena-lista-view');
+const arenaDetalheView = document.getElementById('arena-detalhe-view');
+const arenaCampeonatoForm = document.getElementById('arena-campeonato-form');
+const arenaCampeonatoIdInput = document.getElementById('arena-campeonato-id');
+const arenaCampeonatoNomeInput = document.getElementById('arena-campeonato-nome');
+const arenaCampeonatoSlugInput = document.getElementById('arena-campeonato-slug');
+const arenaCampeonatoOrganizadorInput = document.getElementById('arena-campeonato-organizador');
+const arenaCampeonatoRegiaoInput = document.getElementById('arena-campeonato-regiao');
+const arenaCampeonatoReinoInput = document.getElementById('arena-campeonato-reino');
+const arenaCampeonatoNamespaceInput = document.getElementById('arena-campeonato-namespace');
+const arenaCampeonatoMelhorDeInput = document.getElementById('arena-campeonato-melhor-de');
+const arenaCampeonatoDataFinalInput = document.getElementById('arena-campeonato-data-final');
+const arenaCampeonatoMaxParticipantesInput = document.getElementById('arena-campeonato-max-participantes');
+const arenaCampeonatoPremioInput = document.getElementById('arena-campeonato-premio');
+const arenaCampeonatoLinkLiveInput = document.getElementById('arena-campeonato-link-live');
+const arenaCampeonatoRegrasGeraisInput = document.getElementById('arena-campeonato-regras-gerais');
+const arenaCampeonatoAtivoInput = document.getElementById('arena-campeonato-ativo');
+const arenaCampeonatoSubmitBtn = document.getElementById('arena-campeonato-submit-btn');
+const arenaCampeonatoCancelBtn = document.getElementById('arena-campeonato-cancel-btn');
+const arenaCampeonatoError = document.getElementById('arena-campeonato-error');
+const arenaCampeonatosContainer = document.getElementById('arena-campeonatos-container');
+const arenaVoltarBtn = document.getElementById('arena-voltar-btn');
+const arenaDetalheTitulo = document.getElementById('arena-detalhe-titulo');
+const arenaBuscaPersonagemInput = document.getElementById('arena-busca-personagem');
+const arenaBuscaReinoInput = document.getElementById('arena-busca-reino');
+const arenaBuscaDiscordInput = document.getElementById('arena-busca-discord');
+const arenaBuscarBtn = document.getElementById('arena-buscar-btn');
+const arenaBuscaError = document.getElementById('arena-busca-error');
+const arenaPreviewContainer = document.getElementById('arena-preview-container');
+const arenaContadorParticipantes = document.getElementById('arena-contador-participantes');
+const arenaRessincronizarBtn = document.getElementById('arena-ressincronizar-btn');
+const arenaSortearBtn = document.getElementById('arena-sortear-btn');
+const arenaTesteBtn = document.getElementById('arena-teste-btn');
+const arenaParticipantesContainer = document.getElementById('arena-participantes-container');
+const arenaPartidasContainer = document.getElementById('arena-partidas-container');
+
+let arenaCampeonatosCache = [];
+let arenaCampeonatoAtual = null; // linha completa do campeonato sendo gerenciado na sub-tela de detalhe
+let arenaParticipantesCache = [];
+let arenaPartidasCache = [];
+let arenaPreviewAtual = null; // dado normalizado devolvido pela Edge Function, antes de "Confirmar inscrição"
+
+async function carregarArenaCampeonatos() {
+    if (!arenaCampeonatosContainer) return;
+    arenaCampeonatosContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Buscando campeonatos...</p>';
+
+    const { data, error } = await supabase
+        .from('arena_campeonatos')
+        .select('*')
+        .order('criado_em', { ascending: false });
+
+    if (error) {
+        arenaCampeonatosContainer.innerHTML = `<p class="text-[var(--ember-dark)] text-center font-semibold">Erro ao carregar campeonatos: ${escapeHTML(error.message)}</p>`;
+        return;
+    }
+
+    arenaCampeonatosCache = data || [];
+    renderizarArenaCampeonatos();
+}
+
+const ROTULO_STATUS_ARENA_CAMPEONATO = {
+    inscricoes: 'Inscrições abertas',
+    em_andamento: 'Em andamento',
+    encerrado: 'Encerrado',
+};
+const STAMP_STATUS_ARENA_CAMPEONATO = {
+    inscricoes: 'stamp-amber',
+    em_andamento: 'stamp-fern',
+    encerrado: 'stamp-ember',
+};
+
+function renderizarArenaCampeonatos() {
+    if (arenaContadorCampeonatos) arenaContadorCampeonatos.textContent = `(${arenaCampeonatosCache.length})`;
+
+    if (arenaCampeonatosCache.length === 0) {
+        arenaCampeonatosContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhum campeonato cadastrado até o momento.</p>';
+        return;
+    }
+
+    arenaCampeonatosContainer.innerHTML = '';
+    arenaCampeonatosCache.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'ticket-sm p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3';
+        row.innerHTML = `
+            <div>
+                <p class="font-semibold text-[var(--ink)]">${escapeHTML(c.nome)}</p>
+                <div class="flex flex-wrap items-center gap-2 mt-1">
+                    <span class="stamp ${STAMP_STATUS_ARENA_CAMPEONATO[c.status] || 'stamp-amber'}">${ROTULO_STATUS_ARENA_CAMPEONATO[c.status] || c.status}</span>
+                    ${c.ativo ? '<span class="stamp stamp-fern">Ativo na home</span>' : ''}
+                    <span class="text-sm text-[var(--ink-soft)]">/arena/${escapeHTML(c.slug)}</span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="gerenciarArenaCampeonato('${c.id}')" class="btn btn-fern text-sm !py-1.5 !px-3">Gerenciar</button>
+                <button onclick="editarArenaCampeonato('${c.id}')" class="btn btn-ghost text-sm !py-1.5 !px-3">Editar</button>
+                <button onclick="excluirArenaCampeonato('${c.id}')" class="btn btn-ember text-sm !py-1.5 !px-3">Excluir</button>
+            </div>
+        `;
+        arenaCampeonatosContainer.appendChild(row);
+    });
+}
+
+function resetArenaCampeonatoForm() {
+    arenaCampeonatoForm.reset();
+    arenaCampeonatoIdInput.value = '';
+    arenaCampeonatoMelhorDeInput.value = '3';
+    arenaCampeonatoSubmitBtn.textContent = 'Criar campeonato';
+    arenaCampeonatoCancelBtn.classList.add('hidden');
+    arenaCampeonatoError.classList.add('hidden');
+}
+
+window.editarArenaCampeonato = function (id) {
+    const c = arenaCampeonatosCache.find(x => x.id === id);
+    if (!c) return;
+
+    arenaCampeonatoIdInput.value = c.id;
+    arenaCampeonatoNomeInput.value = c.nome || '';
+    arenaCampeonatoSlugInput.value = c.slug || '';
+    arenaCampeonatoOrganizadorInput.value = c.organizador || '';
+    arenaCampeonatoRegiaoInput.value = c.regiao || 'us';
+    arenaCampeonatoReinoInput.value = c.reino_padrao || '';
+    arenaCampeonatoNamespaceInput.value = c.namespace_blizzard || '';
+    arenaCampeonatoMelhorDeInput.value = c.melhor_de || 3;
+    arenaCampeonatoDataFinalInput.value = c.data_final || '';
+    arenaCampeonatoMaxParticipantesInput.value = c.max_participantes || '';
+    arenaCampeonatoPremioInput.value = c.premio || '';
+    arenaCampeonatoLinkLiveInput.value = c.link_live || '';
+    arenaCampeonatoRegrasGeraisInput.value = c.regras_gerais || '';
+    arenaCampeonatoAtivoInput.checked = !!c.ativo;
+    arenaCampeonatoSubmitBtn.textContent = 'Salvar alterações';
+    arenaCampeonatoCancelBtn.classList.remove('hidden');
+    arenaCampeonatoError.classList.add('hidden');
+    arenaCampeonatoNomeInput.focus();
+};
+
+window.excluirArenaCampeonato = async function (id) {
+    const c = arenaCampeonatosCache.find(x => x.id === id);
+    if (!c) return;
+    if (!confirm(`Excluir o campeonato "${c.nome}"? Isso apaga também todos os participantes e o chaveamento. Essa ação não pode ser desfeita.`)) return;
+
+    const { error } = await supabase.from('arena_campeonatos').delete().eq('id', id);
+    if (error) {
+        alert('Erro ao excluir campeonato: ' + error.message);
+        return;
+    }
+    carregarArenaCampeonatos();
+};
+
+if (arenaCampeonatoForm) {
+    arenaCampeonatoForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        arenaCampeonatoError.classList.add('hidden');
+        arenaCampeonatoSubmitBtn.disabled = true;
+
+        const id = arenaCampeonatoIdInput.value;
+        const payload = {
+            nome: arenaCampeonatoNomeInput.value.trim(),
+            slug: arenaCampeonatoSlugInput.value.trim().toLowerCase(),
+            organizador: arenaCampeonatoOrganizadorInput.value.trim() || null,
+            regiao: arenaCampeonatoRegiaoInput.value,
+            reino_padrao: arenaCampeonatoReinoInput.value.trim() || null,
+            namespace_blizzard: arenaCampeonatoNamespaceInput.value.trim() || null,
+            melhor_de: parseInt(arenaCampeonatoMelhorDeInput.value, 10) || 3,
+            data_final: arenaCampeonatoDataFinalInput.value || null,
+            max_participantes: arenaCampeonatoMaxParticipantesInput.value ? parseInt(arenaCampeonatoMaxParticipantesInput.value, 10) : null,
+            premio: arenaCampeonatoPremioInput.value.trim() || null,
+            link_live: arenaCampeonatoLinkLiveInput.value.trim() || null,
+            regras_gerais: arenaCampeonatoRegrasGeraisInput.value.trim() || null,
+            ativo: arenaCampeonatoAtivoInput.checked,
+        };
+
+        try {
+            // Só 1 campeonato ativo por vez (reforçado também no banco via
+            // índice único parcial, sql/037) — desativa qualquer outro antes
+            // de marcar este, pra não depender do admin lembrar de
+            // desmarcar o anterior manualmente.
+            if (payload.ativo) {
+                const { error: desativarError } = await supabase
+                    .from('arena_campeonatos')
+                    .update({ ativo: false })
+                    .eq('ativo', true);
+                if (desativarError) throw desativarError;
+            }
+
+            if (id) {
+                const { error } = await supabase.from('arena_campeonatos').update(payload).eq('id', id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('arena_campeonatos').insert([payload]);
+                if (error) throw error;
+            }
+            resetArenaCampeonatoForm();
+            carregarArenaCampeonatos();
+        } catch (error) {
+            arenaCampeonatoError.textContent = 'Erro ao salvar campeonato: ' + error.message;
+            arenaCampeonatoError.classList.remove('hidden');
+        } finally {
+            arenaCampeonatoSubmitBtn.disabled = false;
+        }
+    });
+}
+
+if (arenaCampeonatoCancelBtn) {
+    arenaCampeonatoCancelBtn.addEventListener('click', resetArenaCampeonatoForm);
+}
+
+// ---------- Sub-tela de detalhe: participantes + chaveamento ----------
+
+window.gerenciarArenaCampeonato = async function (id) {
+    const c = arenaCampeonatosCache.find(x => x.id === id);
+    if (!c) return;
+
+    arenaCampeonatoAtual = c;
+    arenaDetalheTitulo.textContent = c.nome;
+    arenaListaView.classList.add('hidden');
+    arenaDetalheView.classList.remove('hidden');
+    arenaPreviewContainer.classList.add('hidden');
+    arenaPreviewAtual = null;
+    arenaBuscaError.classList.add('hidden');
+
+    await Promise.all([carregarArenaParticipantes(), carregarArenaPartidas()]);
+};
+
+if (arenaVoltarBtn) {
+    arenaVoltarBtn.addEventListener('click', () => {
+        arenaDetalheView.classList.add('hidden');
+        arenaListaView.classList.remove('hidden');
+        arenaCampeonatoAtual = null;
+        carregarArenaCampeonatos();
+    });
+}
+
+async function carregarArenaParticipantes() {
+    if (!arenaCampeonatoAtual) return;
+    arenaParticipantesContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Buscando participantes...</p>';
+
+    const { data, error } = await supabase
+        .from('arena_participantes')
+        .select('*')
+        .eq('campeonato_id', arenaCampeonatoAtual.id)
+        .order('criado_em', { ascending: true });
+
+    if (error) {
+        arenaParticipantesContainer.innerHTML = `<p class="text-[var(--ember-dark)] text-center font-semibold">Erro: ${escapeHTML(error.message)}</p>`;
+        return;
+    }
+
+    arenaParticipantesCache = data || [];
+    renderizarArenaParticipantes();
+}
+
+const ROTULO_STATUS_ARENA_PARTICIPANTE = {
+    na_disputa: 'Na disputa',
+    eliminado: 'Eliminado',
+    campeao: 'Campeão',
+    vice: 'Vice-campeão',
+};
+const STAMP_STATUS_ARENA_PARTICIPANTE = {
+    na_disputa: 'stamp-fern',
+    eliminado: 'stamp-ember',
+    campeao: 'stamp-amber',
+    vice: 'stamp-amber',
+};
+
+function renderizarArenaParticipantes() {
+    const max = arenaCampeonatoAtual.max_participantes;
+    arenaContadorParticipantes.textContent = max
+        ? `(${arenaParticipantesCache.length} / ${max})`
+        : `(${arenaParticipantesCache.length})`;
+
+    if (arenaParticipantesCache.length === 0) {
+        arenaParticipantesContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Nenhum combatente alistado ainda.</p>';
+        return;
+    }
+
+    arenaParticipantesContainer.innerHTML = arenaParticipantesCache.map(p => `
+        <div class="ticket-sm p-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                ${p.avatar_url ? `<img src="${escapeHTML(p.avatar_url)}" alt="" class="w-9 h-9 rounded-full object-cover shrink-0">` : ''}
+                <div class="min-w-0">
+                    <p class="font-semibold text-[var(--ink)] truncate">${escapeHTML(p.personagem)} <span class="text-[var(--ink-soft)] font-normal">— ${escapeHTML(p.reino || '')}</span></p>
+                    <p class="text-xs text-[var(--ink-soft)] truncate">${escapeHTML(p.faccao === 'horda' ? 'Horda' : p.faccao === 'alianca' ? 'Aliança' : '—')} · ${escapeHTML(p.raca || '—')} · ${escapeHTML(p.classe || '—')} · nível ${p.nivel ?? '—'} ${p.ilvl_medio ? `· iLvl ${p.ilvl_medio}` : ''}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="stamp ${STAMP_STATUS_ARENA_PARTICIPANTE[p.status] || 'stamp-amber'}">${ROTULO_STATUS_ARENA_PARTICIPANTE[p.status] || p.status}</span>
+                <button onclick="removerArenaParticipante('${p.id}')" class="btn btn-ember text-xs !py-1 !px-2">Remover</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.removerArenaParticipante = async function (id) {
+    const p = arenaParticipantesCache.find(x => x.id === id);
+    if (!p) return;
+    if (!confirm(`Remover "${p.personagem}" do campeonato?`)) return;
+
+    const { error } = await supabase.from('arena_participantes').delete().eq('id', id);
+    if (error) {
+        alert('Erro ao remover participante: ' + error.message);
+        return;
+    }
+    carregarArenaParticipantes();
+};
+
+// Chama a Edge Function blizzard-personagem com o JWT do admin logado
+// (mesmo padrão de chamarEnvioResultado/chamarDisparoCampanha).
+async function chamarBlizzardPersonagem(payload) {
+    const { data: sessao } = await supabase.auth.getSession();
+    const token = sessao.session?.access_token;
+    if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+    const resposta = await fetch(`${SUPABASE_URL}/functions/v1/blizzard-personagem`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+    });
+
+    const resultado = await resposta.json();
+    if (!resposta.ok || resultado.error) throw new Error(resultado.error || 'Falha ao consultar a API da Blizzard.');
+    return resultado;
+}
+
+if (arenaBuscarBtn) {
+    arenaBuscarBtn.addEventListener('click', async () => {
+        if (!arenaCampeonatoAtual) return;
+        const personagem = arenaBuscaPersonagemInput.value.trim();
+        const reino = arenaBuscaReinoInput.value.trim() || arenaCampeonatoAtual.reino_padrao;
+
+        if (!personagem || !reino) {
+            arenaBuscaError.textContent = 'Preencha o personagem (e o reino, se o campeonato não tiver um reino padrão).';
+            arenaBuscaError.classList.remove('hidden');
+            return;
+        }
+
+        arenaBuscaError.classList.add('hidden');
+        arenaPreviewContainer.classList.add('hidden');
+        arenaBuscarBtn.disabled = true;
+        arenaBuscarBtn.textContent = 'Buscando...';
+
+        try {
+            const resultado = await chamarBlizzardPersonagem({
+                campeonato_id: arenaCampeonatoAtual.id,
+                personagem,
+                reino,
+            });
+            arenaPreviewAtual = resultado.personagem;
+            renderizarArenaPreview();
+        } catch (error) {
+            arenaBuscaError.textContent = error.message;
+            arenaBuscaError.classList.remove('hidden');
+        } finally {
+            arenaBuscarBtn.disabled = false;
+            arenaBuscarBtn.textContent = 'Buscar na API da Blizzard';
+        }
+    });
+}
+
+function renderizarArenaPreview() {
+    const p = arenaPreviewAtual;
+    arenaPreviewContainer.innerHTML = `
+        <div class="flex items-center gap-3">
+            ${p.avatar_url ? `<img src="${escapeHTML(p.avatar_url)}" alt="" class="w-14 h-14 rounded-full object-cover">` : ''}
+            <div>
+                <p class="font-semibold text-[var(--ink)]">${escapeHTML(p.personagem)} — ${escapeHTML(p.reino)}</p>
+                <p class="text-sm text-[var(--ink-soft)]">${escapeHTML(p.faccao === 'horda' ? 'Horda' : p.faccao === 'alianca' ? 'Aliança' : 'Facção desconhecida')} · ${escapeHTML(p.raca || '—')} · ${escapeHTML(p.classe || '—')} · nível ${p.nivel ?? '—'}${p.guilda ? ` · <${escapeHTML(p.guilda)}>` : ''}${p.ilvl_medio ? ` · iLvl médio ${p.ilvl_medio}` : ''}</p>
+            </div>
+        </div>
+        <button type="button" onclick="confirmarInscricaoArena()" class="btn btn-fern text-sm !py-2 !px-4 mt-3">Confirmar inscrição</button>
+    `;
+    arenaPreviewContainer.classList.remove('hidden');
+}
+
+window.confirmarInscricaoArena = async function () {
+    if (!arenaPreviewAtual || !arenaCampeonatoAtual) return;
+    const p = arenaPreviewAtual;
+    const discord = arenaBuscaDiscordInput.value.trim();
+
+    try {
+        const { data: inserido, error } = await supabase
+            .from('arena_participantes')
+            .insert([{
+                campeonato_id: arenaCampeonatoAtual.id,
+                personagem: p.personagem,
+                reino: p.reino,
+                regiao: arenaCampeonatoAtual.regiao,
+                faccao: p.faccao,
+                raca: p.raca,
+                classe: p.classe,
+                nivel: p.nivel,
+                guilda: p.guilda,
+                ilvl_medio: p.ilvl_medio,
+                avatar_url: p.avatar_url,
+                dados_blizzard: p.dados_blizzard,
+                sincronizado_em: new Date().toISOString(),
+            }])
+            .select('id')
+            .single();
+
+        if (error) throw error;
+
+        if (discord) {
+            const { error: erroContato } = await supabase
+                .from('arena_participantes_contato')
+                .insert([{ participante_id: inserido.id, discord }]);
+            if (erroContato) throw erroContato;
+        }
+
+        arenaPreviewAtual = null;
+        arenaPreviewContainer.classList.add('hidden');
+        arenaBuscaPersonagemInput.value = '';
+        arenaBuscaReinoInput.value = '';
+        arenaBuscaDiscordInput.value = '';
+        carregarArenaParticipantes();
+    } catch (error) {
+        arenaBuscaError.textContent = 'Erro ao confirmar inscrição: ' + error.message;
+        arenaBuscaError.classList.remove('hidden');
+    }
+};
+
+if (arenaRessincronizarBtn) {
+    arenaRessincronizarBtn.addEventListener('click', async () => {
+        if (!arenaCampeonatoAtual) return;
+        if (!confirm('Ressincronizar os dados de todos os participantes com a API da Blizzard?')) return;
+
+        arenaRessincronizarBtn.disabled = true;
+        arenaRessincronizarBtn.textContent = 'Ressincronizando...';
+        try {
+            const resultado = await chamarBlizzardPersonagem({
+                campeonato_id: arenaCampeonatoAtual.id,
+                acao: 'ressincronizar_todos',
+            });
+            let mensagem = `${resultado.sucesso} de ${resultado.total} participante(s) atualizado(s) com sucesso.`;
+            if (resultado.falhas.length > 0) {
+                mensagem += `\n\nFalhas:\n${resultado.falhas.map(f => `- ${f.personagem}: ${f.motivo}`).join('\n')}`;
+            }
+            alert(mensagem);
+            carregarArenaParticipantes();
+        } catch (error) {
+            alert('Erro ao ressincronizar: ' + error.message);
+        } finally {
+            arenaRessincronizarBtn.disabled = false;
+            arenaRessincronizarBtn.textContent = 'Ressincronizar todos';
+        }
+    });
+}
+
+if (arenaSortearBtn) {
+    arenaSortearBtn.addEventListener('click', async () => {
+        if (!arenaCampeonatoAtual) return;
+        if (!confirm('Sortear o chaveamento agora? Isso embaralha todos os participantes já alistados. Se o campeonato já tiver resultado lançado, o sorteio será recusado.')) return;
+
+        arenaSortearBtn.disabled = true;
+        try {
+            const { error } = await supabase.rpc('arena_sortear_chaveamento', { campeonato_id_input: arenaCampeonatoAtual.id });
+            if (error) throw error;
+            await Promise.all([carregarArenaParticipantes(), carregarArenaPartidas()]);
+        } catch (error) {
+            alert('Erro ao sortear chaveamento: ' + error.message);
+        } finally {
+            arenaSortearBtn.disabled = false;
+        }
+    });
+}
+
+// Participantes fictícios pra testar o chaveamento com volume (16+ pessoas)
+// sem chamar a API da Blizzard. Todo nome sai prefixado com "[TESTE]" e a
+// guilda/reino também marcam "Teste" — fácil de achar e remover depois.
+// Raça/classe respeitam a restrição de facção da Classic (ex: Paladino só
+// Aliança, Xamã só Horda), só pra não ficar óbvio demais que é lixo.
+const ARENA_RACAS_HORDA = ['Orc', 'Tauren', 'Troll', 'Undead'];
+const ARENA_RACAS_ALIANCA = ['Human', 'Dwarf', 'Night Elf', 'Gnome'];
+const ARENA_CLASSES_COMUNS = ['Warrior', 'Hunter', 'Rogue', 'Priest', 'Mage', 'Warlock', 'Druid'];
+
+// Nome sequencial simples ("Lutador1", "Lutador2"...) em vez de nome
+// aleatório — pra estressar o chaveamento com volume (ex: testar as 32
+// vagas de um campeonato de 17-32 inscritos) sem gastar chamada da API da
+// Blizzard. `numeroSequencial` sempre começa em 1 pro lote adicionado,
+// mesmo que já existam outros participantes (inclusive reais) no
+// campeonato.
+function gerarArenaParticipanteTeste(numeroSequencial, campeonatoId) {
+    const faccao = Math.random() < 0.5 ? 'horda' : 'alianca';
+    const racas = faccao === 'horda' ? ARENA_RACAS_HORDA : ARENA_RACAS_ALIANCA;
+    const classeExclusiva = faccao === 'horda' ? 'Shaman' : 'Paladin';
+    const classes = [...ARENA_CLASSES_COMUNS, classeExclusiva];
+
+    return {
+        campeonato_id: campeonatoId,
+        personagem: `Lutador${numeroSequencial}`,
+        reino: 'Reino de Teste',
+        regiao: arenaCampeonatoAtual?.regiao || 'us',
+        faccao,
+        raca: racas[Math.floor(Math.random() * racas.length)],
+        classe: classes[Math.floor(Math.random() * classes.length)],
+        nivel: 60,
+        guilda: 'Guilda de Teste',
+        ilvl_medio: Math.round((30 + Math.random() * 40) * 10) / 10,
+        avatar_url: null,
+        dados_blizzard: { teste: true },
+        sincronizado_em: null,
+        status: 'na_disputa',
+    };
+}
+
+if (arenaTesteBtn) {
+    arenaTesteBtn.addEventListener('click', async () => {
+        if (!arenaCampeonatoAtual) return;
+
+        const maxParticipantes = arenaCampeonatoAtual.max_participantes;
+        if (!maxParticipantes) {
+            alert('Esse campeonato não tem "Máx. participantes" definido — edite o campeonato e preencha esse campo antes de completar com participantes de teste.');
+            return;
+        }
+
+        const faltam = maxParticipantes - arenaParticipantesCache.length;
+        if (faltam <= 0) {
+            alert(`Este campeonato já tem ${arenaParticipantesCache.length} participante(s), igual ou acima do máximo (${maxParticipantes}).`);
+            return;
+        }
+        if (!confirm(`Adicionar ${faltam} participante(s) de teste (Lutador1 a Lutador${faltam}, mistura Horda e Aliança), sem chamar a API da Blizzard?`)) return;
+
+        arenaTesteBtn.disabled = true;
+        try {
+            const novos = Array.from({ length: faltam }, (_, i) => gerarArenaParticipanteTeste(i + 1, arenaCampeonatoAtual.id));
+
+            const { error } = await supabase.from('arena_participantes').insert(novos);
+            if (error) throw error;
+
+            await carregarArenaParticipantes();
+        } catch (error) {
+            alert('Erro ao adicionar participantes de teste: ' + error.message);
+        } finally {
+            arenaTesteBtn.disabled = false;
+        }
+    });
+}
+
+// ---------- Chaveamento (rodada atual + histórico) ----------
+
+async function carregarArenaPartidas() {
+    if (!arenaCampeonatoAtual) return;
+    arenaPartidasContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Buscando chaveamento...</p>';
+
+    const { data, error } = await supabase
+        .from('arena_partidas')
+        .select('*')
+        .eq('campeonato_id', arenaCampeonatoAtual.id)
+        .order('rodada', { ascending: true })
+        .order('posicao', { ascending: true });
+
+    if (error) {
+        arenaPartidasContainer.innerHTML = `<p class="text-[var(--ember-dark)] text-center font-semibold">Erro: ${escapeHTML(error.message)}</p>`;
+        return;
+    }
+
+    arenaPartidasCache = data || [];
+    renderizarArenaPartidas();
+}
+
+function nomeArenaParticipante(id) {
+    if (!id) return '—';
+    const p = arenaParticipantesCache.find(x => x.id === id);
+    return p ? p.personagem : '(removido)';
+}
+
+function rotuloRodadaArena(rodada, totalRodadas) {
+    const faltam = totalRodadas - rodada;
+    if (faltam === 0) return 'Final';
+    if (faltam === 1) return 'Semifinal';
+    if (faltam === 2) return 'Quartas de final';
+    return `Rodada ${rodada}`;
+}
+
+function renderizarArenaPartidas() {
+    if (arenaPartidasCache.length === 0) {
+        arenaPartidasContainer.innerHTML = '<p class="text-[var(--ink-soft)] text-center">Sorteie o chaveamento depois de alistar os combatentes.</p>';
+        return;
+    }
+
+    const totalRodadas = Math.max(...arenaPartidasCache.map(p => p.rodada));
+    const porRodada = new Map();
+    arenaPartidasCache.forEach(p => {
+        if (!porRodada.has(p.rodada)) porRodada.set(p.rodada, []);
+        porRodada.get(p.rodada).push(p);
+    });
+
+    const STAMP_STATUS_PARTIDA = {
+        bloqueada: 'stamp-amber',
+        aguardando: 'stamp-amber',
+        ao_vivo: 'stamp-ember',
+        encerrada: 'stamp-fern',
+    };
+    const ROTULO_STATUS_PARTIDA = {
+        bloqueada: 'Aguardando definição',
+        aguardando: 'Pronta pra começar',
+        ao_vivo: 'Ao vivo',
+        encerrada: 'Encerrada',
+    };
+
+    let html = '';
+    for (let rodada = 1; rodada <= totalRodadas; rodada++) {
+        const partidas = (porRodada.get(rodada) || []).sort((a, b) => a.posicao - b.posicao);
+        // Rodada com tudo encerrado já não precisa de atenção — recolhida
+        // por padrão, facilita achar a rodada que ainda tá rolando em
+        // campeonatos com muitas rodadas.
+        const rodadaTodaEncerrada = partidas.length > 0 && partidas.every(p => p.status === 'encerrada');
+        html += `<details class="mt-4"${rodadaTodaEncerrada ? '' : ' open'}><summary class="cursor-pointer font-semibold text-[var(--ink)]">${escapeHTML(rotuloRodadaArena(rodada, totalRodadas))}</summary><div class="mt-2">`;
+        html += partidas.map(partida => {
+            const podeJogar = partida.participante_a_id && partida.participante_b_id && partida.status !== 'bloqueada';
+            return `
+                <div class="ticket-sm p-3 mb-2">
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium text-[var(--ink)]">${escapeHTML(nomeArenaParticipante(partida.participante_a_id))}</span>
+                            <span class="text-[var(--ink-soft)]">vs</span>
+                            <span class="font-medium text-[var(--ink)]">${escapeHTML(nomeArenaParticipante(partida.participante_b_id))}</span>
+                        </div>
+                        <span class="stamp ${STAMP_STATUS_PARTIDA[partida.status] || 'stamp-amber'}">${ROTULO_STATUS_PARTIDA[partida.status] || partida.status}</span>
+                    </div>
+                    ${podeJogar ? `
+                        <div class="flex items-center gap-2 mt-3 flex-wrap">
+                            <label for="arena-vitorias-a-${partida.id}" class="text-sm text-[var(--ink-soft)]">Vitórias A:</label>
+                            <input type="number" min="0" id="arena-vitorias-a-${partida.id}" value="${partida.vitorias_a}" class="w-16 px-2 py-1 border-2 border-[var(--ink)] rounded-lg">
+                            <label for="arena-vitorias-b-${partida.id}" class="text-sm text-[var(--ink-soft)]">Vitórias B:</label>
+                            <input type="number" min="0" id="arena-vitorias-b-${partida.id}" value="${partida.vitorias_b}" class="w-16 px-2 py-1 border-2 border-[var(--ink)] rounded-lg">
+                            <button onclick="lancarResultadoArenaPartida('${partida.id}')" class="btn btn-fern text-xs !py-1.5 !px-3">${partida.status === 'encerrada' ? 'Corrigir' : 'Lançar resultado'}</button>
+                        </div>
+                        <label class="flex items-center gap-2 mt-2 text-sm text-[var(--ink-soft)]">
+                            <input type="checkbox" id="arena-destaque-${partida.id}" ${partida.em_destaque ? 'checked' : ''} onchange="alternarArenaDestaque('${partida.id}', this.checked)">
+                            Lutando agora
+                        </label>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+        html += `</div></details>`;
+    }
+
+    arenaPartidasContainer.innerHTML = html;
+}
+
+window.lancarResultadoArenaPartida = async function (partidaId) {
+    const vitoriasA = parseInt(document.getElementById(`arena-vitorias-a-${partidaId}`).value, 10) || 0;
+    const vitoriasB = parseInt(document.getElementById(`arena-vitorias-b-${partidaId}`).value, 10) || 0;
+
+    try {
+        const { error } = await supabase.rpc('arena_registrar_resultado', {
+            partida_id_input: partidaId,
+            vitorias_a_input: vitoriasA,
+            vitorias_b_input: vitoriasB,
+        });
+        if (error) throw error;
+        await Promise.all([carregarArenaParticipantes(), carregarArenaPartidas()]);
+    } catch (error) {
+        alert('Erro ao lançar resultado: ' + error.message);
+    }
+};
+
+// "Lutando agora" é só um sinalizador manual (sem exclusividade — pode ter
+// várias partidas marcadas ao mesmo tempo), gravado direto na tabela via
+// RLS de admin — não precisa passar pela RPC. arena_registrar_resultado já
+// desliga sozinho quando a partida fecha com vencedor definido.
+window.alternarArenaDestaque = async function (partidaId, ligado) {
+    const { error } = await supabase
+        .from('arena_partidas')
+        .update({ em_destaque: ligado })
+        .eq('id', partidaId);
+
+    if (error) {
+        alert('Erro ao atualizar "Lutando agora": ' + error.message);
+        return;
+    }
+
+    const partida = arenaPartidasCache.find(p => p.id === partidaId);
+    if (partida) partida.em_destaque = ligado;
+};

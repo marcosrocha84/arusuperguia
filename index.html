@@ -471,10 +471,28 @@
             padding: 24px 20px;
             text-align: center;
         }
-        .orbita-footer-slogan {
-            margin: 0 0 10px;
+        /* Linha de destaque do rodapé — antes era só o slogan estático da
+           plataforma; virou o link "Para criadores e marcas" (mais útil
+           ali do que um texto sem ação) + o link da Arena, condicional,
+           logo abaixo, só quando algum campeonato está marcado como ativo. */
+        .orbita-footer-destaque {
+            display: block;
+            margin: 0 0 6px;
             font-size: 0.85rem;
+            font-weight: 600;
             color: var(--orbita-ink-soft);
+            text-decoration: none;
+        }
+        .orbita-footer-destaque:last-of-type {
+            margin-bottom: 10px;
+        }
+        .orbita-footer-destaque:hover {
+            color: var(--orbita-ink);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .orbita-footer-arena {
+            color: var(--orbita-ink);
         }
         .orbita-footer-links {
             display: flex;
@@ -711,10 +729,10 @@
     </main>
 
     <footer class="orbita-footer">
-        <p class="orbita-footer-slogan">Órbita — a plataforma por trás do seu concurso cultural</p>
+        <a href="./criadores.html" class="orbita-footer-destaque">Para criadores e marcas</a>
+        <a href="#" id="link-arena-ativa" class="orbita-footer-destaque orbita-footer-arena hidden">⚔️ Arena WoW ⚔️</a>
         <nav class="orbita-footer-links">
             <button type="button" id="btn-abrir-contato">Contato</button>
-            <a href="./criadores.html">Para criadores e marcas</a>
             <a href="./privacy.html">Privacidade</a>
             <a href="./terms.html">Termos</a>
             <a href="./historico.html">Histórico de concursos</a>
@@ -945,6 +963,26 @@
                 semConcurso.classList.remove('hidden');
             } finally {
                 conteudoCarregando.classList.add('hidden');
+            }
+
+            // Link da Arena no rodapé: só aparece quando existe um
+            // campeonato marcado como ativo (no máximo 1 por vez, ver
+            // sql/037_arena_campeonato_ativo.sql) — sem campeonato ativo, o
+            // link some de novo, não fica apontando pra uma edição velha.
+            try {
+                const { data: campeonatoAtivo } = await supabase
+                    .from('arena_campeonatos')
+                    .select('slug')
+                    .eq('ativo', true)
+                    .maybeSingle();
+
+                if (campeonatoAtivo) {
+                    const linkArena = document.getElementById('link-arena-ativa');
+                    linkArena.href = `./arena.html?arena=${encodeURIComponent(campeonatoAtivo.slug)}`;
+                    linkArena.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
             }
         })();
 

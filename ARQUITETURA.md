@@ -265,3 +265,77 @@ nenhum.
 - `is_admin()` é checado tanto no front-end (esconder o painel de quem não é
   admin) quanto no banco via RLS — o front-end é só UX, a segurança real está
   nas policies.
+
+## Órbita Arena (`arena.html` + view "Arena" em `curadoria.html`)
+
+Módulo à parte dentro do mesmo projeto: campeonatos PvP 1v1 de WoW Classic,
+com chaveamento eliminatório, integração com a API da Blizzard e atualização
+ao vivo via Realtime. Para o runbook operacional (schema, como criar um
+campeonato, deploy da Edge Function), veja **[ARENA.md](ARENA.md)** — esta
+seção cobre só as decisões não-óbvias.
+
+- **Multi-campeonato desde o início.** Mesmo o primeiro uso real sendo um
+  único campeonato (de uma guilda específica), o schema nunca tratou isso
+  como caso especial hardcoded — `arena_campeonatos` é uma tabela normal,
+  com slug próprio e rota `/arena/:slug`. Evita o retrabalho de "promover"
+  pra multi-tenant depois que já existir dado em produção.
+- **Contato do participante (Discord) em tabela separada, não numa coluna.**
+  `arena.html` precisa de leitura pública (`anon`) pra alimentar a página sem
+  login, mas o Discord de cada combatente não deveria sair nessa leitura. Uma
+  `view` seria a solução óbvia, mas em Postgres uma view roda com os
+  privilégios do *dono* dela sobre a tabela base — aplicar RLS corretamente
+  nesse cenário exige cuidado extra com `security_invoker` que o resto do
+  projeto não usa em lugar nenhum. Em vez disso, `arena_participantes_contato`
+  é uma tabela 1:1 separada, só legível/gravável por admin, seguindo o mesmo
+  padrão de policy direta já usado em todo o resto do projeto.
+- **A Edge Function `blizzard-personagem` não usa a Service Role Key** —
+  diferente de `enviar-foto`. Ela só precisa ler `arena_campeonatos` (RLS
+  pública) e gravar em `arena_participantes` (policy de admin já cobre o JWT
+  de quem chama), então repassar o `Authorization` header de quem chamou é
+  suficiente; não há nada ali que exija ignorar RLS.
+- **Namespace da Blizzard é por campeonato, não uma constante no código.** A
+  Blizzard mantém 3 famílias de Classic em paralelo (Era, progressão atual,
+  Burning Crusade Anniversary), cada uma com seu próprio namespace de API.
+  Fixar isso no código quebraria no dia em que a guilda organizadora migrasse
+  de versão — por isso `namespace_blizzard` é uma coluna configurável em
+  `arena_campeonatos`, preenchida na criação do campeonato.
+- **Sorteio do chaveamento usa semeadura clássica de torneio, não
+  bye-stacking sequencial.** A primeira versão de `arena_sortear_chaveamento`
+  preenchia as primeiras partidas da rodada 1 com os "byes" (folgas, quando o
+  nº de inscritos não é potência de 2) em sequência — com poucos inscritos
+  num chaveamento grande (ex: 17 inscritos num chaveamento de 32), isso
+  empilhava quase toda a folga de um lado só, visualmente torto. A versão
+  atual (`sql/034`) gera a ordem de semeadura padrão de torneios (pra 8 vagas:
+  `1,8,4,5,2,7,3,6`) e trata os byes como os "seeds" mais altos — como essa
+  ordem já é desenhada pra espalhar os extremos pelo chaveamento inteiro, as
+  folgas saem naturalmente distribuídas.
+- **Atualização ao vivo nunca recria o card de uma partida (`outerHTML`) —
+  sempre muta o DOM existente no lugar.** Esse foi o primeiro uso de Realtime
+  no projeto, e a primeira tentativa (recriar o card inteiro a cada evento,
+  depois adicionar a classe de animação) funcionava só na primeira atualização
+  de cada card: disparar uma animação CSS no mesmo tick síncrono em que o
+  elemento acabou de ser recriado via `outerHTML` não é confiável — o
+  navegador nem sempre detecta a mudança de estado a tempo pra repetir a
+  animação, mesmo forçando reflow. A correção (`atualizarCardPartidaNaTela` /
+  `atualizarLinhaEmLugar` em `arena.html`) só troca `textContent`/`className`
+  de nós que já existiam antes do evento chegar — nesses, a animação dispara
+  sempre, de forma confiável.
+- **Cantos chanfrados (`clip-path`) recortam `outline`/`box-shadow`, mas não
+  `filter: drop-shadow()`.** A identidade visual da Arena usa cantos
+  cortados via `clip-path` em vez de `border-radius` em todo lugar (classe
+  `.chanfro`). Qualquer `outline`/`box-shadow` que tente passar da borda real
+  do elemento é recortado pelo próprio `clip-path` — descoberto ao tentar
+  destacar visualmente o card de uma partida "em destaque" (ver próximo
+  ponto) e o contorno simplesmente não aparecer. `filter: drop-shadow()` não
+  tem esse problema: é calculado em cima do alpha já recortado, então contorna
+  o chanfro certinho. Qualquer novo efeito de brilho/contorno num elemento
+  chanfrado deve usar `drop-shadow`, não `outline`/`box-shadow`.
+- **"Lutando agora" é um sinalizador manual (`em_destaque`), não inferido do
+  placar.** Uma partida pode estar 0-0 e ainda assim ser "a luta que a galera
+  devia estar acompanhando agora" (ex: anunciada ao vivo antes do primeiro
+  ponto) — por isso existe uma coluna própria em vez de reaproveitar o status
+  `ao_vivo` (que já liga sozinho a partir do primeiro ponto marcado). Não é
+  exclusivo: várias partidas podem estar marcadas ao mesmo tempo, de
+  propósito (cenário de múltiplas mesas/streams). `arena_registrar_resultado`
+  desliga o sinalizador sozinho quando a partida é decidida, mas nunca o liga
+  — isso é sempre uma ação manual do admin.

@@ -67,6 +67,8 @@ supabase functions deploy enviar-foto
 
 ## Outros documentos deste repositório
 
+- `ARENA.md` — runbook do módulo Órbita Arena (campeonatos PvP de WoW
+  Classic): schema, Edge Function da Blizzard, fluxo de uso ponta a ponta.
 - `DEPLOY.md` / `GITHUB-PAGES.md` — notas de hospedagem/DNS.
 - `LEIA-ME-THUMBNAIL.md`, `LEIA-ME-CORRECOES.md` — checklists de passos
   manuais (rodar migração X, redeploy Y) de mudanças pontuais já aplicadas;

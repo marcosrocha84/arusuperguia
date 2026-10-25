@@ -7,6 +7,11 @@
   status = 200
 
 [[redirects]]
+  from = "/arena/:slug"
+  to = "/arena.html?arena=:slug"
+  status = 200
+
+[[redirects]]
   from = "/criadores"
   to = "/criadores.html"
   status = 200

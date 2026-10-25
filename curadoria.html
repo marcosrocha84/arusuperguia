@@ -293,6 +293,7 @@
                     <button data-view="patrocinadores" class="nav-item" title="Patrocinadores"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Patrocinadores</button>
                     <button data-view="premiacoes" class="nav-item" title="Premiações"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Premiações</button>
                     <button data-view="auditoria" class="nav-item" title="Auditoria de votos"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Auditoria de votos</button>
+                    <button data-view="arena" class="nav-item" title="Arena"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/><line x1="5" y1="5" x2="8" y2="5"/><line x1="5" y1="5" x2="5" y2="8"/><line x1="19" y1="5" x2="16" y2="5"/><line x1="19" y1="5" x2="19" y2="8"/></svg> Arena</button>
                     <!-- Menu desabilitado de novo: o envio de resultado por concurso já
                          acontece de forma automática (botão "Enviar resultado" na view
                          Concursos, via Edge Function enviar-resultado-concurso), tornando
@@ -761,6 +762,145 @@
 
                     <div id="auditoria-container" class="space-y-3">
                         <p class="text-[var(--ink-soft)] text-center">Escolha um concurso e clique em "Auditar votação".</p>
+                    </div>
+                </section>
+
+                <!-- VIEW: Arena — campeonatos PvP 1v1 de WoW Classic
+                     (sql/033_arena.sql + Edge Function blizzard-personagem).
+                     Duas sub-telas dentro da mesma view, alternadas via JS
+                     (sem trocar de "view" de verdade): lista de campeonatos
+                     (arena-lista-view) e detalhe de 1 campeonato
+                     (arena-detalhe-view, com alistamento/sorteio/chaveamento). -->
+                <section id="view-arena" class="view hidden">
+                    <div class="flex items-center justify-between mb-6 gap-4">
+                        <h2 class="font-display text-2xl text-[var(--ink)]">Arena <span id="arena-contador-campeonatos" class="text-base font-normal text-[var(--ink-soft)]"></span></h2>
+                    </div>
+
+                    <!-- Sub-tela: lista de campeonatos + criação -->
+                    <div id="arena-lista-view">
+                        <form id="arena-campeonato-form" class="ticket-sm p-5 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <input type="hidden" id="arena-campeonato-id">
+                            <div>
+                                <label for="arena-campeonato-nome" class="block text-[var(--ink)] text-sm font-semibold mb-1">Nome</label>
+                                <input type="text" id="arena-campeonato-nome" required class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            </div>
+                            <div>
+                                <label for="arena-campeonato-slug" class="block text-[var(--ink)] text-sm font-semibold mb-1">Slug (URL)</label>
+                                <input type="text" id="arena-campeonato-slug" required placeholder="brazug-2026" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            </div>
+                            <div>
+                                <label for="arena-campeonato-organizador" class="block text-[var(--ink)] text-sm font-semibold mb-1">Organizador</label>
+                                <input type="text" id="arena-campeonato-organizador" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            </div>
+                            <div>
+                                <label for="arena-campeonato-regiao" class="block text-[var(--ink)] text-sm font-semibold mb-1">Região (Blizzard)</label>
+                                <select id="arena-campeonato-regiao" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                    <option value="us">US</option>
+                                    <option value="eu">EU</option>
+                                    <option value="kr">KR</option>
+                                    <option value="tw">TW</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="arena-campeonato-reino" class="block text-[var(--ink)] text-sm font-semibold mb-1">Reino padrão</label>
+                                <input type="text" id="arena-campeonato-reino" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            </div>
+                            <div>
+                                <label for="arena-campeonato-namespace" class="block text-[var(--ink)] text-sm font-semibold mb-1">Namespace da Blizzard</label>
+                                <input type="text" id="arena-campeonato-namespace" required placeholder="profile-classic1x-us" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            </div>
+                            <div>
+                                <label for="arena-campeonato-melhor-de" class="block text-[var(--ink)] text-sm font-semibold mb-1">Melhor de</label>
+                                <input type="number" id="arena-campeonato-melhor-de" value="3" min="1" step="2" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            </div>
+                            <div>
+                                <label for="arena-campeonato-data-final" class="block text-[var(--ink)] text-sm font-semibold mb-1">Data da final</label>
+                                <input type="date" id="arena-campeonato-data-final" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            </div>
+                            <div>
+                                <label for="arena-campeonato-max-participantes" class="block text-[var(--ink)] text-sm font-semibold mb-1">Máx. participantes</label>
+                                <input type="number" id="arena-campeonato-max-participantes" min="2" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="arena-campeonato-premio" class="block text-[var(--ink)] text-sm font-semibold mb-1">Prêmio</label>
+                                <input type="text" id="arena-campeonato-premio" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            </div>
+                            <div>
+                                <label for="arena-campeonato-link-live" class="block text-[var(--ink)] text-sm font-semibold mb-1">Link da live</label>
+                                <input type="url" id="arena-campeonato-link-live" placeholder="https://twitch.tv/..." class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                            </div>
+                            <div class="flex items-center gap-2 pb-2">
+                                <input type="checkbox" id="arena-campeonato-ativo" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                                <label for="arena-campeonato-ativo" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Ativo (mostra o link na página inicial)</label>
+                            </div>
+                            <div class="md:col-span-3">
+                                <label for="arena-campeonato-regras-gerais" class="block text-[var(--ink)] text-sm font-semibold mb-1">Regras gerais</label>
+                                <textarea id="arena-campeonato-regras-gerais" rows="6" maxlength="5000" placeholder="Horários, critérios de desempate, conduta esperada, o que mais for relevante..." class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]"></textarea>
+                            </div>
+                            <div class="md:col-span-3 flex gap-3">
+                                <button type="submit" id="arena-campeonato-submit-btn" class="btn btn-fern text-sm !py-2 !px-4">Criar campeonato</button>
+                                <button type="button" id="arena-campeonato-cancel-btn" class="btn btn-ghost text-sm !py-2 !px-4 hidden">Cancelar edição</button>
+                            </div>
+                            <p id="arena-campeonato-error" class="md:col-span-3 text-[var(--ember-dark)] text-sm hidden"></p>
+                        </form>
+
+                        <div id="arena-campeonatos-container" class="space-y-3">
+                            <p class="text-[var(--ink-soft)] text-center">Buscando campeonatos...</p>
+                        </div>
+                    </div>
+
+                    <!-- Sub-tela: detalhe de 1 campeonato -->
+                    <div id="arena-detalhe-view" class="hidden">
+                        <button type="button" id="arena-voltar-btn" class="btn btn-ghost text-sm !py-1.5 !px-3 mb-4">&larr; Voltar pra lista de campeonatos</button>
+                        <h3 id="arena-detalhe-titulo" class="font-display text-xl text-[var(--ink)] mb-4"></h3>
+
+                        <div class="ticket-sm p-5 mb-6">
+                            <h4 class="font-semibold text-[var(--ink)] mb-3">Alistar combatente</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                <div>
+                                    <label for="arena-busca-personagem" class="block text-[var(--ink)] text-sm font-semibold mb-1">Personagem</label>
+                                    <input type="text" id="arena-busca-personagem" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                </div>
+                                <div>
+                                    <label for="arena-busca-reino" class="block text-[var(--ink)] text-sm font-semibold mb-1">Reino</label>
+                                    <input type="text" id="arena-busca-reino" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                </div>
+                                <div>
+                                    <label for="arena-busca-discord" class="block text-[var(--ink)] text-sm font-semibold mb-1">Discord</label>
+                                    <input type="text" id="arena-busca-discord" placeholder="usuario#0000" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                </div>
+                                <button type="button" id="arena-buscar-btn" class="btn btn-ghost text-sm !py-2 !px-4">Buscar na API da Blizzard</button>
+                            </div>
+                            <p id="arena-busca-error" class="text-[var(--ember-dark)] text-sm mt-2 hidden"></p>
+                            <div id="arena-preview-container" class="hidden mt-4 p-4 rounded-lg bg-[var(--bone-2)]"></div>
+                        </div>
+
+                        <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
+                            <h4 class="font-semibold text-[var(--ink)]">Inscritos <span id="arena-contador-participantes" class="text-[var(--ink-soft)] font-normal"></span></h4>
+                            <div class="flex gap-2 flex-wrap">
+                                <!-- Só pra testar o chaveamento com volume, sem gastar chamada da API da
+                                     Blizzard — todo participante criado aqui vem com "[TESTE]" no nome,
+                                     fácil de achar e remover depois. -->
+                                <button type="button" id="arena-teste-btn" class="btn btn-ghost text-sm !py-1.5 !px-3">+ Completar com participantes de teste</button>
+                                <button type="button" id="arena-ressincronizar-btn" class="btn btn-ghost text-sm !py-1.5 !px-3">Ressincronizar todos</button>
+                                <button type="button" id="arena-sortear-btn" class="btn btn-fern text-sm !py-1.5 !px-3">Sortear chaveamento</button>
+                            </div>
+                        </div>
+                        <!-- Accordion (nativo, sem JS) — em campeonatos grandes essas duas
+                             listas ficam bem compridas; colapsar ajuda a navegar a tela. -->
+                        <details class="mb-6" open>
+                            <summary class="cursor-pointer font-semibold text-[var(--ink)]">Lista de inscritos</summary>
+                            <div id="arena-participantes-container" class="space-y-2 mt-3">
+                                <p class="text-[var(--ink-soft)] text-center">Nenhum combatente alistado ainda.</p>
+                            </div>
+                        </details>
+
+                        <details open>
+                            <summary class="cursor-pointer font-semibold text-[var(--ink)]">Chaveamento</summary>
+                            <div id="arena-partidas-container" class="space-y-2 mt-3">
+                                <p class="text-[var(--ink-soft)] text-center">Sorteie o chaveamento depois de alistar os combatentes.</p>
+                            </div>
+                        </details>
                     </div>
                 </section>
 
