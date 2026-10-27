@@ -3,14 +3,23 @@
 // Busca dados de um personagem de WoW Classic na API oficial da Blizzard
 // (perfil, equipamento pra calcular iLvl médio, e mídia pro avatar) e
 // devolve um objeto normalizado — usada pelo painel admin da Arena
-// (curadoria.html > view Arena) ao alistar um combatente, e também pra
-// ressincronizar os dados de todo mundo já inscrito num campeonato.
+// (curadoria.html > view Arena) ao alistar um combatente, pra ressincronizar
+// os dados de todo mundo já inscrito num campeonato, e também pela própria
+// página pública (arena.html) quando um competidor se inscreve sozinho.
 //
 // Diferente das outras Edge Functions deste projeto, esta NÃO precisa da
 // Service Role Key: ela só lê `arena_campeonatos` (RLS pública de leitura)
 // e, no modo ressincronizar, grava em `arena_participantes` — e a policy
 // de admin dessa tabela já permite isso pro próprio JWT do chamador. Não
 // toca em auth.users nem em nada que exija bypass de RLS.
+//
+// Autenticação por modo: o modo padrão (buscar 1 personagem, sem gravar
+// nada) é a mesma consulta somente-leitura tanto faz quem chama — admin no
+// painel ou um visitante se inscrevendo em arena.html — então não exige
+// is_admin(), só um JWT válido (o navegador sempre manda pelo menos a anon
+// key, mesmo pedido sem login, mesmo padrão de enviar.html chamando
+// enviar-foto). Já "ressincronizar_todos" GRAVA em arena_participantes de
+// todo mundo do campeonato — esse continua exigindo is_admin().
 //
 // Namespace da API da Blizzard: a Órbita.Arena NUNCA assume um valor fixo
 // — cada campeonato tem seu próprio `namespace_blizzard` (coluna em
@@ -210,8 +219,10 @@ Deno.serve(async (req) => {
             });
         }
 
-        // 1) Confere is_admin() com o JWT de quem chamou — mesma checagem
-        // das outras Edge Functions do projeto.
+        // 1) Precisa de um JWT (gateway do Supabase já exige isso pra
+        // aceitar a chamada — a anon key já serve, não precisa de login).
+        // is_admin() só é checado mais abaixo, e só pro modo que GRAVA
+        // dados de terceiros (ressincronizar_todos).
         const authHeader = req.headers.get("authorization");
         if (!authHeader) {
             return new Response(JSON.stringify({ error: "Não autenticado." }), {
@@ -223,15 +234,6 @@ Deno.serve(async (req) => {
         const supabaseComoChamador = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             global: { headers: { Authorization: authHeader } },
         });
-
-        const { data: souAdmin, error: adminError } = await supabaseComoChamador.rpc("is_admin");
-
-        if (adminError || !souAdmin) {
-            return new Response(JSON.stringify({ error: "Apenas administradores podem buscar dados na API da Blizzard." }), {
-                status: 403,
-                headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-            });
-        }
 
         // 2) Busca a configuração do campeonato (região + namespace) —
         // leitura pública via RLS, então o client com o JWT do chamador já
@@ -271,6 +273,14 @@ Deno.serve(async (req) => {
         // API da Blizzard em sequência evita esbarrar em rate limit sem
         // precisar de lógica de retry/backoff.
         if (acao === "ressincronizar_todos") {
+            const { data: souAdmin, error: adminError } = await supabaseComoChamador.rpc("is_admin");
+            if (adminError || !souAdmin) {
+                return new Response(JSON.stringify({ error: "Apenas administradores podem ressincronizar participantes." }), {
+                    status: 403,
+                    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+                });
+            }
+
             const { data: participantes, error: participantesError } = await supabaseComoChamador
                 .from("arena_participantes")
                 .select("id, personagem, reino")
@@ -317,10 +327,12 @@ Deno.serve(async (req) => {
             });
         }
 
-        // 4) Modo padrão: busca 1 personagem (ainda não inscrito) e
-        // devolve os dados normalizados pra pré-visualização — quem grava
-        // em arena_participantes é o painel, só depois que o admin clicar
-        // em "Confirmar inscrição".
+        // 4) Modo padrão: busca 1 personagem (ainda não inscrito) e devolve
+        // os dados normalizados pra pré-visualização — não grava nada aqui
+        // (nem checa is_admin, ver comentário no topo do arquivo). Quem
+        // grava em arena_participantes é quem chamou, só depois de
+        // confirmar: o painel admin (curadoria.html) ou a própria página
+        // pública (arena.html), quando um competidor se inscreve sozinho.
         if (!personagem || !reino) {
             return new Response(JSON.stringify({ error: "personagem e reino são obrigatórios." }), {
                 status: 400,

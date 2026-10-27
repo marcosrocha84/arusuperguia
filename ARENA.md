@@ -72,6 +72,7 @@ Ordem de migrações (`sql/`), aplicadas manualmente no SQL Editor do Supabase:
 | `035_arena_lutando_agora.sql` | Coluna `em_destaque` + ajuste em `arena_registrar_resultado` pra desligá-la ao decidir a partida |
 | `036_arena_regras_gerais.sql` | Coluna `regras_gerais` (texto livre) em `arena_campeonatos` |
 | `037_arena_campeonato_ativo.sql` | Coluna `ativo` + índice único parcial (só 1 campeonato ativo por vez) |
+| `038_arena_inscricao_publica.sql` | Policy de INSERT pública em `arena_participantes`/`arena_participantes_contato` (auto-inscrição, só durante `status = 'inscricoes'`) |
 
 ## Edge Function `blizzard-personagem`
 
@@ -129,12 +130,21 @@ inclui esse aviso na mensagem de erro).
 1. **Criar o campeonato** em curadoria.html > view Arena: nome, slug, região,
    namespace da Blizzard, melhor de N, máx. participantes, prêmio, data da
    final, regras gerais. Status começa em `inscricoes`.
-2. **Alistar combatentes**: busca por personagem + reino (chama a Edge
-   Function em modo padrão), confere o preview normalizado, clica em
-   "Confirmar inscrição" (grava em `arena_participantes` + Discord em
-   `arena_participantes_contato`). Botão "+ Completar com participantes de
-   teste" gera combatentes fake (`Lutador1`, `Lutador2`...) sem chamar a API,
-   útil pra testar o chaveamento com volumes grandes.
+2. **Alistar combatentes** — dois caminhos, mesmo fluxo de 3 passos (busca →
+   preview → confirma) em ambos:
+   - **Pelo admin**, em curadoria.html > Arena > Alistar combatente.
+   - **Pelo próprio competidor**, direto em `arena.html` (seção
+     "Inscreva-se", só visível enquanto `status = 'inscricoes'`) — sem
+     login. A busca chama a mesma Edge Function `blizzard-personagem` em
+     modo padrão (que não exige admin, só um JWT — a anon key já serve); o
+     INSERT em `arena_participantes`/`arena_participantes_contato` é
+     liberado por uma policy de RLS própria pra esse momento do campeonato
+     (`sql/038`), sem nenhuma validação além disso (sem checar duplicidade,
+     nível mínimo, etc. — mesmo princípio de "entra e a curadoria decide
+     depois" já usado em `fotos_concurso`).
+   Botão "+ Completar com participantes de teste" (só no painel admin) gera
+   combatentes fake (`Lutador1`, `Lutador2`...) sem chamar a API, útil pra
+   testar o chaveamento com volumes grandes.
 3. **Sortear o chaveamento**: `arena_sortear_chaveamento` — só pode ser
    refeito enquanto nenhum resultado foi lançado. Campeonato passa pra
    `em_andamento`.

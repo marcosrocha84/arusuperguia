@@ -261,18 +261,53 @@
         padding: 14px; display: flex; gap: 12px; margin-bottom: 12px;
     }
     .arena-combatente-avatar { width: 56px; height: 56px; object-fit: cover; flex-shrink: 0; background: var(--border); }
-    .arena-combatente-card-info { min-width: 0; flex: 1; display: grid; gap: 2px; }
+    /* Os <p> internos vêm sem reset de margem nenhum lugar antes disso —
+       o default do navegador (margin: 1em 0) inflava cada linha do card
+       bem além do gap:2px do grid (margens de elemento não colapsam com o
+       gap do grid pai, só somam em cima dele). */
+    .arena-combatente-card-info { min-width: 0; flex: 1; display: grid; gap: 4px; }
+    .arena-combatente-card-info p { margin: 0; }
     .arena-combatente-card-nome { font-weight: 800; font-size: 1rem; }
     .arena-combatente-card-meta { color: var(--ink-soft); font-size: 0.82rem; }
-    .arena-combatente-card-sync { color: var(--ink-soft2); font-size: 0.72rem; margin-top: 2px; }
+    .arena-combatente-card-sync { color: var(--ink-soft2); font-size: 0.72rem; }
     .arena-selo-status {
         display: inline-block; font-size: 0.7rem; font-weight: 700;
-        padding: 2px 10px; margin-top: 4px; width: fit-content;
+        padding: 2px 10px; width: fit-content;
     }
     .arena-selo-status--na_disputa { background: rgba(217,178,106,0.15); color: var(--gold); }
     .arena-selo-status--eliminado { background: rgba(255,255,255,0.08); color: var(--ink-soft2); }
     .arena-selo-status--campeao { background: var(--gold); color: #1a1408; }
     .arena-selo-status--vice { background: rgba(217,178,106,0.3); color: var(--gold); }
+
+    /* ---------- Inscrição pública ---------- */
+    .arena-inscricao-form { display: grid; gap: 14px; }
+    .arena-inscricao-campo { display: grid; gap: 6px; }
+    .arena-inscricao-campo label { font-size: 0.82rem; font-weight: 700; color: var(--ink-soft); }
+    .arena-inscricao-campo input {
+        background: var(--bg); border: 1px solid var(--border); color: var(--ink);
+        padding: 10px 12px; font-family: var(--font-body); font-size: 0.95rem;
+    }
+    .arena-inscricao-campo input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+    .arena-inscricao-aceite {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 0.85rem; color: var(--ink-soft); cursor: pointer;
+    }
+    .arena-inscricao-aceite input { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; }
+    .arena-btn-gold {
+        background: var(--gold); color: #1a1408; border: none;
+        font-weight: 800; font-size: 0.85rem; padding: 11px 20px;
+        cursor: pointer; font-family: var(--font-body); justify-self: start;
+    }
+    .arena-btn-gold:hover { filter: brightness(1.08); }
+    .arena-btn-gold:disabled { opacity: 0.6; cursor: not-allowed; }
+    .arena-inscricao-botoes { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .arena-btn-ghost {
+        background: none; border: 1px solid var(--border); color: var(--ink-soft);
+        font-size: 0.82rem; font-weight: 600; padding: 9px 16px;
+        cursor: pointer; font-family: var(--font-body);
+    }
+    .arena-btn-ghost:hover { color: var(--ink); border-color: var(--ink-soft2); }
+    .arena-inscricao-erro { color: var(--horda-ink); font-size: 0.85rem; }
 
     /* ---------- Regras / rodapé ---------- */
     .arena-footer { border-top: 1px solid var(--border); padding: 32px 0; text-align: center; color: var(--ink-soft2); font-size: 0.8rem; }
@@ -361,7 +396,8 @@
                 <span class="arena-brand-arena">ARENA</span>
             </a>
             <nav class="arena-nav">
-                <a href="#chaveamento">Chaveamento</a>
+                <a href="#inscricao">Inscreva-se</a>
+                <a href="#chaveamento" id="arena-nav-chaveamento">Chaveamento</a>
                 <a href="#combatentes">Combatentes</a>
                 <a href="#regras">Regras</a>
                 <a id="arena-link-live" href="#" target="_blank" rel="noopener noreferrer" class="arena-btn-live hidden">Assistir ao vivo</a>
@@ -384,7 +420,7 @@
             <h1 id="arena-hero-titulo" class="arena-hero-titulo">ARENA</h1>
             <p id="arena-hero-subtitulo" class="arena-hero-subtitulo"></p>
 
-            <div class="arena-placar">
+            <div id="arena-placar" class="arena-placar">
                 <span class="arena-placar-lado arena-placar-lado--horda">
                     <span class="arena-selo-escudo arena-selo-escudo--horda">H</span>
                     Horda <span id="arena-placar-horda">0</span>
@@ -403,6 +439,40 @@
     <div id="arena-status-faixa" class="arena-status-faixa" role="status" aria-live="polite">
         Acompanhe o chaveamento abaixo.
     </div>
+
+    <section class="arena-secao" id="inscricao">
+        <div class="container" style="max-width: 560px;">
+            <h2 class="arena-secao-titulo">Inscreva-se</h2>
+            <p id="arena-inscricao-fechada" class="arena-vazio hidden">As inscrições deste campeonato não estão abertas no momento.</p>
+            <form id="arena-inscricao-form" class="arena-inscricao-form hidden">
+                <div class="arena-inscricao-campo">
+                    <label for="arena-inscricao-personagem">Personagem</label>
+                    <input type="text" id="arena-inscricao-personagem" autocomplete="off">
+                </div>
+                <div class="arena-inscricao-campo">
+                    <label for="arena-inscricao-reino">Reino</label>
+                    <input type="text" id="arena-inscricao-reino" autocomplete="off">
+                </div>
+                <div class="arena-inscricao-campo">
+                    <label for="arena-inscricao-discord">Discord (opcional)</label>
+                    <input type="text" id="arena-inscricao-discord" placeholder="usuario#0000" autocomplete="off">
+                </div>
+                <label class="arena-inscricao-aceite">
+                    <input type="checkbox" id="arena-inscricao-aceite" required>
+                    Confirmo que li as regras e estou ciente
+                </label>
+                <div class="arena-inscricao-botoes">
+                    <button type="submit" id="arena-inscricao-buscar-btn" class="arena-btn-gold">Buscar personagem</button>
+                    <button type="button" id="arena-inscricao-limpar-btn" class="arena-btn-ghost">Limpar</button>
+                </div>
+                <p id="arena-inscricao-erro" class="arena-inscricao-erro hidden"></p>
+                <div id="arena-inscricao-preview" class="hidden">
+                    <div id="arena-inscricao-preview-card" class="arena-combatente-card chanfro"></div>
+                    <button type="button" id="arena-inscricao-confirmar-btn" class="arena-btn-gold" style="margin-top: 10px;">Confirmar inscrição</button>
+                </div>
+            </form>
+        </div>
+    </section>
 
     <section class="arena-secao" id="chaveamento">
         <h2 class="arena-secao-titulo">Chaveamento</h2>
@@ -622,7 +692,36 @@
     // mudou: pontuou (pisca na cor de quem pontuou + placar "gira"),
     // definiu vencedor (perdedor risca/esmaece, placar do vencedor fica
     // dourado, e o card seguinte entra deslizando com o nome novo).
+    // Se o chaveamento chegou escondido (página carregada ainda em
+    // "inscricoes") e a primeira partida acaba de ser criada ao vivo (o
+    // admin sorteou enquanto esta aba estava aberta), não dá pra atualizar
+    // incrementalmente — não existe nenhum card na tela ainda. Em vez
+    // disso, busca o campeonato de novo (pra saber o status atualizado),
+    // reexibe as seções de chaveamento e faz uma busca completa do estado.
+    async function tratarChaveamentoReveladoAoVivo() {
+        try {
+            const { data: campeonatoAtualizado } = await supabase
+                .from('arena_campeonatos')
+                .select('*')
+                .eq('id', arenaCampeonato.id)
+                .maybeSingle();
+            if (campeonatoAtualizado) arenaCampeonato = campeonatoAtualizado;
+        } catch (erro) {
+            console.error(erro);
+        }
+        document.getElementById('arena-nav-chaveamento').classList.remove('hidden');
+        document.getElementById('arena-placar').classList.remove('hidden');
+        document.getElementById('chaveamento').classList.remove('hidden');
+        configurarInscricaoPublica(arenaCampeonato);
+        await buscarEstadoCompletoEAtualizar();
+    }
+
     function lidarComEventoPartida(payload) {
+        if (document.getElementById('chaveamento').classList.contains('hidden')) {
+            tratarChaveamentoReveladoAoVivo();
+            return;
+        }
+
         const nova = payload.new;
         if (!nova || !nova.id) return;
 
@@ -844,6 +943,14 @@
 
         const participantesPorId = new Map(participantes.map(p => [p.id, p]));
 
+        // Enquanto o chaveamento ainda não foi sorteado (inscrições em
+        // andamento), nada relacionado a ele faz sentido na tela: ainda
+        // não existe placar, rodada, nem partida pra mostrar.
+        const chaveamentoSorteado = campeonato.status !== 'inscricoes';
+        document.getElementById('arena-nav-chaveamento').classList.toggle('hidden', !chaveamentoSorteado);
+        document.getElementById('arena-placar').classList.toggle('hidden', !chaveamentoSorteado);
+        document.getElementById('chaveamento').classList.toggle('hidden', !chaveamentoSorteado);
+
         // Placar da faixa Horda x Aliança: 1 ponto por partida encerrada
         // COM COMBATE DE VERDADE (folga/bye não conta), pra facção de quem
         // venceu.
@@ -866,7 +973,7 @@
             .reduce((min, p) => Math.min(min, p.rodada), totalRodadas || 1);
         const chips = [];
         if (campeonato.organizador) chips.push(`Organização: ${campeonato.organizador}`);
-        if (totalRodadas > 0) chips.push(`Rodada atual: ${rodadaAtual}/${totalRodadas}`);
+        if (chaveamentoSorteado && totalRodadas > 0) chips.push(`Rodada atual: ${rodadaAtual}/${totalRodadas}`);
         if (campeonato.data_final) chips.push(`Final em ${new Date(campeonato.data_final + 'T00:00:00').toLocaleDateString('pt-BR')}`);
         document.getElementById('arena-chips').innerHTML = chips.map(c => `<span class="arena-chip">${escapeHTML(c)}</span>`).join('');
 
@@ -882,6 +989,8 @@
             const perdedor = participantesPorId.get(perdedorId);
             document.getElementById('arena-status-faixa').innerHTML =
                 `Último resultado: <b>${escapeHTML(vencedor?.personagem || '?')}</b> venceu ${escapeHTML(perdedor?.personagem || '?')} (${ultimaEncerrada.vitorias_a}-${ultimaEncerrada.vitorias_b})`;
+        } else if (!chaveamentoSorteado) {
+            document.getElementById('arena-status-faixa').textContent = 'Inscrições abertas! Participe aqui 👇';
         }
 
         renderizarChaveamento(partidas, participantesPorId, totalRodadas);
@@ -893,6 +1002,8 @@
             ? `Final prevista para ${new Date(campeonato.data_final + 'T00:00:00').toLocaleDateString('pt-BR')}.`
             : '';
         document.getElementById('arena-regras-gerais').textContent = campeonato.regras_gerais || '';
+
+        configurarInscricaoPublica(campeonato);
     }
 
     // As duas linhas de um card SEMPRE têm os mesmos 4 filhos (losango,
@@ -1227,6 +1338,181 @@
 
         colunaHorda.innerHTML = doHorda.length > 0 ? doHorda.map(montarCombatenteCard).join('') : '<p class="arena-vazio">Nenhum combatente da Horda alistado ainda.</p>';
         colunaAlianca.innerHTML = daAlianca.length > 0 ? daAlianca.map(montarCombatenteCard).join('') : '<p class="arena-vazio">Nenhum combatente da Aliança alistado ainda.</p>';
+    }
+
+    // ---------- Inscrição pública ----------
+    // Mesmo fluxo de 3 passos do painel admin (curadoria.html > Arena >
+    // Alistar combatente): busca o personagem na API da Blizzard, mostra
+    // um preview, e só grava em arena_participantes depois de confirmar —
+    // só que aqui quem confirma é o próprio competidor, sem login. A Edge
+    // Function blizzard-personagem aceita esse modo de busca sem exigir
+    // admin (ver comentário no topo do index.ts); o INSERT em si é liberado
+    // por uma policy de RLS própria enquanto o campeonato está em
+    // "inscricoes" (sql/038).
+    let arenaInscricaoPreviewAtual = null;
+
+    function configurarInscricaoPublica(campeonato) {
+        const elFechada = document.getElementById('arena-inscricao-fechada');
+        const elForm = document.getElementById('arena-inscricao-form');
+        if (campeonato.status !== 'inscricoes') {
+            elFechada.classList.remove('hidden');
+            elForm.classList.add('hidden');
+            return;
+        }
+        elFechada.classList.add('hidden');
+        elForm.classList.remove('hidden');
+        const reinoInput = document.getElementById('arena-inscricao-reino');
+        if (campeonato.reino_padrao && !reinoInput.value) reinoInput.value = campeonato.reino_padrao;
+    }
+
+    // Mesma Edge Function do painel admin, mas sem JWT de usuário logado —
+    // manda a anon key no Authorization (o gateway do Supabase exige algum
+    // JWT pra aceitar a chamada; dentro da function isso basta pro modo de
+    // busca, que não grava nada e não checa is_admin). Mesmo padrão de
+    // enviar.html chamando a Edge Function enviar-foto sem login.
+    async function chamarBlizzardPersonagemPublico(payload) {
+        const resposta = await fetch(`${SUPABASE_URL}/functions/v1/blizzard-personagem`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify(payload),
+        });
+        const resultado = await resposta.json();
+        if (!resposta.ok || resultado.error) throw new Error(resultado.error || 'Falha ao consultar a API da Blizzard.');
+        return resultado;
+    }
+
+    const arenaInscricaoForm = document.getElementById('arena-inscricao-form');
+    if (arenaInscricaoForm) {
+        arenaInscricaoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!arenaCampeonato) return;
+
+            const personagem = document.getElementById('arena-inscricao-personagem').value.trim();
+            const reino = document.getElementById('arena-inscricao-reino').value.trim();
+            const elErro = document.getElementById('arena-inscricao-erro');
+            const elPreview = document.getElementById('arena-inscricao-preview');
+            const btn = document.getElementById('arena-inscricao-buscar-btn');
+
+            elErro.classList.add('hidden');
+            elPreview.classList.add('hidden');
+
+            if (!personagem || !reino) {
+                elErro.textContent = 'Preencha o nome do personagem e o reino.';
+                elErro.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Buscando...';
+            try {
+                const resultado = await chamarBlizzardPersonagemPublico({
+                    campeonato_id: arenaCampeonato.id,
+                    personagem,
+                    reino,
+                });
+                arenaInscricaoPreviewAtual = resultado.personagem;
+                renderizarInscricaoPreview();
+            } catch (erro) {
+                elErro.textContent = erro.message;
+                elErro.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Buscar personagem';
+            }
+        });
+    }
+
+    function renderizarInscricaoPreview() {
+        const p = arenaInscricaoPreviewAtual;
+        const cardEl = document.getElementById('arena-inscricao-preview-card');
+        cardEl.innerHTML = `
+            ${p.avatar_url ? `<img src="${escapeHTML(p.avatar_url)}" alt="" class="arena-combatente-avatar">` : '<div class="arena-combatente-avatar"></div>'}
+            <div class="arena-combatente-card-info">
+                <p class="arena-combatente-card-nome">${escapeHTML(p.personagem)} — ${escapeHTML(p.reino)}</p>
+                <p class="arena-combatente-card-meta">${escapeHTML(p.faccao === 'horda' ? 'Horda' : p.faccao === 'alianca' ? 'Aliança' : 'Facção desconhecida')} · ${escapeHTML(p.raca || '—')} · ${escapeHTML(p.classe || '—')} · nível ${p.nivel ?? '—'}${p.guilda ? ` · &lt;${escapeHTML(p.guilda)}&gt;` : ''}${p.ilvl_medio ? ` · iLvl médio ${p.ilvl_medio}` : ''}</p>
+            </div>
+        `;
+        document.getElementById('arena-inscricao-preview').classList.remove('hidden');
+    }
+
+    const arenaInscricaoConfirmarBtn = document.getElementById('arena-inscricao-confirmar-btn');
+    if (arenaInscricaoConfirmarBtn) {
+        arenaInscricaoConfirmarBtn.addEventListener('click', async () => {
+            const p = arenaInscricaoPreviewAtual;
+            if (!p || !arenaCampeonato) return;
+
+            const elErro = document.getElementById('arena-inscricao-erro');
+            elErro.classList.add('hidden');
+
+            // Checagem extra de segurança — a validação nativa do form
+            // (required) já barra a busca sem o checkbox marcado, mas dá
+            // pra desmarcar depois da busca e antes de confirmar.
+            if (!document.getElementById('arena-inscricao-aceite').checked) {
+                elErro.textContent = 'Confirme que leu as regras antes de se inscrever.';
+                elErro.classList.remove('hidden');
+                return;
+            }
+
+            if (!confirm(`Confirmar inscrição de ${p.personagem} — ${p.reino} neste campeonato?`)) return;
+
+            arenaInscricaoConfirmarBtn.disabled = true;
+
+            try {
+                const discord = document.getElementById('arena-inscricao-discord').value.trim();
+                const { data: inserido, error } = await supabase
+                    .from('arena_participantes')
+                    .insert([{
+                        campeonato_id: arenaCampeonato.id,
+                        personagem: p.personagem,
+                        reino: p.reino,
+                        regiao: arenaCampeonato.regiao,
+                        faccao: p.faccao,
+                        raca: p.raca,
+                        classe: p.classe,
+                        nivel: p.nivel,
+                        guilda: p.guilda,
+                        ilvl_medio: p.ilvl_medio,
+                        avatar_url: p.avatar_url,
+                        dados_blizzard: p.dados_blizzard,
+                        sincronizado_em: new Date().toISOString(),
+                    }])
+                    .select('id')
+                    .single();
+                if (error) throw error;
+
+                if (discord) {
+                    const { error: erroContato } = await supabase
+                        .from('arena_participantes_contato')
+                        .insert([{ participante_id: inserido.id, discord }]);
+                    if (erroContato) throw erroContato;
+                }
+
+                document.getElementById('arena-inscricao-preview').classList.add('hidden');
+                arenaInscricaoForm.reset();
+                if (arenaCampeonato.reino_padrao) document.getElementById('arena-inscricao-reino').value = arenaCampeonato.reino_padrao;
+                arenaInscricaoPreviewAtual = null;
+                alert(`Inscrição confirmada! Boa sorte, ${p.personagem}.`);
+            } catch (erro) {
+                elErro.textContent = 'Erro ao confirmar inscrição: ' + erro.message;
+                elErro.classList.remove('hidden');
+            } finally {
+                arenaInscricaoConfirmarBtn.disabled = false;
+            }
+        });
+    }
+
+    const arenaInscricaoLimparBtn = document.getElementById('arena-inscricao-limpar-btn');
+    if (arenaInscricaoLimparBtn) {
+        arenaInscricaoLimparBtn.addEventListener('click', () => {
+            arenaInscricaoForm.reset();
+            if (arenaCampeonato?.reino_padrao) document.getElementById('arena-inscricao-reino').value = arenaCampeonato.reino_padrao;
+            document.getElementById('arena-inscricao-erro').classList.add('hidden');
+            document.getElementById('arena-inscricao-preview').classList.add('hidden');
+            arenaInscricaoPreviewAtual = null;
+        });
     }
 </script>
 </body>
