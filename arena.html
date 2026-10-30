@@ -152,6 +152,12 @@
     /* ---------- Seções gerais ---------- */
     .arena-secao { padding: 56px 0; }
     .arena-secao-titulo { font-size: 1.8rem; color: var(--ink); margin-bottom: 28px; text-align: center; }
+    .arena-chave-panorama-toggle {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        font-size: 0.85rem; color: var(--ink-soft); cursor: pointer;
+        margin: -16px auto 20px; width: fit-content;
+    }
+    .arena-chave-panorama-toggle input { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; }
 
     /* ---------- Chaveamento ---------- */
     /* Usa a largura cheia da tela (o conteúdo interno cresce/encolhe com
@@ -396,7 +402,7 @@
                 <span class="arena-brand-arena">ARENA</span>
             </a>
             <nav class="arena-nav">
-                <a href="#inscricao">Inscreva-se</a>
+                <a href="#inscricao" id="arena-nav-inscricao">Inscreva-se</a>
                 <a href="#chaveamento" id="arena-nav-chaveamento">Chaveamento</a>
                 <a href="#combatentes">Combatentes</a>
                 <a href="#regras">Regras</a>
@@ -443,7 +449,6 @@
     <section class="arena-secao" id="inscricao">
         <div class="container" style="max-width: 560px;">
             <h2 class="arena-secao-titulo">Inscreva-se</h2>
-            <p id="arena-inscricao-fechada" class="arena-vazio hidden">As inscrições deste campeonato não estão abertas no momento.</p>
             <form id="arena-inscricao-form" class="arena-inscricao-form hidden">
                 <div class="arena-inscricao-campo">
                     <label for="arena-inscricao-personagem">Personagem</label>
@@ -476,6 +481,10 @@
 
     <section class="arena-secao" id="chaveamento">
         <h2 class="arena-secao-titulo">Chaveamento</h2>
+        <label class="arena-chave-panorama-toggle">
+            <input type="checkbox" id="arena-chave-panorama-checkbox">
+            Destacar a facção vencedora nas partidas encerradas
+        </label>
         <!-- Fora do .container de propósito: o chaveamento usa a largura
              cheia da tela (não trava em 1240px como o resto da página) pra
              caber mais rodadas lado a lado sem precisar de scroll. -->
@@ -563,6 +572,19 @@
     let arenaCanal = null;
     let arenaPollingId = null;
     const PREFERE_MENOS_MOVIMENTO = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // "Panorama de facções": preferência só do navegador de quem está
+    // olhando (não é uma regra do campeonato) — por isso localStorage, não
+    // uma coluna no banco. Liga/desliga se as partidas já encerradas
+    // mantêm a cor da facção vencedora no card, dando uma visão geral de
+    // quem está indo melhor sem precisar contar partida por partida.
+    const CHAVE_LOCALSTORAGE_PANORAMA = 'arena_panorama_faccoes';
+    let arenaPanoramaFaccoes = false;
+    try {
+        arenaPanoramaFaccoes = localStorage.getItem(CHAVE_LOCALSTORAGE_PANORAMA) === '1';
+    } catch {
+        // localStorage pode falhar (aba anônima, storage bloqueado) — segue com o padrão (desligado).
+    }
 
     (async () => {
         const slug = new URLSearchParams(window.location.search).get('arena');
@@ -1054,12 +1076,40 @@
     // genérico — com empate (inclusive 0-0 antes de qualquer ponto), fica
     // numa cor neutra em vez de cravar uma facção que não é a que lidera.
     function classeAoVivo(partida, participantesPorId) {
-        if (partida.status !== 'ao_vivo') return '';
-        if (partida.vitorias_a === partida.vitorias_b) return 'arena-card-partida--ao-vivo';
+        if (partida.status === 'ao_vivo') {
+            if (partida.vitorias_a === partida.vitorias_b) return 'arena-card-partida--ao-vivo';
+            const ladoNaFrente = partida.vitorias_a > partida.vitorias_b ? partida.participante_a_id : partida.participante_b_id;
+            const faccao = participantesPorId.get(ladoNaFrente)?.faccao;
+            return faccao === 'alianca' ? 'arena-card-partida--ao-vivo-alianca' : 'arena-card-partida--ao-vivo-horda';
+        }
 
-        const ladoNaFrente = partida.vitorias_a > partida.vitorias_b ? partida.participante_a_id : partida.participante_b_id;
-        const faccao = participantesPorId.get(ladoNaFrente)?.faccao;
-        return faccao === 'alianca' ? 'arena-card-partida--ao-vivo-alianca' : 'arena-card-partida--ao-vivo-horda';
+        // Panorama ligado: partida encerrada (com combate de verdade, não
+        // folga/bye) mantém a cor de quem venceu, em vez de voltar pra
+        // borda neutra — dá uma visão geral de quem está indo melhor.
+        if (arenaPanoramaFaccoes && partida.status === 'encerrada' && partida.vencedor_id && !ehPartidaFolga(partida)) {
+            const faccao = participantesPorId.get(partida.vencedor_id)?.faccao;
+            return faccao === 'alianca' ? 'arena-card-partida--ao-vivo-alianca' : 'arena-card-partida--ao-vivo-horda';
+        }
+
+        return '';
+    }
+
+    const arenaPanoramaCheckbox = document.getElementById('arena-chave-panorama-checkbox');
+    if (arenaPanoramaCheckbox) {
+        arenaPanoramaCheckbox.checked = arenaPanoramaFaccoes;
+        arenaPanoramaCheckbox.addEventListener('change', () => {
+            arenaPanoramaFaccoes = arenaPanoramaCheckbox.checked;
+            try {
+                localStorage.setItem(CHAVE_LOCALSTORAGE_PANORAMA, arenaPanoramaFaccoes ? '1' : '0');
+            } catch {
+                // sem localStorage, a escolha só vale pra sessão atual — sem problema.
+            }
+            // Re-renderiza o chaveamento inteiro com o novo estado (as
+            // bordas de cor são decididas em montarCardPartida/classeAoVivo
+            // no momento da montagem do HTML, não dá pra só trocar uma
+            // classe depois).
+            renderizarChaveamento(Array.from(arenaPartidasPorId.values()), arenaParticipantesPorId, arenaTotalRodadas);
+        });
     }
 
     function montarCardPartida(partida, participantesPorId) {
@@ -1352,14 +1402,22 @@
     let arenaInscricaoPreviewAtual = null;
 
     function configurarInscricaoPublica(campeonato) {
-        const elFechada = document.getElementById('arena-inscricao-fechada');
+        const elSecao = document.getElementById('inscricao');
+        const elNav = document.getElementById('arena-nav-inscricao');
         const elForm = document.getElementById('arena-inscricao-form');
+
+        // Depois que o chaveamento é sorteado, a seção inteira (e o link no
+        // cabeçalho) somem — não só o formulário. Um participante novo
+        // nunca apareceria em partida nenhuma mesmo assim, então não faz
+        // sentido nem mostrar "inscrições encerradas" depois desse ponto.
         if (campeonato.status !== 'inscricoes') {
-            elFechada.classList.remove('hidden');
-            elForm.classList.add('hidden');
+            elSecao.classList.add('hidden');
+            elNav.classList.add('hidden');
             return;
         }
-        elFechada.classList.add('hidden');
+
+        elSecao.classList.remove('hidden');
+        elNav.classList.remove('hidden');
         elForm.classList.remove('hidden');
         const reinoInput = document.getElementById('arena-inscricao-reino');
         if (campeonato.reino_padrao && !reinoInput.value) reinoInput.value = campeonato.reino_padrao;

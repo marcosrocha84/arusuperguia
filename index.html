@@ -915,6 +915,7 @@
                     .from('concursos')
                     .select('id, slug, nome, descricao, data, theme_config')
                     .eq('ativo', true)
+                    .eq('modo_teste', false)
                     .order('data', { ascending: true });
 
                 if (error) throw error;
@@ -974,6 +975,7 @@
                     .from('arena_campeonatos')
                     .select('slug')
                     .eq('ativo', true)
+                    .eq('modo_teste', false)
                     .maybeSingle();
 
                 if (campeonatoAtivo) {

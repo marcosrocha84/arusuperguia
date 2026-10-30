@@ -122,6 +122,7 @@ const concursoDescricaoInput = document.getElementById('concurso-descricao');
 const concursoDataInput = document.getElementById('concurso-data');
 const concursoAtivoInput = document.getElementById('concurso-ativo');
 const concursoEncerradoInput = document.getElementById('concurso-encerrado');
+const concursoModoTesteInput = document.getElementById('concurso-modo-teste');
 const concursoMostrarOptinMarketingInput = document.getElementById('concurso-mostrar-optin-marketing');
 const concursoMostrarCaseInput = document.getElementById('concurso-mostrar-case');
 const concursoComentarioPatrocinadorInput = document.getElementById('concurso-comentario-patrocinador');
@@ -770,6 +771,7 @@ function renderizarConcursos() {
                     <span class="text-sm text-[var(--ink-soft)]">${ICONE_CALENDARIO} ${dataFormatada}</span>
                     <span class="stamp ${concurso.ativo ? 'stamp-fern' : 'stamp-amber'}">${concurso.ativo ? 'Ativo' : 'Inativo'}</span>
                     ${concurso.encerrado ? '<span class="stamp stamp-ember">Encerrado</span>' : ''}
+                    ${concurso.modo_teste ? '<span class="stamp stamp-ember">Modo teste</span>' : ''}
                     <span class="text-sm text-[var(--ink-soft)] flex items-center">${ICONE_PREMIO.repeat(concurso.qtd_vencedores || 3)}</span>
                     ${concurso.regulamento_pdf_url ? `<a href="${escapeHTML(concurso.regulamento_pdf_url)}" target="_blank" rel="noopener noreferrer" class="text-sm underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">${ICONE_ARQUIVO}Regulamento</a>` : ''}
                 </div>
@@ -1266,6 +1268,7 @@ function resetConcursoForm() {
     concursoIdInput.value = '';
     concursoAtivoInput.checked = true;
     concursoEncerradoInput.checked = false;
+    concursoModoTesteInput.checked = false;
     concursoMostrarOptinMarketingInput.checked = false;
     concursoMostrarCaseInput.checked = false;
     concursoComentarioPatrocinadorInput.value = '';
@@ -1301,6 +1304,7 @@ window.editarConcurso = function(id) {
     concursoDataInput.value = concurso.data;
     concursoAtivoInput.checked = concurso.ativo;
     concursoEncerradoInput.checked = concurso.encerrado;
+    concursoModoTesteInput.checked = !!concurso.modo_teste;
     concursoMostrarOptinMarketingInput.checked = concurso.mostrar_optin_marketing;
     concursoMostrarCaseInput.checked = concurso.mostrar_case;
     concursoComentarioPatrocinadorInput.value = concurso.comentario_patrocinador || '';
@@ -1440,6 +1444,7 @@ if (concursoForm) {
             data: concursoDataInput.value,
             ativo: concursoAtivoInput.checked,
             encerrado: concursoEncerradoInput.checked,
+            modo_teste: concursoModoTesteInput.checked,
             mostrar_optin_marketing: concursoMostrarOptinMarketingInput.checked,
             mostrar_case: concursoMostrarCaseInput.checked,
             comentario_patrocinador: concursoComentarioPatrocinadorInput.value.trim() || null,
@@ -2336,6 +2341,7 @@ const arenaCampeonatoPremioInput = document.getElementById('arena-campeonato-pre
 const arenaCampeonatoLinkLiveInput = document.getElementById('arena-campeonato-link-live');
 const arenaCampeonatoRegrasGeraisInput = document.getElementById('arena-campeonato-regras-gerais');
 const arenaCampeonatoAtivoInput = document.getElementById('arena-campeonato-ativo');
+const arenaCampeonatoModoTesteInput = document.getElementById('arena-campeonato-modo-teste');
 const arenaCampeonatoSubmitBtn = document.getElementById('arena-campeonato-submit-btn');
 const arenaCampeonatoCancelBtn = document.getElementById('arena-campeonato-cancel-btn');
 const arenaCampeonatoError = document.getElementById('arena-campeonato-error');
@@ -2408,6 +2414,7 @@ function renderizarArenaCampeonatos() {
                 <div class="flex flex-wrap items-center gap-2 mt-1">
                     <span class="stamp ${STAMP_STATUS_ARENA_CAMPEONATO[c.status] || 'stamp-amber'}">${ROTULO_STATUS_ARENA_CAMPEONATO[c.status] || c.status}</span>
                     ${c.ativo ? '<span class="stamp stamp-fern">Ativo na home</span>' : ''}
+                    ${c.modo_teste ? '<span class="stamp stamp-ember">Modo teste</span>' : ''}
                     <span class="text-sm text-[var(--ink-soft)]">/arena/${escapeHTML(c.slug)}</span>
                 </div>
             </div>
@@ -2448,6 +2455,7 @@ window.editarArenaCampeonato = function (id) {
     arenaCampeonatoLinkLiveInput.value = c.link_live || '';
     arenaCampeonatoRegrasGeraisInput.value = c.regras_gerais || '';
     arenaCampeonatoAtivoInput.checked = !!c.ativo;
+    arenaCampeonatoModoTesteInput.checked = !!c.modo_teste;
     arenaCampeonatoSubmitBtn.textContent = 'Salvar alterações';
     arenaCampeonatoCancelBtn.classList.remove('hidden');
     arenaCampeonatoError.classList.add('hidden');
@@ -2488,6 +2496,7 @@ if (arenaCampeonatoForm) {
             link_live: arenaCampeonatoLinkLiveInput.value.trim() || null,
             regras_gerais: arenaCampeonatoRegrasGeraisInput.value.trim() || null,
             ativo: arenaCampeonatoAtivoInput.checked,
+            modo_teste: arenaCampeonatoModoTesteInput.checked,
         };
 
         try {

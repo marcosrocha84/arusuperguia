@@ -627,6 +627,7 @@
                     concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
                 `)
                 .or(`encerrado.eq.true,data.lt.${hojeStr}`)
+                .eq('modo_teste', false)
                 .order('data', { ascending: false });
 
             if (error) throw error;
