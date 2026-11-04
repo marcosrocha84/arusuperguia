@@ -769,8 +769,10 @@
                     </div>
                 </section>
 
-                <!-- VIEW: Arena — campeonatos PvP 1v1 de WoW Classic
-                     (sql/033_arena.sql + Edge Function blizzard-personagem).
+                <!-- VIEW: Arena — campeonatos PvP 1v1 de WoW, Classic ou
+                     Retail conforme o namespace escolhido no cadastro do
+                     campeonato (sql/033_arena.sql + Edge Function
+                     blizzard-personagem).
                      Duas sub-telas dentro da mesma view, alternadas via JS
                      (sem trocar de "view" de verdade): lista de campeonatos
                      (arena-lista-view) e detalhe de 1 campeonato
@@ -812,6 +814,7 @@
                             <div>
                                 <label for="arena-campeonato-namespace" class="block text-[var(--ink)] text-sm font-semibold mb-1">Namespace da Blizzard</label>
                                 <input type="text" id="arena-campeonato-namespace" required placeholder="profile-classic1x-us" class="w-full px-3 py-2 border-2 border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                <p class="text-xs text-[var(--ink-soft)] mt-1">Retail: <code>profile-{regiao}</code> · Classic Era: <code>profile-classic1x-{regiao}</code> · Classic progressão: <code>profile-classic-{regiao}</code> · BC Anniversary: <code>profile-classicann-{regiao}</code></p>
                             </div>
                             <div>
                                 <label for="arena-campeonato-melhor-de" class="block text-[var(--ink)] text-sm font-semibold mb-1">Melhor de</label>

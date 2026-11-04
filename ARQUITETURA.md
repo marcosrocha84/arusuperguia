@@ -268,11 +268,11 @@ nenhum.
 
 ## Órbita Arena (`arena.html` + view "Arena" em `curadoria.html`)
 
-Módulo à parte dentro do mesmo projeto: campeonatos PvP 1v1 de WoW Classic,
-com chaveamento eliminatório, integração com a API da Blizzard e atualização
-ao vivo via Realtime. Para o runbook operacional (schema, como criar um
-campeonato, deploy da Edge Function), veja **[ARENA.md](ARENA.md)** — esta
-seção cobre só as decisões não-óbvias.
+Módulo à parte dentro do mesmo projeto: campeonatos PvP 1v1 de WoW (Classic
+ou Retail), com chaveamento eliminatório, integração com a API da Blizzard e
+atualização ao vivo via Realtime. Para o runbook operacional (schema, como
+criar um campeonato, deploy da Edge Function), veja **[ARENA.md](ARENA.md)**
+— esta seção cobre só as decisões não-óbvias.
 
 - **Multi-campeonato desde o início.** Mesmo o primeiro uso real sendo um
   único campeonato (de uma guilda específica), o schema nunca tratou isso
@@ -294,11 +294,15 @@ seção cobre só as decisões não-óbvias.
   de quem chama), então repassar o `Authorization` header de quem chamou é
   suficiente; não há nada ali que exija ignorar RLS.
 - **Namespace da Blizzard é por campeonato, não uma constante no código.** A
-  Blizzard mantém 3 famílias de Classic em paralelo (Era, progressão atual,
-  Burning Crusade Anniversary), cada uma com seu próprio namespace de API.
-  Fixar isso no código quebraria no dia em que a guilda organizadora migrasse
-  de versão — por isso `namespace_blizzard` é uma coluna configurável em
-  `arena_campeonatos`, preenchida na criação do campeonato.
+  Blizzard mantém várias versões do jogo em paralelo — Retail e 3 famílias
+  de Classic (Era, progressão atual, Burning Crusade Anniversary) — cada
+  uma com seu próprio namespace de API. Fixar isso no código quebraria no
+  dia em que a guilda organizadora migrasse de versão — por isso
+  `namespace_blizzard` é uma coluna configurável em `arena_campeonatos`,
+  preenchida na criação do campeonato. Essa decisão já pagou o investimento
+  antes mesmo de ser por outro motivo: quando a Arena passou a aceitar
+  campeonatos de Retail (além de Classic), não precisou de nenhuma mudança
+  de lógica — só documentar o namespace novo (`profile-{regiao}`).
 - **Sorteio do chaveamento usa semeadura clássica de torneio, não
   bye-stacking sequencial.** A primeira versão de `arena_sortear_chaveamento`
   preenchia as primeiras partidas da rodada 1 com os "byes" (folgas, quando o

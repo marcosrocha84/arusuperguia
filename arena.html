@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="og-title">Órbita Arena</title>
-<meta id="meta-description" name="description" content="Acompanhe o chaveamento e os combatentes ao vivo de um campeonato PvP de WoW Classic na Órbita Arena.">
-<meta id="og-description" property="og:description" content="Acompanhe o chaveamento e os combatentes ao vivo de um campeonato PvP de WoW Classic na Órbita Arena.">
+<meta id="meta-description" name="description" content="Acompanhe o chaveamento e os combatentes ao vivo de um campeonato PvP de WoW na Órbita Arena.">
+<meta id="og-description" property="og:description" content="Acompanhe o chaveamento e os combatentes ao vivo de um campeonato PvP de WoW na Órbita Arena.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -539,11 +539,15 @@
     // Configuração do Supabase e helper escapeHTML() vêm de supabase-client.js.
     // Página pública, sem login (mesmo padrão de index.html/criadores.html).
 
-    // Cores oficiais de classe do WoW (só as classes que existem no
-    // Classic: sem Monge/Cavaleiro da Morte/Caçador das Trevas/Evocador).
+    // Cores oficiais de classe do WoW — cobre tanto Classic quanto Retail
+    // (um campeonato escolhe a versão via namespace_blizzard, ver
+    // ARENA.md); as 4 classes que só existem no Retail (Monge, Cavaleiro
+    // da Morte, Caçador das Trevas, Evocador) entram aqui mesmo sem nunca
+    // aparecer num campeonato Classic — não faz mal ter cor sobrando.
     const COR_CLASSE = {
         Warrior: '#C79C6E', Paladin: '#F58CBA', Hunter: '#ABD473', Rogue: '#FFF569',
         Priest: '#FFFFFF', Shaman: '#0070DE', Mage: '#69CCF0', Warlock: '#9482C9', Druid: '#FF7D0A',
+        'Death Knight': '#C41E3A', Monk: '#00FF98', 'Demon Hunter': '#A330C9', Evoker: '#33937F',
     };
 
     const ROTULO_STATUS_PARTICIPANTE = { na_disputa: 'Na disputa', eliminado: 'Eliminado', campeao: 'Campeão', vice: 'Vice-campeão' };

@@ -2318,7 +2318,7 @@ if (campanhaRelatorioPdfBtn) {
     });
 }
 
-// 13. Arena — campeonatos PvP 1v1 de WoW Classic (sql/033_arena.sql +
+// 13. Arena — campeonatos PvP 1v1 de WoW, Classic ou Retail (sql/033_arena.sql +
 // Edge Function blizzard-personagem). Duas sub-telas dentro da mesma
 // "view-arena" (trocadas aqui, não via switchView/nav-item): lista de
 // campeonatos (arena-lista-view) e detalhe de 1 campeonato
@@ -2799,11 +2799,16 @@ if (arenaSortearBtn) {
 // Participantes fictícios pra testar o chaveamento com volume (16+ pessoas)
 // sem chamar a API da Blizzard. Todo nome sai prefixado com "[TESTE]" e a
 // guilda/reino também marcam "Teste" — fácil de achar e remover depois.
-// Raça/classe respeitam a restrição de facção da Classic (ex: Paladino só
-// Aliança, Xamã só Horda), só pra não ficar óbvio demais que é lixo.
+// Raça só pra não ficar óbvio demais que é lixo (classe não precisa mais
+// respeitar exclusividade de facção — desde que a Arena passou a aceitar
+// campeonatos de Retail, Paladino/Xamã deixaram de ser travados por
+// facção, tanto quanto as 4 classes que só existem no Retail).
 const ARENA_RACAS_HORDA = ['Orc', 'Tauren', 'Troll', 'Undead'];
 const ARENA_RACAS_ALIANCA = ['Human', 'Dwarf', 'Night Elf', 'Gnome'];
-const ARENA_CLASSES_COMUNS = ['Warrior', 'Hunter', 'Rogue', 'Priest', 'Mage', 'Warlock', 'Druid'];
+const ARENA_CLASSES_COMUNS = [
+    'Warrior', 'Hunter', 'Rogue', 'Priest', 'Mage', 'Warlock', 'Druid', 'Paladin', 'Shaman',
+    'Death Knight', 'Monk', 'Demon Hunter', 'Evoker',
+];
 
 // Nome sequencial simples ("Lutador1", "Lutador2"...) em vez de nome
 // aleatório — pra estressar o chaveamento com volume (ex: testar as 32
@@ -2814,8 +2819,7 @@ const ARENA_CLASSES_COMUNS = ['Warrior', 'Hunter', 'Rogue', 'Priest', 'Mage', 'W
 function gerarArenaParticipanteTeste(numeroSequencial, campeonatoId) {
     const faccao = Math.random() < 0.5 ? 'horda' : 'alianca';
     const racas = faccao === 'horda' ? ARENA_RACAS_HORDA : ARENA_RACAS_ALIANCA;
-    const classeExclusiva = faccao === 'horda' ? 'Shaman' : 'Paladin';
-    const classes = [...ARENA_CLASSES_COMUNS, classeExclusiva];
+    const classes = ARENA_CLASSES_COMUNS;
 
     return {
         campeonato_id: campeonatoId,

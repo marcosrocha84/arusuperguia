@@ -1,6 +1,7 @@
 // Edge Function: blizzard-personagem
 //
-// Busca dados de um personagem de WoW Classic na API oficial da Blizzard
+// Busca dados de um personagem de WoW (Classic ou Retail, conforme o
+// namespace do campeonato — ver mais abaixo) na API oficial da Blizzard
 // (perfil, equipamento pra calcular iLvl médio, e mídia pro avatar) e
 // devolve um objeto normalizado — usada pelo painel admin da Arena
 // (curadoria.html > view Arena) ao alistar um combatente, pra ressincronizar
@@ -21,13 +22,18 @@
 // enviar-foto). Já "ressincronizar_todos" GRAVA em arena_participantes de
 // todo mundo do campeonato — esse continua exigindo is_admin().
 //
-// Namespace da API da Blizzard: a Órbita.Arena NUNCA assume um valor fixo
+// Namespace da API da Blizzard: a Órbita Arena NUNCA assume um valor fixo
 // — cada campeonato tem seu próprio `namespace_blizzard` (coluna em
-// arena_campeonatos, sql/033_arena.sql), porque a Blizzard mantém 3
-// famílias de Classic em paralelo (confirmado na doc oficial, 2026-10):
+// arena_campeonatos, sql/033_arena.sql), porque a Blizzard mantém várias
+// versões do jogo em paralelo, cada uma com seu namespace de perfil
+// (confirmado na doc oficial, 2026-10/2026-11):
+//   - Retail (live):                    profile-{regiao}
 //   - Classic Era (vanilla 1.x):        profile-classic1x-{regiao}
 //   - Classic progression (hoje MoP):   profile-classic-{regiao}
 //   - Burning Crusade Anniversary:      profile-classicann-{regiao}
+// Isso é só configuração — o resto do código (busca de personagem,
+// equipamento, mídia) é idêntico pra Classic e Retail, a API da Blizzard
+// devolve o mesmo formato de resposta pras duas.
 // O namespace é passado tanto no header Battlenet-Namespace quanto na
 // query string (redundante de propósito — documentado como aceitando os
 // dois, manter os dois custa nada e evita depender de um comportamento

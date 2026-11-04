@@ -1,8 +1,9 @@
 # Órbita Arena — runbook
 
-Módulo de campeonatos PvP 1v1 de WoW Classic dentro da Órbita: chaveamento
-eliminatório, integração com a API da Blizzard pra puxar dados do
-personagem, e atualização ao vivo via Realtime na página pública. Para o
+Módulo de campeonatos PvP 1v1 de WoW dentro da Órbita — Classic ou Retail,
+cada campeonato escolhe via namespace da Blizzard (ver tabela abaixo):
+chaveamento eliminatório, integração com a API da Blizzard pra puxar dados
+do personagem, e atualização ao vivo via Realtime na página pública. Para o
 *porquê* das decisões não-óbvias (não o "o que"), veja a seção
 [Órbita Arena em ARQUITETURA.md](ARQUITETURA.md#órbita-arena-arenahtml--view-arena-em-curadoriahtml).
 
@@ -110,15 +111,22 @@ toda Edge Function do Supabase.)
 
 ### Namespace da API da Blizzard
 
-A Blizzard mantém 3 famílias de Classic em paralelo — confirme qual usar
-antes de criar um campeonato (muda com o tempo, conforme a Blizzard lança
-novas fases/progressões):
+A Blizzard mantém várias versões do jogo em paralelo, cada uma com seu
+próprio namespace — confirme qual usar antes de criar um campeonato (a
+lista de Classic muda com o tempo, conforme a Blizzard lança novas
+fases/progressões; Retail não muda):
 
 | Versão | Namespace |
 |---|---|
+| Retail (live) | `profile-{regiao}` |
 | Classic Era (vanilla 1.x) | `profile-classic1x-{regiao}` |
 | Classic progressão atual | `profile-classic-{regiao}` |
 | Burning Crusade Anniversary | `profile-classicann-{regiao}` |
+
+Nada no resto do código distingue Classic de Retail — o namespace por
+campeonato (`arena_campeonatos.namespace_blizzard`) já era a única fonte
+de verdade desde o desenho original (ver ARQUITETURA.md), então suportar
+Retail não exigiu nenhuma mudança de lógica, só documentar a opção.
 
 `{regiao}` é `us`, `eu`, `kr` ou `tw` (mesmo valor do campo "Região" do
 campeonato). Personagens **abaixo do nível 10 não são indexados** pela API
