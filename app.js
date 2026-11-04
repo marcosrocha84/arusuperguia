@@ -222,14 +222,14 @@ let campanhaRelatorioAtual = null;
 // sql/014_admins_e_rls.sql) — só quem está na tabela "admins" entra.
 supabase.auth.onAuthStateChange((event, session) => {
     if (session) {
-        validarAcessoAdmin(session);
+        validarAcessoAdmin(session, event);
     } else {
         loginSection.classList.remove('hidden');
         adminPanel.classList.add('hidden');
     }
 });
 
-async function validarAcessoAdmin(session) {
+async function validarAcessoAdmin(session, event) {
     const { data: souAdmin, error } = await supabase.rpc('is_admin');
 
     if (error || !souAdmin) {
@@ -247,6 +247,15 @@ async function validarAcessoAdmin(session) {
     loginSection.classList.add('hidden');
     adminPanel.classList.remove('hidden');
     userDisplay.textContent = `Admin: ${session.user.email}`;
+
+    // onAuthStateChange dispara de novo com event="TOKEN_REFRESHED" sempre
+    // que o supabase-js renova o token sozinho — o que acontece, entre
+    // outras vezes, quando a aba volta a ficar visível depois de um tempo
+    // em segundo plano. Sem essa checagem, o admin era jogado de volta pro
+    // Dashboard só por trocar de aba e voltar, mesmo no meio de outra
+    // tela. Só reseta pro Dashboard em login de verdade (SIGNED_IN) ou no
+    // carregamento inicial da página (INITIAL_SESSION).
+    if (event === 'TOKEN_REFRESHED') return;
     switchView('dashboard');
 }
 
