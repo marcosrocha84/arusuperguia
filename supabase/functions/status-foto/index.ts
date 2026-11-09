@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
         // de assumir que existe só um.
         const { data: foto, error } = await supabaseAdmin
             .from("fotos_concurso")
-            .select("aprovada, reprovada, url_thumb, concursos ( slug )")
+            .select("aprovada, reprovada, url_thumb, concursos ( slug, modo_votacao )")
             .eq("id", codigoLimpo)
             .maybeSingle();
 
@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
                 status: "aprovada",
                 url_thumb: foto.url_thumb,
                 concurso_slug: foto.concursos ? foto.concursos.slug : null,
+                modo_votacao: foto.concursos ? foto.concursos.modo_votacao : null,
             }), {
                 status: 200,
                 headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

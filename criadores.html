@@ -392,7 +392,7 @@
             <div class="grid gap-6 min-w-0">
                 <span class="eyebrow">Concursos culturais para criadores e marcas</span>
                 <h1 class="text-4xl md:text-6xl tracking-tight text-ink">Premie sua comunidade <em class="not-italic text-accent">sem depender de sorteio</em></h1>
-                <p class="lead">Com a Órbita, você cria um concurso cultural de fotografia em que seu público envia fotos, vota nas favoritas e os melhores levam o prêmio. Você escolhe o tema e o prêmio. A gente cuida do resto.</p>
+                <p class="lead">Com a Órbita, você cria um concurso cultural de fotografia em que seu público envia fotos e os melhores levam o prêmio — escolhidos pela votação da comunidade ou por um júri convidado, como você preferir. Você escolhe o tema e o prêmio. A gente cuida do resto.</p>
                 <div class="flex flex-wrap gap-3">
                     <a class="btn ghost btn-scroll-destaque" href="#contato">Quero criar meu concurso</a>
                     <a class="btn ghost btn-scroll-destaque" href="#como-funciona">Ver como funciona</a>
@@ -455,7 +455,7 @@
         <section class="py-8 border-t border-line grid gap-4">
             <span class="eyebrow">Números</span>
             <h2 class="text-2xl md:text-3xl text-ink">A Órbita em números</h2>
-            <div class="grid grid-cols-3 gap-4 text-center">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
                     <b id="stat-concursos" class="font-display text-3xl md:text-4xl text-ink block">—</b>
                     <small class="text-muted text-xs md:text-sm">concursos criados</small>
@@ -467,6 +467,10 @@
                 <div>
                     <b id="stat-votos" class="font-display text-3xl md:text-4xl text-ink block">—</b>
                     <small class="text-muted text-xs md:text-sm">votos registrados</small>
+                </div>
+                <div>
+                    <b id="stat-fotos-juri" class="font-display text-3xl md:text-4xl text-ink block">—</b>
+                    <small class="text-muted text-xs md:text-sm">fotos avaliadas pelo júri</small>
                 </div>
             </div>
         </section>
@@ -498,7 +502,7 @@
                 </li>
                 <li class="grid gap-2 pt-4">
                     <h3 class="text-lg font-medium text-ink">Seu público participa</h3>
-                    <p class="text-muted">Cada pessoa envia sua foto pelo site da Órbita e a comunidade vota nas favoritas, com login do Google e um voto por pessoa em cada foto.</p>
+                    <p class="text-muted">Cada pessoa envia sua foto pelo site da Órbita. A partir daí, os melhores são escolhidos como você preferir: pela votação da comunidade (login do Google, um voto por pessoa em cada foto) ou pela avaliação de um júri convidado.</p>
                 </li>
                 <li class="grid gap-2 pt-4">
                     <h3 class="text-lg font-medium text-ink">Os vencedores são anunciados</h3>
@@ -582,6 +586,7 @@
                 </div>
                 <p class="mockup-rodape-dica"><i>Vote no Kiwi e veja a animação</i> 💖</p>
             </div>
+            <p class="text-sm text-muted">Esse mockup mostra o modelo de votação pública. Se preferir, o resultado também pode ser definido por um júri convidado — nesse caso, seu público acompanha a avaliação em andamento, sem ver as notas.</p>
         </section>
 
         <!-- Quem faz o quê -->
@@ -775,7 +780,7 @@
                 </details>
                 <details class="p-4 md:p-5">
                     <summary class="text-ink">Quem escolhe os vencedores?</summary>
-                    <p class="text-muted mt-2">O público, pela votação no site. Cada pessoa entra com a conta do Google e pode votar uma vez em cada foto.</p>
+                    <p class="text-muted mt-2">Você escolhe o modelo: pela votação do público (cada pessoa entra com a conta do Google e vota uma vez em cada foto) ou por um júri convidado, que avalia as fotos com critérios definidos por você.</p>
                 </details>
                 <details class="p-4 md:p-5">
                     <summary class="text-ink">E se alguém enviar uma foto imprópria?</summary>
@@ -928,17 +933,32 @@
         function montarCardCaso(concurso, fotos, votos) {
             const dias = diasDeDuracao(concurso.data, concurso.criado_em);
             const subtitulo = concurso.theme_config?.textos?.subtitulo;
+            // Concurso de júri não tem voto público — a nota do júri é de
+            // leitura restrita (RLS), então não existe outro número pra
+            // mostrar no lugar. Em vez de exibir "0 votos" (parece fracasso),
+            // o card some essa coluna e some só com fotos/dias.
+            const ehJuri = concurso.modo_votacao === 'juri';
+            const statsHtml = ehJuri
+                ? `
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="grid"><b class="font-display text-xl text-ink">${fotos}</b><small class="text-muted text-xs">fotos</small></div>
+                        <div class="grid"><b class="font-display text-xl text-ink">${dias}</b><small class="text-muted text-xs">dias</small></div>
+                    </div>
+                `
+                : `
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="grid"><b class="font-display text-xl text-ink">${fotos}</b><small class="text-muted text-xs">fotos</small></div>
+                        <div class="grid"><b class="font-display text-xl text-ink">${votos}</b><small class="text-muted text-xs">votos</small></div>
+                        <div class="grid"><b class="font-display text-xl text-ink">${dias}</b><small class="text-muted text-xs">dias</small></div>
+                    </div>
+                `;
             return `
                 <article class="bg-surface border border-line rounded-2xl p-6 grid gap-4 content-start min-w-0">
                     <div>
                         <h3 class="text-lg font-medium text-ink">${escapeHTML(concurso.nome || '')}</h3>
                         ${subtitulo ? `<div class="font-mono text-xs text-muted">${escapeHTML(subtitulo)}</div>` : ''}
                     </div>
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="grid"><b class="font-display text-xl text-ink">${fotos}</b><small class="text-muted text-xs">fotos</small></div>
-                        <div class="grid"><b class="font-display text-xl text-ink">${votos}</b><small class="text-muted text-xs">votos</small></div>
-                        <div class="grid"><b class="font-display text-xl text-ink">${dias}</b><small class="text-muted text-xs">dias</small></div>
-                    </div>
+                    ${statsHtml}
                     ${concurso.comentario_patrocinador ? `<p class="quote">"${escapeHTML(concurso.comentario_patrocinador)}"</p>` : ''}
                 </article>
             `;
@@ -947,7 +967,7 @@
         (async () => {
             const { data: casos, error: erroCasos } = await supabase
                 .from('concursos')
-                .select('id, nome, data, criado_em, comentario_patrocinador, theme_config')
+                .select('id, nome, data, criado_em, comentario_patrocinador, theme_config, modo_votacao')
                 .eq('mostrar_case', true)
                 .eq('modo_teste', false)
                 .order('data', { ascending: false });
@@ -993,20 +1013,34 @@
         // eram desativados, mesmo tendo fotos/votos reais. Um rascunho/
         // teste nunca publicado não tem foto aprovada, então já fica de
         // fora naturalmente, sem precisar checar `ativo`.
+        // Concurso em modo teste é excluído explicitamente (!inner faz o
+        // join virar obrigatório, permitindo filtrar pela coluna da tabela
+        // relacionada) — são concursos de teste/demonstração, sem números
+        // reais pra mostrar nesta vitrine.
         (async () => {
             const statConcursos = document.getElementById('stat-concursos');
             const statFotos = document.getElementById('stat-fotos');
             const statVotos = document.getElementById('stat-votos');
+            const statFotosJuri = document.getElementById('stat-fotos-juri');
 
-            const { data: fotos, error: erroFotos } = await supabase
-                .from('fotos_concurso')
-                .select('concurso_id, votos')
-                .eq('aprovada', true);
+            const [{ data: fotos, error: erroFotos }, { data: fotosAvaliadasJuri, error: erroJuri }] = await Promise.all([
+                supabase
+                    .from('fotos_concurso')
+                    .select('concurso_id, votos, concursos!inner(modo_teste)')
+                    .eq('aprovada', true)
+                    .eq('concursos.modo_teste', false),
+                // "votos" só existe no modo de votação pública — no modo júri,
+                // o equivalente é a função abaixo (stat_fotos_avaliadas_juri,
+                // sql/043), que conta fotos com nota sem expor nenhuma nota
+                // individual (fotos_notas tem RLS restrita por jurado/admin).
+                supabase.rpc('stat_fotos_avaliadas_juri'),
+            ]);
 
             if (erroFotos) {
                 console.error('Erro ao carregar números da Órbita:', erroFotos);
                 return; // Mantém o "—" em vez de mostrar um número errado.
             }
+            if (erroJuri) console.error('Erro ao carregar fotos avaliadas pelo júri:', erroJuri);
 
             const totalConcursos = new Set((fotos ?? []).map((f) => f.concurso_id)).size;
             const totalFotos = fotos?.length ?? 0;
@@ -1015,6 +1049,7 @@
             statConcursos.textContent = totalConcursos.toLocaleString('pt-BR');
             statFotos.textContent = totalFotos.toLocaleString('pt-BR');
             statVotos.textContent = totalVotos.toLocaleString('pt-BR');
+            if (!erroJuri) statFotosJuri.textContent = (fotosAvaliadasJuri ?? 0).toLocaleString('pt-BR');
         })();
     </script>
 </body>

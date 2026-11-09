@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <title>Área do jurado | Órbita</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f2430' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%231f2430'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
+    <style>
+        :root {
+            --orbita-bg: #f4f5f7;
+            --orbita-surface: #ffffff;
+            --orbita-surface-2: #eef0f3;
+            --orbita-border: #e2e5ea;
+            --orbita-ink: #1f2430;
+            --orbita-ink-soft: #6b7280;
+            --ink: var(--orbita-ink);
+            --ink-soft: var(--orbita-ink-soft);
+            --bone: var(--orbita-surface);
+            --bone-2: var(--orbita-surface-2);
+            --fern: #3C8156;
+            --ember: #C1452C;
+            --ember-dark: #C1452C;
+            --amber: #E3A335;
+            --amber-dark: #B9791C;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--orbita-ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--orbita-bg);
+        }
+
+        .orbita-header { background: var(--orbita-surface-2); border-bottom: 1px solid var(--orbita-border); }
+        .orbita-header-inner { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .orbita-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .orbita-logo-mark { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--orbita-ink); position: relative; flex-shrink: 0; }
+        .orbita-logo-mark::after { content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--orbita-ink); transform: translate(-50%, -50%); }
+        .orbita-brand-name { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; color: var(--orbita-ink); }
+        .orbita-tagline { margin: 0; font-size: 0.8rem; color: var(--orbita-ink-soft); }
+        .orbita-footer { background: var(--orbita-surface-2); border-top: 1px solid var(--orbita-border); padding: 24px 20px; text-align: center; }
+        .orbita-footer p { margin: 0; font-size: 0.78rem; color: var(--orbita-ink-soft); }
+
+        .orbita-main { flex: 1; max-width: 900px; width: 100%; margin: 0 auto; padding: 32px 20px 48px; }
+        .orbita-card-page { background: var(--orbita-surface); border: 1px solid var(--orbita-border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+        .orbita-card-page-header { text-align: center; padding: 28px 24px 8px; }
+        .orbita-eyebrow { margin: 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--orbita-ink-soft); }
+        .orbita-card-page-titulo { margin: 8px 0 0; font-size: 1.6rem; font-weight: 700; color: var(--orbita-ink); }
+        .orbita-card-page-subtitulo { margin: 8px auto 0; max-width: 32rem; font-size: 0.9rem; color: var(--orbita-ink-soft); }
+
+        .jurado-bloco { padding: 20px 24px 28px; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-block { width: 100%; }
+        .btn-ghost { background: var(--bone-2); color: var(--ink); border-color: var(--bone-2); }
+        .btn-fern { background: var(--fern); color: #fff; }
+        .btn-ember { background: var(--ember); color: #fff; }
+
+        .campo-texto {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--orbita-ink);
+            border-radius: 10px;
+            font-size: 0.95rem;
+        }
+        .campo-texto:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 35%, transparent); }
+
+        .ticket-sm { background: var(--bone); border: 1px solid var(--bone-2); border-radius: 12px; }
+
+        .stamp { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+        .stamp-fern { background: color-mix(in srgb, var(--fern) 18%, white); color: color-mix(in srgb, var(--fern) 55%, black); }
+        .stamp-ember { background: color-mix(in srgb, var(--ember) 18%, white); color: color-mix(in srgb, var(--ember) 55%, black); }
+        .stamp-amber { background: color-mix(in srgb, var(--amber) 20%, white); color: var(--amber-dark); }
+
+        .jurado-concurso-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .jurado-foto-card { padding: 16px; margin-bottom: 14px; display: flex; gap: 16px; flex-wrap: wrap; }
+        .jurado-foto-img { width: 160px; height: 160px; object-fit: cover; border-radius: 10px; flex-shrink: 0; background: var(--bone-2); }
+        .jurado-foto-corpo { flex: 1; min-width: 220px; }
+        .jurado-foto-nome { font-weight: 700; color: var(--ink); margin: 0 0 10px; }
+        .jurado-criterio-linha { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+        .jurado-criterio-nome { font-size: 0.88rem; color: var(--ink); }
+        .jurado-criterio-nota {
+            width: 70px;
+            padding: 6px 8px;
+            border: 2px solid var(--orbita-ink);
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .jurado-foto-salvar-ok { color: color-mix(in srgb, var(--fern) 60%, black); font-size: 0.8rem; font-weight: 600; }
+
+        .jurado-progresso { font-size: 0.85rem; color: var(--ink-soft); margin: 0 0 16px; text-align: center; }
+
+        /* Garante que "hidden" sempre vença classes próprias que definem
+           display (.btn usa inline-flex, .orbita-card-page-header usa
+           flex etc.) — sem essa regra, os blocos de login/concursos/
+           avaliação nunca chegavam a sumir de fato ao trocar de etapa,
+           mesmo com a classe "hidden" sendo aplicada via JS. */
+        .hidden {
+            display: none !important;
+        }
+
+        .jurado-foto-img { cursor: zoom-in; }
+
+        @keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modal-conteudo-in {
+            from { opacity: 0; transform: scale(0.92) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-foto {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-foto-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(31, 36, 48, 0.75);
+            backdrop-filter: blur(2px);
+            animation: modal-backdrop-in 0.2s ease-out;
+        }
+        .modal-foto-conteudo {
+            position: relative;
+            width: max-content;
+            max-width: min(92vw, 40rem);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bone);
+            border-radius: 12px;
+            animation: modal-conteudo-in 0.25s cubic-bezier(.2, .8, .2, 1);
+        }
+        .modal-foto-imagem-wrap {
+            position: relative;
+            background: var(--bone-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            min-height: 40vh;
+        }
+        .modal-foto-imagem-wrap img {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: min(92vw, 40rem);
+            max-height: 60vh;
+            object-fit: contain;
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+        .modal-foto-imagem-wrap img.carregada { opacity: 1; }
+        @keyframes modal-foto-spinner-girar { to { transform: rotate(360deg); } }
+        .modal-foto-spinner {
+            position: absolute;
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 4px solid var(--bone);
+            border-top-color: var(--ember-dark);
+            border-radius: 999px;
+            animation: modal-foto-spinner-girar 0.7s linear infinite;
+        }
+        .modal-foto-fechar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: var(--bone);
+            border: 1px solid var(--bone-2);
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .modal-foto-fechar:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2); }
+        .modal-foto-info { padding: 14px 16px; }
+        .modal-foto-ampliar-link {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: color-mix(in srgb, var(--fern) 70%, black);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+    </style>
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="./supabase-client.js?v=1.0"></script>
+</head>
+<body>
+
+    <header class="orbita-header">
+        <div class="orbita-header-inner">
+            <a href="./index.html" class="orbita-brand">
+                <span class="orbita-logo-mark" aria-hidden="true"></span>
+                <span class="orbita-brand-name">Órbita</span>
+            </a>
+            <p class="orbita-tagline">área do jurado</p>
+        </div>
+    </header>
+
+    <main class="orbita-main">
+
+        <!-- ETAPA 1: login por código enviado por e-mail (sem senha, sem
+             exigir conta Google — ver sql/040_concursos_jurados.sql). -->
+        <div id="bloco-login" class="orbita-card-page">
+            <div class="orbita-card-page-header">
+                <p class="orbita-eyebrow">Acesso do jurado</p>
+                <h1 class="orbita-card-page-titulo">Avaliação de fotos</h1>
+                <p class="orbita-card-page-subtitulo">Informe o e-mail que recebeu o convite para julgar um concurso. Vamos enviar um código de acesso por e-mail — não precisa de senha nem de conta.</p>
+            </div>
+            <div class="jurado-bloco">
+                <div id="login-passo-email">
+                    <label for="login-email" class="block text-sm font-semibold mb-1" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">E-mail do jurado</label>
+                    <input type="email" id="login-email" class="campo-texto" placeholder="seu-email@exemplo.com" autocomplete="email">
+                    <button id="btn-enviar-codigo" class="btn btn-fern btn-block" style="margin-top:12px;">Enviar código por e-mail</button>
+                </div>
+                <div id="login-passo-codigo" class="hidden">
+                    <p style="font-size:0.85rem;color:var(--ink-soft);margin:0 0 10px;">Enviamos um código para <strong id="login-email-confirmacao"></strong>. Confira também a caixa de spam.</p>
+                    <label for="login-codigo" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;">Código de acesso</label>
+                    <input type="text" id="login-codigo" class="campo-texto" placeholder="000000" inputmode="numeric" autocomplete="one-time-code">
+                    <button id="btn-confirmar-codigo" class="btn btn-fern btn-block" style="margin-top:12px;">Entrar</button>
+                    <button id="btn-trocar-email" type="button" class="btn btn-ghost btn-block" style="margin-top:8px;">Usar outro e-mail</button>
+                </div>
+                <p id="login-erro" class="hidden" style="color:var(--ember-dark);font-size:0.85rem;margin-top:10px;"></p>
+                <p id="login-sucesso" class="hidden" style="color:color-mix(in srgb, var(--fern) 60%, black);font-size:0.85rem;margin-top:10px;"></p>
+            </div>
+        </div>
+
+        <!-- ETAPA 2: lista de concursos em que esse e-mail é jurado -->
+        <div id="bloco-concursos" class="orbita-card-page hidden">
+            <div class="orbita-card-page-header" style="display:flex;align-items:center;justify-content:space-between;text-align:left;flex-wrap:wrap;gap:8px;">
+                <div>
+                    <p class="orbita-eyebrow">Logado como</p>
+                    <h1 class="orbita-card-page-titulo" id="texto-usuario-logado" style="font-size:1.1rem;"></h1>
+                </div>
+                <button id="btn-sair" class="btn btn-ghost">Sair</button>
+            </div>
+            <div class="jurado-bloco">
+                <div id="concursos-lista"><p style="text-align:center;color:var(--ink-soft);">Buscando seus concursos...</p></div>
+            </div>
+        </div>
+
+        <!-- ETAPA 3: avaliação das fotos de um concurso -->
+        <div id="bloco-avaliacao" class="orbita-card-page hidden">
+            <div class="orbita-card-page-header" style="text-align:left;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                <div>
+                    <p class="orbita-eyebrow">Avaliando</p>
+                    <h1 class="orbita-card-page-titulo" id="texto-concurso-avaliando" style="font-size:1.3rem;"></h1>
+                </div>
+                <button id="btn-voltar-concursos" class="btn btn-ghost">← Meus concursos</button>
+            </div>
+            <div class="jurado-bloco">
+                <p id="avaliacao-progresso" class="jurado-progresso"></p>
+                <div id="fotos-lista"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="modal-foto" class="modal-foto hidden" role="dialog" aria-modal="true" aria-label="Foto ampliada">
+        <div id="modal-foto-backdrop" class="modal-foto-backdrop"></div>
+        <div class="modal-foto-conteudo">
+            <button id="modal-foto-fechar" type="button" class="modal-foto-fechar" aria-label="Fechar">✕</button>
+            <div class="modal-foto-imagem-wrap">
+                <div id="modal-foto-spinner" class="modal-foto-spinner hidden" aria-hidden="true"></div>
+                <img id="modal-foto-img" src="" alt="Foto ampliada">
+            </div>
+            <div class="modal-foto-info">
+                <h3 id="modal-foto-nome" style="margin:0;font-size:1.05rem;font-weight:700;color:var(--ink);"></h3>
+                <a id="modal-foto-ampliar" href="" target="_blank" rel="noopener noreferrer" class="modal-foto-ampliar-link">Ver em tamanho real ↗</a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="orbita-footer">
+        <p>Órbita — a plataforma por trás do seu concurso cultural</p>
+    </footer>
+
+    <script>
+        // Elementos — etapa de login
+        const blocoLogin = document.getElementById('bloco-login');
+        const loginPassoEmail = document.getElementById('login-passo-email');
+        const loginPassoCodigo = document.getElementById('login-passo-codigo');
+        const loginEmailInput = document.getElementById('login-email');
+        const loginEmailConfirmacao = document.getElementById('login-email-confirmacao');
+        const loginCodigoInput = document.getElementById('login-codigo');
+        const btnEnviarCodigo = document.getElementById('btn-enviar-codigo');
+        const btnConfirmarCodigo = document.getElementById('btn-confirmar-codigo');
+        const btnTrocarEmail = document.getElementById('btn-trocar-email');
+        const loginErro = document.getElementById('login-erro');
+        const loginSucesso = document.getElementById('login-sucesso');
+
+        // Elementos — etapa de concursos
+        const blocoConcursos = document.getElementById('bloco-concursos');
+        const textoUsuarioLogado = document.getElementById('texto-usuario-logado');
+        const concursosLista = document.getElementById('concursos-lista');
+        const btnSair = document.getElementById('btn-sair');
+
+        // Elementos — etapa de avaliação
+        const blocoAvaliacao = document.getElementById('bloco-avaliacao');
+        const textoConcursoAvaliando = document.getElementById('texto-concurso-avaliando');
+        const avaliacaoProgresso = document.getElementById('avaliacao-progresso');
+        const fotosLista = document.getElementById('fotos-lista');
+        const btnVoltarConcursos = document.getElementById('btn-voltar-concursos');
+
+        // Elementos — modal de foto ampliada (mesmo padrão de votacao.html)
+        const modalFoto = document.getElementById('modal-foto');
+        const modalFotoBackdrop = document.getElementById('modal-foto-backdrop');
+        const modalFotoFechar = document.getElementById('modal-foto-fechar');
+        const modalFotoImg = document.getElementById('modal-foto-img');
+        const modalFotoSpinner = document.getElementById('modal-foto-spinner');
+        const modalFotoNome = document.getElementById('modal-foto-nome');
+        const modalFotoAmpliar = document.getElementById('modal-foto-ampliar');
+
+        function abrirModalFoto(foto) {
+            modalFotoImg.classList.remove('carregada');
+            modalFotoSpinner.classList.remove('hidden');
+            modalFotoImg.src = foto.url_foto;
+            modalFotoImg.alt = `Foto de ${foto.nome_participante}`;
+            modalFotoAmpliar.href = foto.url_foto;
+            modalFotoNome.textContent = foto.nome_participante;
+            modalFoto.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharModalFoto() {
+            modalFoto.classList.add('hidden');
+            modalFotoImg.src = '';
+            modalFotoImg.classList.remove('carregada');
+            modalFotoSpinner.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        modalFotoImg.addEventListener('load', () => {
+            modalFotoImg.classList.add('carregada');
+            modalFotoSpinner.classList.add('hidden');
+        });
+        modalFotoFechar.addEventListener('click', fecharModalFoto);
+        modalFotoBackdrop.addEventListener('click', fecharModalFoto);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modalFoto.classList.contains('hidden')) fecharModalFoto();
+        });
+
+        let usuarioAtual = null;
+
+        function mostrarErroLogin(mensagem) {
+            loginErro.textContent = mensagem;
+            loginErro.classList.remove('hidden');
+            loginSucesso.classList.add('hidden');
+        }
+
+        function limparMensagensLogin() {
+            loginErro.classList.add('hidden');
+            loginSucesso.classList.add('hidden');
+        }
+
+        // 1) Envia o código de acesso (signInWithOtp). shouldCreateUser fica
+        // true (padrão) de propósito: não tem problema uma sessão existir
+        // pra um e-mail qualquer — quem decide o acesso de verdade é
+        // is_jurado()/RLS, checando se esse e-mail está convidado em
+        // concursos_jurados (mesmo princípio de admins/is_admin()).
+        btnEnviarCodigo.addEventListener('click', async () => {
+            limparMensagensLogin();
+            const email = loginEmailInput.value.trim().toLowerCase();
+            if (!email || !email.includes('@')) {
+                mostrarErroLogin('Informe um e-mail válido.');
+                return;
+            }
+
+            btnEnviarCodigo.disabled = true;
+            btnEnviarCodigo.textContent = 'Enviando...';
+
+            const { error } = await supabase.auth.signInWithOtp({ email });
+
+            btnEnviarCodigo.disabled = false;
+            btnEnviarCodigo.textContent = 'Enviar código por e-mail';
+
+            if (error) {
+                mostrarErroLogin('Não foi possível enviar o código: ' + error.message);
+                return;
+            }
+
+            loginEmailConfirmacao.textContent = email;
+            loginPassoEmail.classList.add('hidden');
+            loginPassoCodigo.classList.remove('hidden');
+            loginCodigoInput.focus();
+        });
+
+        btnConfirmarCodigo.addEventListener('click', async () => {
+            limparMensagensLogin();
+            const email = loginEmailInput.value.trim().toLowerCase();
+            const codigo = loginCodigoInput.value.trim();
+            if (!codigo) {
+                mostrarErroLogin('Informe o código recebido por e-mail.');
+                return;
+            }
+
+            btnConfirmarCodigo.disabled = true;
+            btnConfirmarCodigo.textContent = 'Verificando...';
+
+            const { error } = await supabase.auth.verifyOtp({ email, token: codigo, type: 'email' });
+
+            btnConfirmarCodigo.disabled = false;
+            btnConfirmarCodigo.textContent = 'Entrar';
+
+            if (error) {
+                mostrarErroLogin('Código inválido ou expirado. Tente reenviar.');
+                return;
+            }
+            // onAuthStateChange cuida do resto (checarAcessoJurado).
+        });
+
+        btnTrocarEmail.addEventListener('click', () => {
+            limparMensagensLogin();
+            loginCodigoInput.value = '';
+            loginPassoCodigo.classList.add('hidden');
+            loginPassoEmail.classList.remove('hidden');
+            loginEmailInput.focus();
+        });
+
+        btnSair.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+        });
+
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                checarAcessoJurado(session);
+            } else {
+                usuarioAtual = null;
+                blocoLogin.classList.remove('hidden');
+                blocoConcursos.classList.add('hidden');
+                blocoAvaliacao.classList.add('hidden');
+                loginPassoCodigo.classList.add('hidden');
+                loginPassoEmail.classList.remove('hidden');
+                loginEmailInput.value = '';
+                loginCodigoInput.value = '';
+            }
+        });
+
+        async function checarAcessoJurado(session) {
+            // Checar só o nome do event ("TOKEN_REFRESHED" etc.) não é
+            // confiável o bastante: o supabase-js também reemite eventos
+            // (às vezes até SIGNED_IN de novo) quando recupera a sessão do
+            // storage ao voltar de uma aba em segundo plano — por exemplo,
+            // depois de abrir "Ver em tamanho real" numa nova guia e voltar.
+            // Em vez de depender do nome exato do evento, comparamos com o
+            // usuário que já estava logado: se é o mesmo, é só uma
+            // renovação/recuperação de sessão em segundo plano, e a tela
+            // não deve mudar (preserva a avaliação em andamento). Só troca
+            // de tela quando é de fato um login novo (ninguém logado antes,
+            // ou um e-mail diferente do que já estava).
+            const mesmoUsuarioJaLogado = usuarioAtual && usuarioAtual.id === session.user.id;
+            usuarioAtual = session.user;
+            textoUsuarioLogado.textContent = usuarioAtual.email;
+
+            if (mesmoUsuarioJaLogado) return;
+
+            blocoLogin.classList.add('hidden');
+            blocoConcursos.classList.remove('hidden');
+            blocoAvaliacao.classList.add('hidden');
+            await carregarMeusConcursos();
+        }
+
+        // 2) Lista de concursos em que esse e-mail está convidado como
+        // jurado. A policy "Jurado ve seu proprio convite" (sql/040) já
+        // garante que só voltam linhas do próprio e-mail — não precisamos
+        // (nem deveríamos) filtrar aqui além disso.
+        let meusConvites = [];
+
+        async function carregarMeusConcursos() {
+            concursosLista.innerHTML = '<p style="text-align:center;color:var(--ink-soft);">Buscando seus concursos...</p>';
+
+            const { data, error } = await supabase
+                .from('concursos_jurados')
+                .select('concurso_id, concursos(id, nome, descricao, encerrado, modo_votacao)')
+                .order('criado_em', { ascending: false });
+
+            if (error) {
+                concursosLista.innerHTML = `<p style="text-align:center;color:var(--ember-dark);">Erro ao buscar seus concursos: ${escapeHTML(error.message)}</p>`;
+                return;
+            }
+
+            meusConvites = (data || []).filter(c => c.concursos);
+
+            if (meusConvites.length === 0) {
+                concursosLista.innerHTML = '<p style="text-align:center;color:var(--ink-soft);">Nenhum concurso te convidou como jurado até o momento. Se você esperava ver um concurso aqui, confira se este é o e-mail que recebeu o convite.</p>';
+                return;
+            }
+
+            concursosLista.innerHTML = '';
+            meusConvites.forEach((convite) => {
+                const concurso = convite.concursos;
+                const card = document.createElement('div');
+                card.className = 'ticket-sm jurado-concurso-card';
+                card.innerHTML = `
+                    <div>
+                        <p style="font-weight:700;margin:0 0 4px;">${escapeHTML(concurso.nome || concurso.descricao)}</p>
+                        <span class="stamp ${concurso.encerrado ? 'stamp-ember' : 'stamp-fern'}">${concurso.encerrado ? 'Encerrado' : 'Em andamento'}</span>
+                    </div>
+                    <button class="btn btn-fern" data-concurso-id="${concurso.id}">Avaliar fotos</button>
+                `;
+                card.querySelector('button').addEventListener('click', () => abrirAvaliacao(concurso));
+                concursosLista.appendChild(card);
+            });
+        }
+
+        btnVoltarConcursos.addEventListener('click', () => {
+            blocoAvaliacao.classList.add('hidden');
+            blocoConcursos.classList.remove('hidden');
+        });
+
+        // 3) Avaliação: critérios do concurso + fotos aprovadas + notas que
+        // esse jurado já deu (pra pré-preencher e mostrar progresso).
+        let criteriosDoConcurso = [];
+
+        async function abrirAvaliacao(concurso) {
+            blocoConcursos.classList.add('hidden');
+            blocoAvaliacao.classList.remove('hidden');
+            textoConcursoAvaliando.textContent = concurso.nome || concurso.descricao;
+            fotosLista.innerHTML = '<p style="text-align:center;color:var(--ink-soft);">Carregando fotos...</p>';
+            avaliacaoProgresso.textContent = '';
+
+            const [criteriosRes, fotosRes, notasRes] = await Promise.all([
+                supabase.from('concursos_criterios').select('id, nome, peso, ordem').eq('concurso_id', concurso.id).order('ordem', { ascending: true }),
+                supabase.from('fotos_concurso').select('id, nome_participante, url_foto, url_thumb').eq('concurso_id', concurso.id).eq('aprovada', true).order('criado_em', { ascending: true }),
+                supabase.from('fotos_notas').select('foto_id, criterio_id, nota').eq('jurado_email', usuarioAtual.email.toLowerCase()),
+            ]);
+
+            if (criteriosRes.error || fotosRes.error || notasRes.error) {
+                fotosLista.innerHTML = '<p style="text-align:center;color:var(--ember-dark);">Erro ao carregar os dados deste concurso. Tente novamente.</p>';
+                return;
+            }
+
+            criteriosDoConcurso = criteriosRes.data || [];
+            const fotos = fotosRes.data || [];
+            const minhasNotas = notasRes.data || [];
+
+            if (criteriosDoConcurso.length === 0) {
+                fotosLista.innerHTML = '<p style="text-align:center;color:var(--ink-soft);">Este concurso ainda não tem critérios de avaliação cadastrados.</p>';
+                return;
+            }
+            if (fotos.length === 0) {
+                fotosLista.innerHTML = '<p style="text-align:center;color:var(--ink-soft);">Nenhuma foto aprovada neste concurso até o momento.</p>';
+                return;
+            }
+
+            renderizarFotos(fotos, minhasNotas);
+        }
+
+        function notaExistente(minhasNotas, fotoId, criterioId) {
+            const encontrada = minhasNotas.find(n => n.foto_id === fotoId && n.criterio_id === criterioId);
+            return encontrada ? encontrada.nota : '';
+        }
+
+        function atualizarProgresso(fotos, minhasNotas) {
+            const avaliadas = fotos.filter(foto =>
+                criteriosDoConcurso.every(c => minhasNotas.some(n => n.foto_id === foto.id && n.criterio_id === c.id))
+            ).length;
+            avaliacaoProgresso.textContent = `${avaliadas} de ${fotos.length} fotos avaliadas por você`;
+        }
+
+        function renderizarFotos(fotos, minhasNotas) {
+            atualizarProgresso(fotos, minhasNotas);
+            fotosLista.innerHTML = '';
+
+            fotos.forEach((foto) => {
+                const card = document.createElement('div');
+                card.className = 'ticket-sm jurado-foto-card';
+
+                const criteriosHtml = criteriosDoConcurso.map(c => `
+                    <div class="jurado-criterio-linha">
+                        <span class="jurado-criterio-nome">${escapeHTML(c.nome)}</span>
+                        <input type="number" min="0" max="10" step="0.5" class="jurado-criterio-nota" data-criterio-id="${c.id}" value="${notaExistente(minhasNotas, foto.id, c.id)}" placeholder="0-10">
+                    </div>
+                `).join('');
+
+                card.innerHTML = `
+                    <img class="jurado-foto-img" src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto de ${escapeHTML(foto.nome_participante)}" loading="lazy" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHTML(foto.nome_participante)}">
+                    <div class="jurado-foto-corpo">
+                        <p class="jurado-foto-nome">${escapeHTML(foto.nome_participante)}</p>
+                        ${criteriosHtml}
+                        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+                            <button class="btn btn-fern btn-salvar-nota">Salvar notas</button>
+                            <span class="jurado-foto-salvar-ok hidden">Salvo!</span>
+                            <span class="jurado-foto-salvar-erro hidden" style="color:var(--ember-dark);font-size:0.8rem;font-weight:600;"></span>
+                        </div>
+                    </div>
+                `;
+
+                const imgThumb = card.querySelector('.jurado-foto-img');
+                imgThumb.addEventListener('click', () => abrirModalFoto(foto));
+                imgThumb.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        abrirModalFoto(foto);
+                    }
+                });
+
+                const btnSalvar = card.querySelector('.btn-salvar-nota');
+                const spanOk = card.querySelector('.jurado-foto-salvar-ok');
+                const spanErro = card.querySelector('.jurado-foto-salvar-erro');
+
+                btnSalvar.addEventListener('click', async () => {
+                    spanOk.classList.add('hidden');
+                    spanErro.classList.add('hidden');
+
+                    const inputs = Array.from(card.querySelectorAll('.jurado-criterio-nota'));
+                    const valores = inputs.map(input => ({ criterioId: input.dataset.criterioId, nota: input.value.trim() }));
+
+                    if (valores.some(v => v.nota === '')) {
+                        spanErro.textContent = 'Preencha a nota de todos os critérios antes de salvar.';
+                        spanErro.classList.remove('hidden');
+                        return;
+                    }
+                    const notasInvalidas = valores.some(v => {
+                        const n = Number(v.nota);
+                        return !Number.isFinite(n) || n < 0 || n > 10;
+                    });
+                    if (notasInvalidas) {
+                        spanErro.textContent = 'As notas precisam estar entre 0 e 10.';
+                        spanErro.classList.remove('hidden');
+                        return;
+                    }
+
+                    btnSalvar.disabled = true;
+                    btnSalvar.textContent = 'Salvando...';
+
+                    const linhas = valores.map(v => ({
+                        foto_id: foto.id,
+                        criterio_id: v.criterioId,
+                        jurado_email: usuarioAtual.email.toLowerCase(),
+                        nota: Number(v.nota),
+                        atualizado_em: new Date().toISOString(),
+                    }));
+
+                    const { error } = await supabase
+                        .from('fotos_notas')
+                        .upsert(linhas, { onConflict: 'foto_id,criterio_id,jurado_email' });
+
+                    btnSalvar.disabled = false;
+                    btnSalvar.textContent = 'Salvar notas';
+
+                    if (error) {
+                        spanErro.textContent = 'Erro ao salvar: ' + error.message;
+                        spanErro.classList.remove('hidden');
+                        return;
+                    }
+
+                    spanOk.classList.remove('hidden');
+
+                    // Atualiza o cache local de notas pra recalcular o
+                    // progresso sem precisar buscar tudo de novo no banco.
+                    linhas.forEach(linha => {
+                        const existente = minhasNotas.find(n => n.foto_id === linha.foto_id && n.criterio_id === linha.criterio_id);
+                        if (existente) {
+                            existente.nota = linha.nota;
+                        } else {
+                            minhasNotas.push({ foto_id: linha.foto_id, criterio_id: linha.criterio_id, nota: linha.nota });
+                        }
+                    });
+                    atualizarProgresso(fotos, minhasNotas);
+                });
+
+                fotosLista.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>

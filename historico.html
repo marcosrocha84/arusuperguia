@@ -622,7 +622,7 @@
             const { data, error } = await supabase
                 .from('concursos')
                 .select(`
-                    id, nome, descricao, data, qtd_vencedores, regulamento_pdf_url,
+                    id, nome, descricao, data, qtd_vencedores, regulamento_pdf_url, modo_votacao,
                     concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
                     concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
                 `)
@@ -744,9 +744,35 @@
             `;
         }
 
+        // Concursos avaliados por júri não têm "votos" — e a nota de cada
+        // jurado é de leitura restrita por RLS (ver vw_resultado_juri), então
+        // esta página pública nunca monta pódio nem lista fotos por aqui. Só
+        // avisa que o resultado é divulgado manualmente pelos organizadores,
+        // igual ao aviso já usado em votacao.html pra concurso de júri
+        // encerrado.
+        function montarBlocoConcursoJuri(concurso) {
+            const dataFormatada = new Date(concurso.data + 'T00:00:00').toLocaleDateString('pt-BR');
+            return `
+                <div class="ticket-sm overflow-hidden">
+                    <div class="p-4 md:p-6 pb-2">
+                        <h2 class="font-display text-xl md:text-2xl text-[var(--ink)]">${ICONE_PREMIO} ${escapeHTML(concurso.nome || concurso.descricao)}</h2>
+                        ${montarTextoPromovidoPor(concurso)}
+                        <p class="text-sm text-[var(--ink-soft)] mt-1">Encerrado em ${dataFormatada}</p>
+                    </div>
+                    <div class="text-center ticket-sm p-6 mx-4 md:mx-6 mb-5">
+                        <p class="text-[var(--ink)]">Este concurso foi avaliado por um júri. O resultado é divulgado pelos organizadores.</p>
+                    </div>
+                    ${montarBlocoPatrocinadores(concurso)}
+                    ${montarLinkRegulamento(concurso)}
+                </div>
+            `;
+        }
+
         // Monta o card de um concurso encerrado, com o pódio de fotos
         // vencedoras (mesma lógica de seleção/premiação da tela de votação).
         function montarBlocoConcurso(concurso, fotosDoConcurso) {
+            if (concurso.modo_votacao === 'juri') return montarBlocoConcursoJuri(concurso);
+
             const dataFormatada = new Date(concurso.data + 'T00:00:00').toLocaleDateString('pt-BR');
             const qtdVencedores = concurso.qtd_vencedores || 3;
             const fotosExibidas = fotosDoConcurso.slice(0, qtdVencedores);

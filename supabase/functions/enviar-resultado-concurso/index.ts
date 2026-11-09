@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
         // pode ser chamada diretamente por quem tiver um JWT de admin).
         const { data: concurso, error: concursoError } = await supabaseAdmin
             .from("concursos")
-            .select("id, nome, descricao, qtd_vencedores, encerrado")
+            .select("id, nome, descricao, qtd_vencedores, encerrado, modo_votacao")
             .eq("id", concurso_id)
             .maybeSingle();
 
@@ -283,26 +283,51 @@ Deno.serve(async (req) => {
             });
         }
 
-        // 3) Calcula os vencedores — mesma ordenação usada em votacao.html
-        // (votos desc, criado_em asc em caso de empate).
+        // 3) Calcula os vencedores. Concursos de votação pública (padrão)
+        // usam a mesma ordenação de votacao.html (votos desc, criado_em asc
+        // em caso de empate). Concursos em modo júri (sql/040) não têm
+        // votação pública — "vitorias_a"/"votos" nem existem nesse fluxo —
+        // então os vencedores vêm da nota final agregada em
+        // vw_resultado_juri (média, entre os jurados que já avaliaram, da
+        // média ponderada dos critérios de cada um), maior nota primeiro.
         const qtdVencedores = concurso.qtd_vencedores || 3;
-        const { data: fotos, error: fotosError } = await supabaseAdmin
-            .from("fotos_concurso")
-            .select("nome_participante, votos")
-            .eq("concurso_id", concurso_id)
-            .eq("aprovada", true)
-            .order("votos", { ascending: false })
-            .order("criado_em", { ascending: true })
-            .limit(qtdVencedores);
+        let vencedores: { nome_participante: string }[] = [];
 
-        if (fotosError) {
-            return new Response(JSON.stringify({ error: fotosError.message }), {
-                status: 500,
-                headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-            });
+        if (concurso.modo_votacao === "juri") {
+            const { data: resultadoJuri, error: resultadoJuriError } = await supabaseAdmin
+                .from("vw_resultado_juri")
+                .select("nome_participante, nota_final")
+                .eq("concurso_id", concurso_id)
+                .order("nota_final", { ascending: false, nullsFirst: false })
+                .limit(qtdVencedores);
+
+            if (resultadoJuriError) {
+                return new Response(JSON.stringify({ error: resultadoJuriError.message }), {
+                    status: 500,
+                    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+                });
+            }
+
+            vencedores = resultadoJuri ?? [];
+        } else {
+            const { data: fotos, error: fotosError } = await supabaseAdmin
+                .from("fotos_concurso")
+                .select("nome_participante, votos")
+                .eq("concurso_id", concurso_id)
+                .eq("aprovada", true)
+                .order("votos", { ascending: false })
+                .order("criado_em", { ascending: true })
+                .limit(qtdVencedores);
+
+            if (fotosError) {
+                return new Response(JSON.stringify({ error: fotosError.message }), {
+                    status: 500,
+                    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+                });
+            }
+
+            vencedores = fotos ?? [];
         }
-
-        const vencedores = fotos ?? [];
 
         if (vencedores.length === 0) {
             return new Response(JSON.stringify({ error: "Nenhuma foto aprovada encontrada para este concurso." }), {

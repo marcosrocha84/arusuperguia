@@ -293,15 +293,24 @@
                     Sua foto foi recebida e ainda está sendo avaliada pela nossa curadoria. Volte aqui mais tarde pra conferir o resultado.
                 </p>
             `,
-            aprovada: (dados) => `
+            aprovada: (dados) => {
+                // Concurso em modo júri (sql/040_concursos_jurados.sql): não
+                // existe votação pública, só avaliação por jurados
+                // convidados — mesmo tratamento já feito em enviar.html e
+                // concurso.html.
+                const modoJuri = dados.modo_votacao === 'juri';
+                const textoAcompanhar = modoJuri ? 'avaliação do júri' : 'área de votação';
+                const textoBotao = modoJuri ? 'Acompanhe a avaliação do júri' : 'Ir para a votação';
+                return `
                 <div class="orbita-resultado-icone"><svg class="icon-banner-lg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
                 ${dados.url_thumb ? `<img src="${escapeHTML(dados.url_thumb)}" alt="Sua foto aprovada" class="orbita-resultado-foto">` : ''}
                 <span class="orbita-badge orbita-badge-aprovada">Aprovada</span>
                 <p class="orbita-resultado-texto">
-                    Sua foto foi aprovada! Procure por ela na área de votação <svg class="icon-inline icon-inline--tight" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    Sua foto foi aprovada! Procure por ela na ${textoAcompanhar} <svg class="icon-inline icon-inline--tight" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </p>
-                <a href="${hrefVotacao(dados.concurso_slug)}" class="orbita-btn orbita-btn-secundaria orbita-btn-margem"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Ir para a votação</a>
-            `,
+                <a href="${hrefVotacao(dados.concurso_slug)}" class="orbita-btn orbita-btn-secundaria orbita-btn-margem"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> ${textoBotao}</a>
+            `;
+            },
             reprovada: () => `
                 <div class="orbita-resultado-icone"><svg class="icon-banner-lg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
                 <span class="orbita-badge orbita-badge-reprovada">Reprovada</span>

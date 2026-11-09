@@ -388,6 +388,32 @@
                             <input type="checkbox" id="concurso-modo-teste" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
                             <label for="concurso-modo-teste" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Modo teste (não aparece nas páginas públicas)</label>
                         </div>
+                        <div class="md:col-span-5">
+                            <label for="concurso-modo-votacao" class="block text-[var(--ink)] text-sm font-semibold mb-1">Modo de votação</label>
+                            <select id="concurso-modo-votacao" class="w-full md:w-80 px-3 py-2 border-2 border-[var(--ink)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]">
+                                <option value="publico">Votação pública (padrão)</option>
+                                <option value="juri">Júri (critérios com peso)</option>
+                            </select>
+                            <p class="text-xs text-[var(--ink-soft)] mt-1">Em modo júri, não há votação pública — só a nota dos jurados convidados decide o resultado.</p>
+                        </div>
+                        <div id="concurso-juri-bloco" class="md:col-span-5 hidden space-y-4 ticket-sm p-4">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-[var(--ink)] text-sm font-semibold">Critérios de avaliação (com peso)</label>
+                                    <button type="button" id="concurso-criterio-add-btn" class="text-xs font-semibold underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">+ adicionar critério</button>
+                                </div>
+                                <div id="concurso-criterios-lista" class="space-y-2"></div>
+                                <p class="text-xs text-[var(--ink-soft)] mt-1">O peso é relativo entre os critérios do mesmo concurso (ex: 3 e 2 tem o mesmo efeito que 30 e 20).</p>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-[var(--ink)] text-sm font-semibold">Jurados convidados</label>
+                                    <button type="button" id="concurso-jurado-add-btn" class="text-xs font-semibold underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">+ adicionar jurado</button>
+                                </div>
+                                <div id="concurso-jurados-lista" class="space-y-2"></div>
+                                <p class="text-xs text-[var(--ink-soft)] mt-1">O jurado acessa jurado.html com o e-mail cadastrado aqui e recebe um código de acesso por e-mail — não precisa de conta Google.</p>
+                            </div>
+                        </div>
                         <div class="flex items-center gap-2 pb-2 md:col-span-5">
                             <input type="checkbox" id="concurso-mostrar-optin-marketing" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
                             <label for="concurso-mostrar-optin-marketing" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Exibir banner de aviso de resultado por e-mail na votação</label>
@@ -529,6 +555,20 @@
 
                     <div id="concursos-container" class="space-y-3">
                         <p class="text-[var(--ink-soft)] text-center">Buscando concursos...</p>
+                    </div>
+
+                    <!-- Resultado agregado de um concurso em modo júri (vw_resultado_juri,
+                         sql/040) — nota ponderada média entre os jurados que já avaliaram. -->
+                    <div id="resultado-juri-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                        <div class="ticket w-full max-w-lg p-6">
+                            <div class="flex items-center justify-between mb-4 gap-3">
+                                <h3 class="font-display text-xl text-[var(--ink)]">Resultado do júri</h3>
+                                <button type="button" id="resultado-juri-fechar" class="btn btn-ghost !py-1 !px-3 text-sm">Fechar</button>
+                            </div>
+                            <div id="resultado-juri-conteudo" class="text-sm text-[var(--ink)] space-y-2 max-h-[70vh] overflow-y-auto">
+                                <p class="text-center text-[var(--ink-soft)]">Carregando...</p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Lista de e-mails que receberiam o resultado deste concurso agora

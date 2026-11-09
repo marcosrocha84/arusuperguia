@@ -323,7 +323,7 @@
                         <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Enviar uma nova foto
                     </button>
                     <a id="link-votacao-sucesso" href="./votacao.html" class="orbita-btn orbita-btn-secundaria">
-                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Ir para a votação
+                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> <span id="texto-link-votacao-sucesso">Ir para a votação</span>
                     </a>
                     <a id="link-pagina-inicial-sucesso" href="./index.html" class="orbita-btn orbita-btn-ghost">
                         <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> <span id="texto-link-pagina-inicial-sucesso">Página inicial</span>
@@ -491,7 +491,7 @@
 
             const { data: concurso, error } = await supabase
                 .from('concursos')
-                .select('id, ativo, regulamento_pdf_url, theme_config, concursos_patrocinadores ( patrocinadores ( nome, ativo ) )')
+                .select('id, ativo, regulamento_pdf_url, modo_votacao, theme_config, concursos_patrocinadores ( patrocinadores ( nome, ativo ) )')
                 .eq('slug', slug)
                 .maybeSingle();
 
@@ -511,6 +511,9 @@
             document.getElementById('texto-link-pagina-inicial').textContent = 'Voltar para o concurso';
             document.getElementById('texto-link-pagina-inicial-sucesso').textContent = 'Voltar para o concurso';
             linkVotacaoSucesso.href = `./votacao.html?c=${encodeURIComponent(slug)}`;
+            if (concurso.modo_votacao === 'juri') {
+                document.getElementById('texto-link-votacao-sucesso').textContent = 'Acompanhe a avaliação do júri';
+            }
 
             if (concurso.regulamento_pdf_url) {
                 linkRegulamento.href = concurso.regulamento_pdf_url;

@@ -123,6 +123,12 @@ const concursoDataInput = document.getElementById('concurso-data');
 const concursoAtivoInput = document.getElementById('concurso-ativo');
 const concursoEncerradoInput = document.getElementById('concurso-encerrado');
 const concursoModoTesteInput = document.getElementById('concurso-modo-teste');
+const concursoModoVotacaoInput = document.getElementById('concurso-modo-votacao');
+const concursoJuriBloco = document.getElementById('concurso-juri-bloco');
+const concursoCriteriosLista = document.getElementById('concurso-criterios-lista');
+const concursoCriterioAddBtn = document.getElementById('concurso-criterio-add-btn');
+const concursoJuradosLista = document.getElementById('concurso-jurados-lista');
+const concursoJuradoAddBtn = document.getElementById('concurso-jurado-add-btn');
 const concursoMostrarOptinMarketingInput = document.getElementById('concurso-mostrar-optin-marketing');
 const concursoMostrarCaseInput = document.getElementById('concurso-mostrar-case');
 const concursoComentarioPatrocinadorInput = document.getElementById('concurso-comentario-patrocinador');
@@ -151,6 +157,9 @@ const concursoSubmitBtn = document.getElementById('concurso-submit-btn');
 const concursoCancelBtn = document.getElementById('concurso-cancel-btn');
 const concursoError = document.getElementById('concurso-error');
 const concursosContainer = document.getElementById('concursos-container');
+const resultadoJuriModal = document.getElementById('resultado-juri-modal');
+const resultadoJuriConteudo = document.getElementById('resultado-juri-conteudo');
+const resultadoJuriFechar = document.getElementById('resultado-juri-fechar');
 const destinatariosResultadoModal = document.getElementById('destinatarios-resultado-modal');
 const destinatariosResultadoConteudo = document.getElementById('destinatarios-resultado-conteudo');
 const destinatariosResultadoFechar = document.getElementById('destinatarios-resultado-fechar');
@@ -220,22 +229,39 @@ let campanhaRelatorioAtual = null;
 // (só pra votar) também gera uma sessão válida no mesmo domínio. Por isso,
 // toda sessão passa antes por is_admin() (função no banco, ver
 // sql/014_admins_e_rls.sql) — só quem está na tabela "admins" entra.
+let adminLogadoId = null;
+
 supabase.auth.onAuthStateChange((event, session) => {
     if (session) {
-        validarAcessoAdmin(session, event);
+        validarAcessoAdmin(session);
     } else {
+        adminLogadoId = null;
         loginSection.classList.remove('hidden');
         adminPanel.classList.add('hidden');
     }
 });
 
-async function validarAcessoAdmin(session, event) {
+async function validarAcessoAdmin(session) {
+    // Checar só o nome do event ("TOKEN_REFRESHED" etc.) não é confiável o
+    // bastante: o supabase-js também reemite eventos de autenticação ao
+    // recuperar a sessão do storage em vários cenários de aba em segundo
+    // plano (ex: voltar de uma nova guia aberta por um link), nem sempre
+    // com o nome de evento esperado — ver o mesmo problema encontrado em
+    // jurado.html. Em vez de depender do nome exato do evento, comparamos
+    // com o admin que já estava validado: se é o mesmo, é só uma
+    // renovação/recuperação de sessão em segundo plano, e a tela não deve
+    // mudar (preserva a tela em que o admin estava). Só reseta pro
+    // Dashboard quando é de fato um login novo (ninguém validado antes, ou
+    // um usuário diferente do que já estava).
+    const mesmoAdminJaLogado = adminLogadoId && adminLogadoId === session.user.id;
+
     const { data: souAdmin, error } = await supabase.rpc('is_admin');
 
     if (error || !souAdmin) {
         // Sessão existe no Supabase Auth, mas não pertence a um admin
         // cadastrado (ex: conta Google usada em votacao.html) — barra o
         // acesso e desloga, em vez de deixar uma sessão "meio logada".
+        adminLogadoId = null;
         await supabase.auth.signOut();
         loginSection.classList.remove('hidden');
         adminPanel.classList.add('hidden');
@@ -244,18 +270,12 @@ async function validarAcessoAdmin(session, event) {
         return;
     }
 
+    adminLogadoId = session.user.id;
     loginSection.classList.add('hidden');
     adminPanel.classList.remove('hidden');
     userDisplay.textContent = `Admin: ${session.user.email}`;
 
-    // onAuthStateChange dispara de novo com event="TOKEN_REFRESHED" sempre
-    // que o supabase-js renova o token sozinho — o que acontece, entre
-    // outras vezes, quando a aba volta a ficar visível depois de um tempo
-    // em segundo plano. Sem essa checagem, o admin era jogado de volta pro
-    // Dashboard só por trocar de aba e voltar, mesmo no meio de outra
-    // tela. Só reseta pro Dashboard em login de verdade (SIGNED_IN) ou no
-    // carregamento inicial da página (INITIAL_SESSION).
-    if (event === 'TOKEN_REFRESHED') return;
+    if (mesmoAdminJaLogado) return;
     switchView('dashboard');
 }
 
@@ -735,7 +755,7 @@ async function carregarConcursos() {
 
     const { data, error } = await supabase
         .from('concursos')
-        .select('*, concursos_patrocinadores(patrocinador_id), concursos_premiacoes(premiacao_id, posicao)')
+        .select('*, concursos_patrocinadores(patrocinador_id), concursos_premiacoes(premiacao_id, posicao), concursos_criterios(id, nome, peso, ordem), concursos_jurados(email, nome)')
         .order('data', { ascending: false });
 
     if (error) {
@@ -781,6 +801,7 @@ function renderizarConcursos() {
                     <span class="stamp ${concurso.ativo ? 'stamp-fern' : 'stamp-amber'}">${concurso.ativo ? 'Ativo' : 'Inativo'}</span>
                     ${concurso.encerrado ? '<span class="stamp stamp-ember">Encerrado</span>' : ''}
                     ${concurso.modo_teste ? '<span class="stamp stamp-ember">Modo teste</span>' : ''}
+                    ${concurso.modo_votacao === 'juri' ? `<span class="stamp stamp-fern">Júri (${(concurso.concursos_jurados || []).length} jurado${(concurso.concursos_jurados || []).length === 1 ? '' : 's'})</span>` : ''}
                     <span class="text-sm text-[var(--ink-soft)] flex items-center">${ICONE_PREMIO.repeat(concurso.qtd_vencedores || 3)}</span>
                     ${concurso.regulamento_pdf_url ? `<a href="${escapeHTML(concurso.regulamento_pdf_url)}" target="_blank" rel="noopener noreferrer" class="text-sm underline underline-offset-2 text-[var(--ink-soft)] hover:text-[var(--ink)]">${ICONE_ARQUIVO}Regulamento</a>` : ''}
                 </div>
@@ -790,6 +811,7 @@ function renderizarConcursos() {
                     <button onclick="editarConcurso('${concurso.id}')" class="btn btn-ghost text-sm !py-1.5 !px-3">Editar</button>
                     <button onclick="excluirConcurso('${concurso.id}')" class="btn btn-ember text-sm !py-1.5 !px-3">Excluir</button>
                 </div>
+                ${concurso.modo_votacao === 'juri' ? `<button onclick="verResultadoJuri('${concurso.id}')" class="btn btn-ghost text-xs !py-1 !px-2">Ver resultado do júri</button>` : ''}
                 ${botaoResultadoConcurso(concurso)}
             </div>
         `;
@@ -803,6 +825,15 @@ function renderizarConcursos() {
 // de vez, pra permitir corrigir um envio com dado errado).
 function botaoResultadoConcurso(concurso) {
     if (!concurso.encerrado) return '';
+
+    // Concursos em modo júri não têm página de votação pública, então
+    // preferencias_resultado_concurso (de onde vem a lista de
+    // destinatários) nunca tem opt-in nenhum pra eles — "Enviar resultado"
+    // sempre falharia aqui. Até decidirmos como resolver os destinatários
+    // desse caso, o aviso dos vencedores de um concurso de júri é manual
+    // (fora da plataforma) — o admin já tem o ranking em "Ver resultado do
+    // júri" pra isso.
+    if (concurso.modo_votacao === 'juri') return '';
 
     const btnVerDestinatarios = `<button onclick="verDestinatariosResultado('${concurso.id}')" class="btn btn-ghost text-xs !py-1 !px-2">Ver destinatários</button>`;
 
@@ -891,6 +922,65 @@ window.verDestinatariosResultado = async function(id) {
 if (destinatariosResultadoFechar) {
     destinatariosResultadoFechar.addEventListener('click', () => {
         destinatariosResultadoModal.classList.add('hidden');
+    });
+}
+
+// Resultado agregado de um concurso em modo júri — lê direto da view
+// vw_resultado_juri (sql/040_concursos_jurados.sql), que já calcula a nota
+// ponderada final por foto respeitando a RLS de fotos_notas (um admin
+// autenticado enxerga a agregação de todo mundo via "Admins leem todas as
+// notas"). Só leitura: não há aqui nenhum fluxo de envio de e-mail de
+// vencedores pra concursos em modo júri ainda — o botão "Enviar resultado"
+// existente foi desenhado pra concursos de votação pública.
+window.verResultadoJuri = async function(id) {
+    if (!resultadoJuriModal) return;
+
+    resultadoJuriConteudo.innerHTML = '<p class="text-center text-[var(--ink-soft)]">Carregando...</p>';
+    resultadoJuriModal.classList.remove('hidden');
+
+    const concurso = concursosCache.find(c => c.id === id);
+    const qtdVencedores = (concurso && concurso.qtd_vencedores) || 3;
+    const totalJurados = (concurso && (concurso.concursos_jurados || []).length) || 0;
+
+    const { data, error } = await supabase
+        .from('vw_resultado_juri')
+        .select('foto_id, nome_participante, jurados_avaliaram, nota_final')
+        .eq('concurso_id', id)
+        .order('nota_final', { ascending: false, nullsFirst: false });
+
+    if (error) {
+        resultadoJuriConteudo.innerHTML = `<p class="text-center text-[var(--ember-dark)] font-semibold">Erro ao buscar o resultado: ${escapeHTML(error.message)}</p>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        resultadoJuriConteudo.innerHTML = '<p class="text-center text-[var(--ink-soft)]">Nenhuma foto aprovada neste concurso até o momento.</p>';
+        return;
+    }
+
+    const medalhas = ['🥇', '🥈', '🥉'];
+    resultadoJuriConteudo.innerHTML = `
+        <p class="text-[var(--ink-soft)] mb-3">${totalJurados} jurado${totalJurados === 1 ? '' : 's'} convidado${totalJurados === 1 ? '' : 's'}. Nota = média, entre os jurados que já avaliaram, da média ponderada dos critérios de cada um.</p>
+        <ol class="space-y-1">
+            ${data.map((linha, indice) => `
+                <li class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg ${indice < qtdVencedores ? 'bg-[var(--fern-light)]' : 'bg-[var(--bone-2)]'}">
+                    <span class="flex items-center gap-2 text-[var(--ink)]">
+                        ${indice < 3 ? medalhas[indice] : `${indice + 1}º`}
+                        ${escapeHTML(linha.nome_participante)}
+                    </span>
+                    <span class="text-sm text-[var(--ink-soft)] font-semibold whitespace-nowrap">
+                        ${linha.nota_final !== null ? Number(linha.nota_final).toFixed(2) : '—'}
+                        <span class="font-normal">(${linha.jurados_avaliaram}/${totalJurados} avaliaram)</span>
+                    </span>
+                </li>
+            `).join('')}
+        </ol>
+    `;
+};
+
+if (resultadoJuriFechar) {
+    resultadoJuriFechar.addEventListener('click', () => {
+        resultadoJuriModal.classList.add('hidden');
     });
 }
 if (destinatariosResultadoModal) {
@@ -1272,12 +1362,98 @@ function atualizarEstadoComentarioPatrocinador() {
 }
 concursoMostrarCaseInput.addEventListener('change', atualizarEstadoComentarioPatrocinador);
 
+// Concurso em modo júri: critérios com peso e lista de jurados convidados
+// (sql/040_concursos_jurados.sql). As linhas são montadas dinamicamente
+// (sem template fixo no HTML) porque a quantidade varia por concurso.
+function atualizarVisibilidadeJuri() {
+    if (!concursoJuriBloco) return;
+    const ehJuri = concursoModoVotacaoInput.value === 'juri';
+    concursoJuriBloco.classList.toggle('hidden', !ehJuri);
+}
+if (concursoModoVotacaoInput) {
+    concursoModoVotacaoInput.addEventListener('change', atualizarVisibilidadeJuri);
+}
+
+function criarLinhaRemovivel(containerFilhos, onRemover) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'text-[var(--ember-dark)] font-bold px-2 shrink-0';
+    btn.textContent = '✕';
+    btn.title = 'Remover';
+    btn.addEventListener('click', onRemover);
+    containerFilhos.appendChild(btn);
+}
+
+function adicionarLinhaCriterio(criterio) {
+    const { nome = '', peso = 1 } = criterio || {};
+    const linha = document.createElement('div');
+    linha.className = 'flex items-center gap-2';
+    linha.innerHTML = `
+        <input type="text" placeholder="Ex: Técnica" maxlength="80" class="concurso-criterio-nome flex-1 px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]" value="${escapeHTML(nome)}">
+        <input type="number" min="0.1" step="0.1" placeholder="Peso" class="concurso-criterio-peso w-24 px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]" value="${peso}">
+    `;
+    criarLinhaRemovivel(linha, () => linha.remove());
+    concursoCriteriosLista.appendChild(linha);
+}
+
+function adicionarLinhaJurado(jurado) {
+    const { email = '', nome = '' } = jurado || {};
+    const linha = document.createElement('div');
+    linha.className = 'flex items-center gap-2';
+    linha.innerHTML = `
+        <input type="email" placeholder="e-mail@exemplo.com" class="concurso-jurado-email flex-1 px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]" value="${escapeHTML(email)}">
+        <input type="text" placeholder="Nome (opcional)" maxlength="120" class="concurso-jurado-nome flex-1 px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]" value="${escapeHTML(nome)}">
+    `;
+    criarLinhaRemovivel(linha, () => linha.remove());
+    concursoJuradosLista.appendChild(linha);
+}
+
+if (concursoCriterioAddBtn) {
+    concursoCriterioAddBtn.addEventListener('click', () => adicionarLinhaCriterio());
+}
+if (concursoJuradoAddBtn) {
+    concursoJuradoAddBtn.addEventListener('click', () => adicionarLinhaJurado());
+}
+
+function obterCriterios() {
+    return Array.from(concursoCriteriosLista.querySelectorAll('.concurso-criterio-nome')).map((inputNome, indice) => {
+        const linha = inputNome.closest('div');
+        const peso = Number(linha.querySelector('.concurso-criterio-peso').value);
+        return { nome: inputNome.value.trim(), peso, ordem: indice };
+    }).filter(c => c.nome && pesoValido(c.peso));
+}
+
+function pesoValido(peso) {
+    return Number.isFinite(peso) && peso > 0;
+}
+
+function obterJurados() {
+    const vistos = new Set();
+    return Array.from(concursoJuradosLista.querySelectorAll('.concurso-jurado-email')).map((inputEmail) => {
+        const linha = inputEmail.closest('div');
+        const nome = linha.querySelector('.concurso-jurado-nome').value.trim();
+        return { email: inputEmail.value.trim().toLowerCase(), nome: nome || null };
+    }).filter(j => {
+        if (!j.email || vistos.has(j.email)) return false;
+        vistos.add(j.email);
+        return true;
+    });
+}
+
+function limparListaJuri() {
+    concursoCriteriosLista.innerHTML = '';
+    concursoJuradosLista.innerHTML = '';
+}
+
 function resetConcursoForm() {
     concursoForm.reset();
     concursoIdInput.value = '';
     concursoAtivoInput.checked = true;
     concursoEncerradoInput.checked = false;
     concursoModoTesteInput.checked = false;
+    concursoModoVotacaoInput.value = 'publico';
+    limparListaJuri();
+    atualizarVisibilidadeJuri();
     concursoMostrarOptinMarketingInput.checked = false;
     concursoMostrarCaseInput.checked = false;
     concursoComentarioPatrocinadorInput.value = '';
@@ -1314,6 +1490,12 @@ window.editarConcurso = function(id) {
     concursoAtivoInput.checked = concurso.ativo;
     concursoEncerradoInput.checked = concurso.encerrado;
     concursoModoTesteInput.checked = !!concurso.modo_teste;
+    concursoModoVotacaoInput.value = concurso.modo_votacao || 'publico';
+    limparListaJuri();
+    const criteriosOrdenados = [...(concurso.concursos_criterios || [])].sort((a, b) => a.ordem - b.ordem);
+    criteriosOrdenados.forEach(c => adicionarLinhaCriterio(c));
+    (concurso.concursos_jurados || []).forEach(j => adicionarLinhaJurado(j));
+    atualizarVisibilidadeJuri();
     concursoMostrarOptinMarketingInput.checked = concurso.mostrar_optin_marketing;
     concursoMostrarCaseInput.checked = concurso.mostrar_case;
     concursoComentarioPatrocinadorInput.value = concurso.comentario_patrocinador || '';
@@ -1454,6 +1636,7 @@ if (concursoForm) {
             ativo: concursoAtivoInput.checked,
             encerrado: concursoEncerradoInput.checked,
             modo_teste: concursoModoTesteInput.checked,
+            modo_votacao: concursoModoVotacaoInput.value,
             mostrar_optin_marketing: concursoMostrarOptinMarketingInput.checked,
             mostrar_case: concursoMostrarCaseInput.checked,
             comentario_patrocinador: concursoComentarioPatrocinadorInput.value.trim() || null,
@@ -1497,6 +1680,21 @@ if (concursoForm) {
             concursoError.textContent = 'Duas premiações não podem ocupar a mesma posição. Ajuste as posições antes de salvar.';
             concursoError.classList.remove('hidden');
             return;
+        }
+
+        const criteriosParaValidar = obterCriterios();
+        const juradosParaValidar = obterJurados();
+        if (payload.modo_votacao === 'juri') {
+            if (criteriosParaValidar.length === 0) {
+                concursoError.textContent = 'Um concurso em modo júri precisa de pelo menos um critério de avaliação.';
+                concursoError.classList.remove('hidden');
+                return;
+            }
+            if (juradosParaValidar.length === 0) {
+                concursoError.textContent = 'Um concurso em modo júri precisa de pelo menos um jurado convidado.';
+                concursoError.classList.remove('hidden');
+                return;
+            }
         }
 
         concursoSubmitBtn.disabled = true;
@@ -1565,6 +1763,15 @@ if (concursoForm) {
             await Promise.all([
                 supabase.from('concursos_patrocinadores').delete().eq('concurso_id', concursoIdSalvo),
                 supabase.from('concursos_premiacoes').delete().eq('concurso_id', concursoIdSalvo),
+                // Critérios e jurados: apaga e regrava tudo, igual aos
+                // vínculos acima. Apagar concursos_criterios em cascata
+                // também apaga as notas já dadas (fotos_notas referencia
+                // criterio_id on delete cascade) — aceitável aqui porque só
+                // acontece se o curador reeditar a lista de critérios depois
+                // que o júri já começou a votar, um cenário raro e que o
+                // próprio curador está escolhendo ao editar o formulário.
+                supabase.from('concursos_criterios').delete().eq('concurso_id', concursoIdSalvo),
+                supabase.from('concursos_jurados').delete().eq('concurso_id', concursoIdSalvo),
             ]);
 
             const inserts = [];
@@ -1576,6 +1783,16 @@ if (concursoForm) {
             if (premiacoesSelecionadas.length > 0) {
                 inserts.push(supabase.from('concursos_premiacoes').insert(
                     premiacoesSelecionadas.map(p => ({ concurso_id: concursoIdSalvo, premiacao_id: p.premiacao_id, posicao: p.posicao }))
+                ));
+            }
+            if (criteriosParaValidar.length > 0) {
+                inserts.push(supabase.from('concursos_criterios').insert(
+                    criteriosParaValidar.map(c => ({ concurso_id: concursoIdSalvo, nome: c.nome, peso: c.peso, ordem: c.ordem }))
+                ));
+            }
+            if (juradosParaValidar.length > 0) {
+                inserts.push(supabase.from('concursos_jurados').insert(
+                    juradosParaValidar.map(j => ({ concurso_id: concursoIdSalvo, email: j.email, nome: j.nome }))
                 ));
             }
             const resultadosVinculos = await Promise.all(inserts);
@@ -1938,13 +2155,21 @@ const ROTULOS_EVENTO_EMAIL = {
 async function carregarOpcoesCampanha() {
     const { data: concursos } = await supabase
         .from('concursos')
-        .select('id, nome, descricao')
+        .select('id, nome, descricao, modo_votacao')
         .order('criado_em', { ascending: false });
 
     if (campanhaConcursoInput) {
         const selecionado = campanhaConcursoInput.value;
+        // Segmentar por concurso depende de quem votou (votos_realizados,
+        // com login do Google) — concurso de júri não tem essa etapa
+        // pública, então nenhum e-mail de participante é capturado e o
+        // disparo sempre daria "nenhum destinatário". Por isso só concursos
+        // de votação pública entram nesta lista; campanha pra um concurso
+        // de júri continua possível só como envio geral (sem concurso
+        // selecionado) pra toda a base opt-in.
         campanhaConcursoInput.innerHTML = '<option value="">Selecione um concurso</option>' +
             (concursos || [])
+                .filter(c => c.modo_votacao !== 'juri')
                 .map(c => `<option value="${c.id}">${escapeHTML(c.nome || c.descricao)}</option>`)
                 .join('');
         campanhaConcursoInput.value = selecionado;
