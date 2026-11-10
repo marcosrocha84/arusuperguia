@@ -294,6 +294,7 @@
                 <button id="btn-voltar-concursos" class="btn btn-ghost">← Meus concursos</button>
             </div>
             <div class="jurado-bloco">
+                <p id="avaliacao-encerrado-aviso" class="jurado-progresso hidden" style="color:var(--ember-dark);font-weight:600;">Este concurso foi encerrado — as notas não podem mais ser alteradas.</p>
                 <p id="avaliacao-progresso" class="jurado-progresso"></p>
                 <div id="fotos-lista"></div>
             </div>
@@ -344,6 +345,7 @@
         const blocoAvaliacao = document.getElementById('bloco-avaliacao');
         const textoConcursoAvaliando = document.getElementById('texto-concurso-avaliando');
         const avaliacaoProgresso = document.getElementById('avaliacao-progresso');
+        const avaliacaoEncerradoAviso = document.getElementById('avaliacao-encerrado-aviso');
         const fotosLista = document.getElementById('fotos-lista');
         const btnVoltarConcursos = document.getElementById('btn-voltar-concursos');
 
@@ -563,6 +565,7 @@
             textoConcursoAvaliando.textContent = concurso.nome || concurso.descricao;
             fotosLista.innerHTML = '<p style="text-align:center;color:var(--ink-soft);">Carregando fotos...</p>';
             avaliacaoProgresso.textContent = '';
+            avaliacaoEncerradoAviso.classList.toggle('hidden', !concurso.encerrado);
 
             const [criteriosRes, fotosRes, notasRes] = await Promise.all([
                 supabase.from('concursos_criterios').select('id, nome, peso, ordem').eq('concurso_id', concurso.id).order('ordem', { ascending: true }),
@@ -588,7 +591,7 @@
                 return;
             }
 
-            renderizarFotos(fotos, minhasNotas);
+            renderizarFotos(fotos, minhasNotas, concurso.encerrado);
         }
 
         function notaExistente(minhasNotas, fotoId, criterioId) {
@@ -603,7 +606,7 @@
             avaliacaoProgresso.textContent = `${avaliadas} de ${fotos.length} fotos avaliadas por você`;
         }
 
-        function renderizarFotos(fotos, minhasNotas) {
+        function renderizarFotos(fotos, minhasNotas, encerrado) {
             atualizarProgresso(fotos, minhasNotas);
             fotosLista.innerHTML = '';
 
@@ -614,7 +617,7 @@
                 const criteriosHtml = criteriosDoConcurso.map(c => `
                     <div class="jurado-criterio-linha">
                         <span class="jurado-criterio-nome">${escapeHTML(c.nome)}</span>
-                        <input type="number" min="0" max="10" step="0.5" class="jurado-criterio-nota" data-criterio-id="${c.id}" value="${notaExistente(minhasNotas, foto.id, c.id)}" placeholder="0-10">
+                        <input type="number" min="0" max="10" step="0.5" class="jurado-criterio-nota" data-criterio-id="${c.id}" value="${notaExistente(minhasNotas, foto.id, c.id)}" placeholder="0-10" ${encerrado ? 'disabled' : ''}>
                     </div>
                 `).join('');
 
@@ -624,7 +627,7 @@
                         <p class="jurado-foto-nome">${escapeHTML(foto.nome_participante)}</p>
                         ${criteriosHtml}
                         <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
-                            <button class="btn btn-fern btn-salvar-nota">Salvar notas</button>
+                            ${encerrado ? '' : '<button class="btn btn-fern btn-salvar-nota">Salvar notas</button>'}
                             <span class="jurado-foto-salvar-ok hidden">Salvo!</span>
                             <span class="jurado-foto-salvar-erro hidden" style="color:var(--ember-dark);font-size:0.8rem;font-weight:600;"></span>
                         </div>
@@ -639,6 +642,11 @@
                         abrirModalFoto(foto);
                     }
                 });
+
+                if (encerrado) {
+                    fotosLista.appendChild(card);
+                    return;
+                }
 
                 const btnSalvar = card.querySelector('.btn-salvar-nota');
                 const spanOk = card.querySelector('.jurado-foto-salvar-ok');

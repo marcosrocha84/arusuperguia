@@ -861,7 +861,7 @@
                 const { data: concurso, error } = await supabase
                     .from('concursos')
                     .select(`
-                        id, slug, nome, descricao, data, ativo, regulamento_pdf_url, modo_votacao, theme_config,
+                        id, slug, nome, descricao, data, ativo, encerrado, regulamento_pdf_url, modo_votacao, theme_config,
                         concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
                         concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
                     `)
@@ -913,16 +913,24 @@
 
                 exibirPremiacoesEPatrocinadores(concurso);
 
+                // Encerrado = data já passou OU o curador marcou "Encerrado"
+                // manualmente antes do prazo (mesmo critério de votacao.html
+                // — ver concursoEstaEncerrado lá). Sem isso, um concurso
+                // encerrado manualmente mais cedo continuava mostrando a
+                // contagem de dias e o bloco de participação normalmente.
                 const dias = calcularDiasRestantes(concurso.data);
-                if (dias > 0) {
+                const encerradoPelaData = dias < 0;
+                const encerradoManualmente = concurso.encerrado === true;
+
+                if (!encerradoManualmente && dias > 0) {
                     contadorTexto.textContent = `Você ainda tem ${dias} dia${dias === 1 ? '' : 's'} para participar!`;
                     contadorDataEncerramento.textContent = `Encerra em ${dataFormatada}`;
-                } else if (dias === 0) {
+                } else if (!encerradoManualmente && dias === 0) {
                     contadorTexto.textContent = '🔥 Hoje é o último dia para participar!';
                     contadorDataEncerramento.textContent = `Encerra hoje, ${dataFormatada}`;
                 } else {
                     contadorTexto.textContent = 'O prazo para participar já encerrou';
-                    contadorDataEncerramento.textContent = `Encerrou em ${dataFormatada}`;
+                    contadorDataEncerramento.textContent = encerradoPelaData ? `Encerrou em ${dataFormatada}` : 'Encerrado';
 
                     // Concurso encerrado: nem "enviar foto" nem "etapas" fazem
                     // sentido mais — troca o bloco inteiro por um único CTA

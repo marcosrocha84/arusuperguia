@@ -129,6 +129,7 @@ const concursoCriteriosLista = document.getElementById('concurso-criterios-lista
 const concursoCriterioAddBtn = document.getElementById('concurso-criterio-add-btn');
 const concursoJuradosLista = document.getElementById('concurso-jurados-lista');
 const concursoJuradoAddBtn = document.getElementById('concurso-jurado-add-btn');
+const concursoMostrarNotaFinalJuriInput = document.getElementById('concurso-mostrar-nota-final-juri');
 const concursoMostrarOptinMarketingInput = document.getElementById('concurso-mostrar-optin-marketing');
 const concursoMostrarCaseInput = document.getElementById('concurso-mostrar-case');
 const concursoComentarioPatrocinadorInput = document.getElementById('concurso-comentario-patrocinador');
@@ -1385,9 +1386,13 @@ function criarLinhaRemovivel(containerFilhos, onRemover) {
 }
 
 function adicionarLinhaCriterio(criterio) {
-    const { nome = '', peso = 1 } = criterio || {};
+    const { id = '', nome = '', peso = 1 } = criterio || {};
     const linha = document.createElement('div');
     linha.className = 'flex items-center gap-2';
+    // Guarda o id do critério já salvo (quando existir) — é o que permite
+    // sincronizar por diff no submit (atualizar em vez de apagar-e-recriar)
+    // e assim preservar fotos_notas, que referencia criterio_id.
+    linha.dataset.criterioId = id || '';
     linha.innerHTML = `
         <input type="text" placeholder="Ex: Técnica" maxlength="80" class="concurso-criterio-nome flex-1 px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]" value="${escapeHTML(nome)}">
         <input type="number" min="0.1" step="0.1" placeholder="Peso" class="concurso-criterio-peso w-24 px-3 py-2 border-2 border-[var(--ink)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--amber)]" value="${peso}">
@@ -1419,7 +1424,7 @@ function obterCriterios() {
     return Array.from(concursoCriteriosLista.querySelectorAll('.concurso-criterio-nome')).map((inputNome, indice) => {
         const linha = inputNome.closest('div');
         const peso = Number(linha.querySelector('.concurso-criterio-peso').value);
-        return { nome: inputNome.value.trim(), peso, ordem: indice };
+        return { id: linha.dataset.criterioId || null, nome: inputNome.value.trim(), peso, ordem: indice };
     }).filter(c => c.nome && pesoValido(c.peso));
 }
 
@@ -1455,6 +1460,7 @@ function resetConcursoForm() {
     limparListaJuri();
     atualizarVisibilidadeJuri();
     concursoMostrarOptinMarketingInput.checked = false;
+    concursoMostrarNotaFinalJuriInput.checked = false;
     concursoMostrarCaseInput.checked = false;
     concursoComentarioPatrocinadorInput.value = '';
     atualizarEstadoComentarioPatrocinador();
@@ -1497,6 +1503,7 @@ window.editarConcurso = function(id) {
     (concurso.concursos_jurados || []).forEach(j => adicionarLinhaJurado(j));
     atualizarVisibilidadeJuri();
     concursoMostrarOptinMarketingInput.checked = concurso.mostrar_optin_marketing;
+    concursoMostrarNotaFinalJuriInput.checked = !!concurso.mostrar_nota_final_juri;
     concursoMostrarCaseInput.checked = concurso.mostrar_case;
     concursoComentarioPatrocinadorInput.value = concurso.comentario_patrocinador || '';
     atualizarEstadoComentarioPatrocinador();
@@ -1638,6 +1645,7 @@ if (concursoForm) {
             modo_teste: concursoModoTesteInput.checked,
             modo_votacao: concursoModoVotacaoInput.value,
             mostrar_optin_marketing: concursoMostrarOptinMarketingInput.checked,
+            mostrar_nota_final_juri: concursoMostrarNotaFinalJuriInput.checked,
             mostrar_case: concursoMostrarCaseInput.checked,
             comentario_patrocinador: concursoComentarioPatrocinadorInput.value.trim() || null,
             qtd_vencedores: Number(concursoQtdVencedoresInput.value),
@@ -1763,16 +1771,57 @@ if (concursoForm) {
             await Promise.all([
                 supabase.from('concursos_patrocinadores').delete().eq('concurso_id', concursoIdSalvo),
                 supabase.from('concursos_premiacoes').delete().eq('concurso_id', concursoIdSalvo),
-                // Critérios e jurados: apaga e regrava tudo, igual aos
-                // vínculos acima. Apagar concursos_criterios em cascata
-                // também apaga as notas já dadas (fotos_notas referencia
-                // criterio_id on delete cascade) — aceitável aqui porque só
-                // acontece se o curador reeditar a lista de critérios depois
-                // que o júri já começou a votar, um cenário raro e que o
-                // próprio curador está escolhendo ao editar o formulário.
-                supabase.from('concursos_criterios').delete().eq('concurso_id', concursoIdSalvo),
+                // Jurados: apaga e regrava tudo — sem problema aqui porque
+                // fotos_notas não referencia concursos_jurados (só guarda o
+                // e-mail como texto), então recriar essas linhas não afeta
+                // nenhuma nota já dada.
                 supabase.from('concursos_jurados').delete().eq('concurso_id', concursoIdSalvo),
             ]);
+
+            // Critérios: sincroniza por diff (atualiza em place quem já
+            // existe, insere só os novos, apaga só os removidos) em vez de
+            // apagar-e-recriar tudo. fotos_notas.criterio_id tem
+            // on delete cascade — apagar e recriar o critério (mesmo com o
+            // mesmo nome/peso) trocava o id e derrubava em cascata as notas
+            // já dadas pelos jurados, mesmo quando o curador só tinha
+            // marcado o concurso como encerrado e nem tocado nos critérios.
+            if (id) {
+                const { data: criteriosExistentes, error: erroBuscaCriterios } = await supabase
+                    .from('concursos_criterios')
+                    .select('id')
+                    .eq('concurso_id', concursoIdSalvo);
+                if (erroBuscaCriterios) throw erroBuscaCriterios;
+
+                const idsMantidos = new Set(criteriosParaValidar.filter(c => c.id).map(c => c.id));
+                const idsParaApagar = (criteriosExistentes || [])
+                    .map(c => c.id)
+                    .filter(cid => !idsMantidos.has(cid));
+
+                if (idsParaApagar.length > 0) {
+                    const { error } = await supabase.from('concursos_criterios').delete().in('id', idsParaApagar);
+                    if (error) throw error;
+                }
+
+                for (const c of criteriosParaValidar.filter(c => c.id)) {
+                    const { error } = await supabase.from('concursos_criterios')
+                        .update({ nome: c.nome, peso: c.peso, ordem: c.ordem })
+                        .eq('id', c.id);
+                    if (error) throw error;
+                }
+
+                const criteriosNovos = criteriosParaValidar.filter(c => !c.id);
+                if (criteriosNovos.length > 0) {
+                    const { error } = await supabase.from('concursos_criterios').insert(
+                        criteriosNovos.map(c => ({ concurso_id: concursoIdSalvo, nome: c.nome, peso: c.peso, ordem: c.ordem }))
+                    );
+                    if (error) throw error;
+                }
+            } else if (criteriosParaValidar.length > 0) {
+                const { error } = await supabase.from('concursos_criterios').insert(
+                    criteriosParaValidar.map(c => ({ concurso_id: concursoIdSalvo, nome: c.nome, peso: c.peso, ordem: c.ordem }))
+                );
+                if (error) throw error;
+            }
 
             const inserts = [];
             if (patrocinadoresSelecionados.length > 0) {
@@ -1783,11 +1832,6 @@ if (concursoForm) {
             if (premiacoesSelecionadas.length > 0) {
                 inserts.push(supabase.from('concursos_premiacoes').insert(
                     premiacoesSelecionadas.map(p => ({ concurso_id: concursoIdSalvo, premiacao_id: p.premiacao_id, posicao: p.posicao }))
-                ));
-            }
-            if (criteriosParaValidar.length > 0) {
-                inserts.push(supabase.from('concursos_criterios').insert(
-                    criteriosParaValidar.map(c => ({ concurso_id: concursoIdSalvo, nome: c.nome, peso: c.peso, ordem: c.ordem }))
                 ));
             }
             if (juradosParaValidar.length > 0) {

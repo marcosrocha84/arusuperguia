@@ -178,6 +178,51 @@
         .stamp-fern { background: var(--bone-2); color: var(--ink); background: color-mix(in srgb, var(--fern) 18%, white); color: color-mix(in srgb, var(--fern) 55%, black); }
         .stamp-ember { background: var(--bone-2); color: var(--ink); background: color-mix(in srgb, var(--ember) 18%, white); color: color-mix(in srgb, var(--ember) 55%, black); }
 
+        /* ---------- Nota final do júri: estrela no canto superior direito
+           da foto, com o valor dentro. Dourada só pra quem tem a maior nota
+           (considerando empate), cinza-clara pras demais — substitui o selo
+           de texto "Nota final: X.X" por algo mais compacto/visual. ---------- */
+        .foto-nota-estrela {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 3.4rem;
+            height: 3.4rem;
+            z-index: 2;
+        }
+        /* Na modal de zoom, o canto superior direito já tem o botão de
+           fechar — a estrela vai pro canto esquerdo pra não sobrepor. */
+        .foto-nota-estrela--esquerda {
+            right: auto;
+            left: 8px;
+        }
+        .foto-nota-estrela svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+        }
+        .foto-nota-estrela.ouro svg path { fill: var(--amber); }
+        .foto-nota-estrela.cinza svg path { fill: #d7dbe3; }
+        @keyframes estrela-pulsar {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35)) drop-shadow(0 0 0 rgba(227, 163, 53, 0.7)); }
+            50% { transform: scale(1.12); filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35)) drop-shadow(0 0 8px rgba(227, 163, 53, 0.7)); }
+        }
+        .foto-nota-estrela.ouro svg { animation: estrela-pulsar 1.6s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+            .foto-nota-estrela.ouro svg { animation: none; }
+        }
+        .foto-nota-estrela span {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-bottom: 4px;
+            font-size: 0.86rem;
+            font-weight: 800;
+            color: var(--ink);
+        }
+
         @keyframes coracao-explodir {
             0% {
                 transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
@@ -603,6 +648,10 @@
             <div class="modal-foto-imagem-wrap">
                 <div id="modal-foto-spinner" class="modal-foto-spinner hidden" aria-hidden="true"></div>
                 <img id="modal-foto-img" src="" alt="Foto ampliada do concurso">
+                <span id="modal-foto-estrela" class="foto-nota-estrela foto-nota-estrela--esquerda hidden">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7L1 9.2l7.1-.6z"/></svg>
+                    <span id="modal-foto-estrela-valor"></span>
+                </span>
             </div>
             <div class="p-4 md:p-5 text-center">
                 <span id="modal-foto-selo" class="stamp mb-2 hidden"></span>
@@ -631,6 +680,9 @@
         // avaliação do júri, só que pequeno (icon-inline), pra trocar o
         // emoji ⚖️ do selo de progresso no card de votacao.html.
         const ICONE_BALANCA = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>';
+        // Estrela cheia (fill), usada no selo de nota final do júri — cor
+        // vem da classe .ouro/.cinza em CSS, não daqui.
+        const ICONE_ESTRELA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7L1 9.2l7.1-.6z"/></svg>';
         const ICONE_PREMIO = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>';
         const ICONE_INBOX = '<svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>';
         const ICONE_ZOOM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
@@ -671,6 +723,8 @@
         const modalFotoData = document.getElementById('modal-foto-data');
         const modalFotoVotos = document.getElementById('modal-foto-votos');
         const modalFotoVotarBtn = document.getElementById('modal-foto-votar');
+        const modalFotoEstrela = document.getElementById('modal-foto-estrela');
+        const modalFotoEstrelaValor = document.getElementById('modal-foto-estrela-valor');
 
         // Guarda os dados das fotos atualmente exibidas (com selo e data já
         // formatados) pra alimentar a modal de visualização ampliada sem
@@ -719,6 +773,14 @@
                 modalFotoSelo.className = `stamp mb-2 ${foto.selo.classe}`;
             } else {
                 modalFotoSelo.classList.add('hidden');
+            }
+
+            if (foto.notaFinal != null) {
+                modalFotoEstrelaValor.textContent = Number(foto.notaFinal).toFixed(1);
+                modalFotoEstrela.className = `foto-nota-estrela foto-nota-estrela--esquerda ${foto.ehVencedor ? 'ouro' : 'cinza'}`;
+                modalFotoEstrela.title = `Nota final: ${Number(foto.notaFinal).toFixed(1)}`;
+            } else {
+                modalFotoEstrela.classList.add('hidden');
             }
 
             configurarBotaoVotoModal(fotoId);
@@ -1117,6 +1179,19 @@
         // quantidade de vencedores definida pelo curador para o concurso —
         // já que a lista vem ordenada por votos) — mas só faz sentido premiar
         // quem já recebeu pelo menos 1 voto.
+        // Mesma ideia de selosPosicao, mas pro modo júri: premia por
+        // posição na nota final (não por voto), e só quem de fato recebeu
+        // nota (nota 0 é uma nota válida — diferente de voto, não pode
+        // tratar "nota 0" como "sem nota").
+        function selosPosicaoJuri(indice, notaFinal, qtdVencedores) {
+            if (notaFinal == null) return null;
+            if (indice >= qtdVencedores) return null;
+            if (indice === 0) return { texto: '1º lugar', classe: 'stamp-amber', medalha: '🥇', cor: 'var(--amber)' };
+            if (indice === 1) return { texto: '2º lugar', classe: 'stamp-fern', medalha: '🥈', cor: 'var(--fern)' };
+            if (indice === 2) return { texto: '3º lugar', classe: 'stamp-ember', medalha: '🥉', cor: 'var(--ember)' };
+            return null;
+        }
+
         function selosPosicao(indice, votos, qtdVencedores) {
             if (!votos || votos <= 0) return null;
             if (indice >= qtdVencedores) return null;
@@ -1136,7 +1211,7 @@
             const { data, error } = await supabase
                 .from('concursos')
                 .select(`
-                    id, slug, nome, descricao, data, ativo, regulamento_pdf_url, qtd_vencedores, mostrar_optin_marketing, modo_votacao, theme_config,
+                    id, slug, nome, descricao, data, ativo, encerrado, regulamento_pdf_url, qtd_vencedores, mostrar_optin_marketing, mostrar_nota_final_juri, modo_votacao, theme_config,
                     concursos_premiacoes ( posicao, premiacoes ( descricao, ativo ) ),
                     concursos_patrocinadores ( patrocinadores ( nome, logotipo_url, url_rede_social, ativo ) )
                 `)
@@ -1149,9 +1224,15 @@
             return data;
         }
 
-        // Compara a data de encerramento do concurso (campo "data") com hoje,
-        // por dia de calendário — mesma lógica usada em index.html.
-        function concursoEstaEncerrado(dataStr) {
+        // Encerrado = data de encerramento já passou OU o curador marcou
+        // "Encerrado" manualmente na curadoria, o que vier primeiro. Antes,
+        // esta função só olhava a data (o campo manual era só informativo —
+        // ver sql/005_concursos_encerrado.sql), mas o modo júri passou a
+        // depender do campo manual como trava de verdade (RLS de notas,
+        // sql/044) — sem isso aqui, o admin encerrava o júri mais cedo e a
+        // página pública continuava mostrando "em andamento".
+        function concursoEstaEncerrado(dataStr, encerradoManual) {
+            if (encerradoManual) return true;
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
             const dataFim = new Date(dataStr + 'T00:00:00');
@@ -1241,7 +1322,7 @@
             try {
                 const concursoAtivo = await buscarConcursoAtivo();
                 aplicarTema(concursoAtivo.theme_config);
-                const encerrado = concursoEstaEncerrado(concursoAtivo.data);
+                const encerrado = concursoEstaEncerrado(concursoAtivo.data, concursoAtivo.encerrado);
                 concursoEncerrado = encerrado;
                 const qtdVencedores = concursoAtivo.qtd_vencedores || 3;
                 modoJuriAtivo = concursoAtivo.modo_votacao === 'juri';
@@ -1478,11 +1559,19 @@
             document.title = 'Avaliação do júri - Órbita';
             iconeTituloVotacao.innerHTML = '';
             textoTituloVotacao.textContent = nomeConcurso;
+            // Mostrar a média final é opt-in por concurso
+            // (mostrar_nota_final_juri, sql/045) e só faz sentido depois de
+            // encerrado — enquanto está em andamento, mostra só progresso
+            // (mesma decisão de sempre: sem nota nota-a-nota em avaliação
+            // aberta, pra não pressionar jurado nem gerar contestação).
+            const exibirNotaFinal = encerrado && concursoAtivo.mostrar_nota_final_juri === true;
             subtituloVotacao.textContent = encerrado
-                ? `O concurso "${concursoAtivo.nome || concursoAtivo.descricao}" foi encerrado. O resultado será divulgado em breve pelos organizadores.`
+                ? (exibirNotaFinal
+                    ? `O concurso "${concursoAtivo.nome || concursoAtivo.descricao}" foi encerrado. Confira abaixo a média final de cada foto.`
+                    : `O concurso "${concursoAtivo.nome || concursoAtivo.descricao}" foi encerrado. O resultado será divulgado em breve pelos organizadores.`)
                 : 'Acompanhe abaixo quantos jurados já avaliaram cada foto.';
 
-            const [{ data: fotos, error: erroFotos }, { data: progresso, error: erroProgresso }] = await Promise.all([
+            const [{ data: fotos, error: erroFotos }, { data: progresso, error: erroProgresso }, { data: notasFinais, error: erroNotasFinais }] = await Promise.all([
                 supabase
                     .from('fotos_concurso')
                     .select('*')
@@ -1490,12 +1579,15 @@
                     .eq('concurso_id', concursoAtivo.id)
                     .order('criado_em', { ascending: true }),
                 supabase.rpc('progresso_juri', { p_concurso_id: concursoAtivo.id }),
+                exibirNotaFinal
+                    ? supabase.rpc('resultado_juri_publico', { p_concurso_id: concursoAtivo.id })
+                    : Promise.resolve({ data: [], error: null }),
             ]);
 
             registrarUltimaAtualizacao();
 
-            if (erroFotos || erroProgresso) {
-                const msg = (erroFotos || erroProgresso).message || 'Erro ao carregar o acompanhamento da avaliação.';
+            if (erroFotos || erroProgresso || erroNotasFinais) {
+                const msg = (erroFotos || erroProgresso || erroNotasFinais).message || 'Erro ao carregar o acompanhamento da avaliação.';
                 gridFotos.innerHTML = `<p class="text-[var(--ember-dark)] text-center col-span-2 md:col-span-3 font-semibold">${escapeHTML(msg)}</p>`;
                 exibirPremiacoesEPatrocinadores(null);
                 return;
@@ -1516,15 +1608,42 @@
 
             const progressoPorFoto = {};
             (progresso || []).forEach(p => { progressoPorFoto[p.foto_id] = p; });
+            const notaFinalPorFoto = {};
+            (notasFinais || []).forEach(n => { notaFinalPorFoto[n.foto_id] = n.nota_final; });
+
+            // Com a média final liberada, ordena do maior pro menor pra já
+            // destacar quem se saiu melhor — sem isso, a ordem continua
+            // sendo a de envio (igual durante a avaliação em andamento).
+            const fotosOrdenadas = exibirNotaFinal
+                ? [...fotos].sort((a, b) => (notaFinalPorFoto[b.id] ?? -1) - (notaFinalPorFoto[a.id] ?? -1))
+                : fotos;
+
+            // Maior nota entre todas as fotos (considerando empate — mais de
+            // uma foto pode levar a estrela dourada) e a premiação de cada
+            // posição no pódio (qtd_vencedores/concursos_premiacoes), ambos
+            // só usados quando a nota final está liberada.
+            const todasAsNotas = Object.values(notaFinalPorFoto).filter(n => n != null);
+            const maiorNota = todasAsNotas.length > 0 ? Math.max(...todasAsNotas) : null;
+            const qtdVencedores = concursoAtivo.qtd_vencedores || 3;
+            const premiacaoPorPosicao = {};
+            (concursoAtivo.concursos_premiacoes || [])
+                .filter(v => v.premiacoes && v.premiacoes.ativo)
+                .forEach(v => { premiacaoPorPosicao[v.posicao] = v.premiacoes.descricao; });
 
             fotosExibidasCache = [];
 
-            gridFotos.innerHTML = fotos.map((foto) => {
+            gridFotos.innerHTML = fotosOrdenadas.map((foto, indice) => {
                 const prog = progressoPorFoto[foto.id] || { jurados_avaliaram: 0, total_jurados: 0 };
                 const completo = prog.total_jurados > 0 && prog.jurados_avaliaram >= prog.total_jurados;
-                const progressoTexto = prog.total_jurados > 0
-                    ? `${prog.jurados_avaliaram} de ${prog.total_jurados} jurado${prog.total_jurados === 1 ? '' : 's'} avaliaram`
-                    : 'Aguardando jurados';
+                const notaFinal = notaFinalPorFoto[foto.id];
+                const selo = exibirNotaFinal ? selosPosicaoJuri(indice, notaFinal, qtdVencedores) : null;
+                const ehVencedor = exibirNotaFinal && notaFinal != null && maiorNota != null && notaFinal === maiorNota;
+                const notaTexto = notaFinal != null ? `Nota final: ${Number(notaFinal).toFixed(1)}` : 'Sem nota registrada';
+                const progressoTexto = exibirNotaFinal
+                    ? notaTexto
+                    : (prog.total_jurados > 0
+                        ? `${prog.jurados_avaliaram} de ${prog.total_jurados} jurado${prog.total_jurados === 1 ? '' : 's'} avaliaram`
+                        : 'Aguardando jurados');
                 const dataEnvio = new Date(foto.criado_em).toLocaleString('pt-BR', {
                     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
                 });
@@ -1535,27 +1654,46 @@
                     nome_participante: foto.nome_participante,
                     dataFormatada: dataEnvio,
                     progressoTexto,
-                    selo: null,
+                    selo,
+                    notaFinal: exibirNotaFinal ? notaFinal : null,
+                    ehVencedor,
                 });
 
                 return `
                     <div class="foto-card ticket-sm overflow-hidden flex flex-col justify-between transition duration-300 hover:-translate-y-1">
-                        <div class="foto-card-imagem relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" onclick="abrirModalFoto('${foto.id}')" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHTML(foto.nome_participante)}" onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===this){event.preventDefault();abrirModalFoto('${foto.id}');}">
+                        <div class="foto-card-imagem relative h-40 sm:h-52 w-full bg-[var(--bone-2)]" ${ehVencedor ? `style="box-shadow: inset 0 0 0 4px var(--amber);"` : ''} onclick="abrirModalFoto('${foto.id}')" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHTML(foto.nome_participante)}" onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===this){event.preventDefault();abrirModalFoto('${foto.id}');}">
                             <img src="${escapeHTML(foto.url_thumb || foto.url_foto)}" alt="Foto do Concurso" loading="lazy" class="object-cover w-full h-full">
                             <span class="foto-card-lupa" aria-hidden="true">${ICONE_ZOOM}</span>
+                            ${exibirNotaFinal && notaFinal != null ? `
+                                <span class="foto-nota-estrela ${ehVencedor ? 'ouro' : 'cinza'}" title="${escapeHTML(notaTexto)}">
+                                    ${ICONE_ESTRELA}
+                                    <span>${Number(notaFinal).toFixed(1)}</span>
+                                </span>
+                            ` : ''}
                         </div>
                         <div class="p-3 flex flex-col justify-between flex-1">
                             <div class="mb-2">
-                                <span class="stamp ${completo ? 'stamp-fern' : 'stamp-amber'} mb-1.5">${ICONE_BALANCA}${progressoTexto}</span>
+                                ${!exibirNotaFinal ? `<span class="stamp ${completo ? 'stamp-fern' : 'stamp-amber'} mb-1.5">${ICONE_BALANCA}${progressoTexto}</span>` : ''}
                                 <h3 class="font-semibold text-[var(--ink)] text-sm sm:text-base truncate">${escapeHTML(foto.nome_participante)}</h3>
                                 <p class="text-xs text-[var(--ink-soft)] mt-0.5">${ICONE_CALENDARIO} ${dataEnvio}</p>
+                                ${selo && premiacaoPorPosicao[indice + 1] ? `
+                                    <p class="text-xs text-[var(--ember-dark)] font-semibold mt-1"><span class="premio-caixa">🎁</span> ${escapeHTML(premiacaoPorPosicao[indice + 1])}</p>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
 
-            exibirPremiacoesEPatrocinadores(null);
+            exibirPremiacoesEPatrocinadores(exibirNotaFinal ? concursoAtivo : null);
+
+            // Mesma chuva de confete da tela de "Fotos campeãs" da votação
+            // pública — dispara uma vez por carregamento (ver
+            // iniciarChuvaDeConfete), cobrindo tanto o acesso inicial quanto
+            // o clique em "Atualizar" logo após o resultado sair.
+            if (exibirNotaFinal && fotosOrdenadas.length > 0) {
+                iniciarChuvaDeConfete();
+            }
             tentarAbrirFotoPelaUrl();
 
             if (modalFotoIdAtual) {

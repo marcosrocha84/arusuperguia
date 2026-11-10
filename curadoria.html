@@ -12,7 +12,7 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
-    <script src="./app.js?v=2.0" defer></script>
+    <script src="./app.js?v=2.2" defer></script>
 
     <!-- Identidade "Órbita" — mesma estratégia de votacao.html/historico.html:
          app.js (1800+ linhas, arquivo à parte) monta MUITO HTML dinâmico
@@ -412,6 +412,10 @@
                                 </div>
                                 <div id="concurso-jurados-lista" class="space-y-2"></div>
                                 <p class="text-xs text-[var(--ink-soft)] mt-1">O jurado acessa jurado.html com o e-mail cadastrado aqui e recebe um código de acesso por e-mail — não precisa de conta Google.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="concurso-mostrar-nota-final-juri" class="h-4 w-4 border-[var(--ink)] rounded cursor-pointer">
+                                <label for="concurso-mostrar-nota-final-juri" class="text-[var(--ink)] text-sm font-semibold cursor-pointer">Exibir a média final do júri na página de votação após o encerramento</label>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 pb-2 md:col-span-5">
