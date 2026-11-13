@@ -9,7 +9,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700&display=swap">
 
 <style>
     :root {
@@ -20,6 +20,7 @@
         --ink-soft: #CFC6B4;
         --ink-soft2: #A39A89;
         --gold: #D9B26A;
+        --live: #9146FF;
         --horda-bg: #9E1F17;
         --horda-ink: #FF6A55;
         --alianca-bg: #1D4FA8;
@@ -56,29 +57,35 @@
     }
     .arena-header-inner {
         display: flex; align-items: center; justify-content: space-between;
-        gap: 16px; padding: 14px 0; flex-wrap: wrap;
+        gap: 16px; padding: 18px 0; flex-wrap: wrap;
     }
     .arena-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .arena-logo-mark {
-        width: 24px; height: 24px; border-radius: 50%;
-        border: 2px solid var(--gold); position: relative; flex-shrink: 0;
+        width: 32px; height: 32px; border-radius: 50%;
+        border: 2.5px solid var(--gold); position: relative; flex-shrink: 0;
     }
     .arena-logo-mark::after {
         content: ''; position: absolute; top: 50%; left: 50%;
-        width: 6px; height: 6px; border-radius: 50%;
+        width: 7px; height: 7px; border-radius: 50%;
         background: var(--gold); transform: translate(-50%, -50%);
     }
-    .arena-brand-nome { font-family: var(--font-body); font-weight: 700; color: var(--ink); font-size: 0.95rem; }
-    .arena-brand-arena { font-family: var(--font-display); font-weight: 800; color: var(--gold); font-size: 1.1rem; letter-spacing: 0.08em; }
+    .arena-brand-nome { font-family: 'Unbounded', var(--font-body); font-weight: 700; letter-spacing: -0.01em; color: var(--ink); font-size: 1.1rem; }
+    .arena-brand-arena { font-family: var(--font-display); font-weight: 800; color: var(--gold); font-size: 1.25rem; letter-spacing: 0.08em; }
     .arena-nav { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
     .arena-nav a { color: var(--ink-soft); text-decoration: none; font-size: 0.88rem; font-weight: 600; }
     .arena-nav a:hover { color: var(--gold); }
+    /* Cor exata da marca da Twitch (#9146FF) — exceção à regra de nunca
+       usar roxo/lavanda no design da própria página: aqui o roxo não é
+       um acento nosso, é a cor de uma marca real que o botão representa
+       (igual a um ícone de terceiro mantém a cor original dele). */
     .arena-btn-live {
         display: inline-flex; align-items: center; gap: 6px;
-        background: var(--horda-bg); color: #fff;
+        background: var(--live); color: #fff;
         font-weight: 700; font-size: 0.85rem; padding: 9px 16px;
         text-decoration: none;
+        transition: filter 0.15s ease;
     }
+    .arena-btn-live:hover { filter: brightness(1.12); }
     .arena-btn-live::before { content: '●'; color: #fff; font-size: 0.6rem; }
 
     /* ---------- Hero ---------- */
@@ -89,21 +96,82 @@
     .arena-hero-metade--horda { background: #1C0A0A; clip-path: polygon(0 0, 54% 0, 46% 100%, 0 100%); }
     .arena-hero-metade--alianca { background: #0A1428; clip-path: polygon(54% 0, 100% 0, 100% 100%, 46% 100%); }
 
-    /* Emblemas decorativos (machados cruzados à esquerda, espadas cruzadas
-       à direita) — atrás do conteúdo do hero, acima do fundo diagonal.
-       Ficam escondidos em telas estreitas de propósito. */
-    .arena-emblema {
-        position: absolute; top: 50%; transform: translateY(-50%);
-        width: 260px; height: 260px; opacity: 0.72; z-index: 1;
+    /* Brilho ambiente atrás do conteúdo do hero — dá profundidade ao
+       degradê plano das duas metades, sem depender de foto nenhuma (que
+       não temos licença pra usar arte da Blizzard). Puramente decorativo,
+       não reage a nada. */
+    .arena-hero::before {
+        content: '';
+        position: absolute; z-index: 1; inset: -20% -10% auto -10%;
+        height: 70%;
+        background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--gold) 16%, transparent), transparent 70%);
         pointer-events: none;
     }
-    .arena-emblema--esquerda { left: 7%; }
-    .arena-emblema--direita { right: 7%; }
-    @media (max-width: 1240px) {
-        .arena-emblema { display: none; }
+
+    /* Brasas subindo — bem sutis, só textura/atmosfera de fundo. Geradas
+       em CSS puro (sem canvas/JS) com posições e atrasos fixos; cada
+       partícula sobe e some, num loop longo o bastante pra não cansar.
+       Desligado por completo em prefers-reduced-motion (vira só o brilho
+       estático acima). */
+    .arena-hero-embers {
+        position: absolute; inset: 0; z-index: 1; overflow: hidden;
+        pointer-events: none;
+    }
+    .arena-hero-embers::before, .arena-hero-embers::after {
+        content: '';
+        position: absolute; bottom: -10%; width: 4px; height: 4px; border-radius: 50%;
+        background: var(--gold);
+        box-shadow:
+            12vw 0 0 -1px color-mix(in srgb, var(--gold) 70%, transparent),
+            24vw 0 0 0px color-mix(in srgb, var(--horda-ink) 60%, transparent),
+            38vw 0 0 -1px color-mix(in srgb, var(--gold) 55%, transparent),
+            52vw 0 0 0px color-mix(in srgb, var(--alianca-ink) 55%, transparent),
+            66vw 0 0 -1px color-mix(in srgb, var(--gold) 70%, transparent),
+            80vw 0 0 0px color-mix(in srgb, var(--horda-ink) 50%, transparent),
+            92vw 0 0 -1px color-mix(in srgb, var(--gold) 60%, transparent);
+        animation: arena-anim-brasa-subir 14s linear infinite;
+    }
+    .arena-hero-embers::after { animation-duration: 19s; animation-delay: -7s; opacity: 0.6; }
+    @keyframes arena-anim-brasa-subir {
+        0% { transform: translateY(0) scale(1); opacity: 0; }
+        8% { opacity: 1; }
+        92% { opacity: 1; }
+        100% { transform: translateY(-120vh) scale(0.6); opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .arena-hero-embers { display: none; }
     }
 
+    /* Emblemas decorativos (machados cruzados à esquerda, espadas cruzadas
+       à direita) — atrás do conteúdo do hero, acima do fundo diagonal.
+       Encolhem (em vez de sumir) conforme a tela estreita, pra sempre
+       sobrar alguma presença gráfica no hero, até no celular. */
+    .arena-emblema {
+        position: absolute; top: 50%; transform: translateY(-50%);
+        width: clamp(90px, 18vw, 260px); height: clamp(90px, 18vw, 260px);
+        opacity: 0.72; z-index: 1;
+        pointer-events: none;
+    }
+    .arena-emblema--esquerda { left: clamp(2%, 5vw, 7%); }
+    .arena-emblema--direita { right: clamp(2%, 5vw, 7%); }
+    /* Abaixo de ~560px o texto do hero ocupa quase toda a largura — não
+       sobra vão ao lado pra um emblema centralizado sem colidir com ele.
+       Em vez de sumir (como antes), sobe pro canto superior, pequeno,
+       só como acento decorativo. */
+    @media (max-width: 560px) {
+        .arena-emblema {
+            top: 14px; transform: none;
+            width: 56px; height: 56px; opacity: 0.55;
+        }
+    }
+
+    /* min-width:0 nos itens de texto: por padrão um item de grid com
+       justify-items:center pode ficar largo o bastante pra caber a
+       palavra mais comprida sem quebrar linha, estourando a tela em
+       viewports estreitos (texto cortado por .arena-hero's overflow:
+       hidden, em vez de quebrar). */
     .arena-hero-conteudo { position: relative; z-index: 2; text-align: center; display: grid; gap: 18px; justify-items: center; }
+    .arena-hero-conteudo > * { min-width: 0; max-width: 100%; }
     .arena-hero-titulo {
         font-size: clamp(2.2rem, 6vw, 4rem);
         font-weight: 800;
@@ -114,9 +182,10 @@
     .arena-hero-subtitulo { color: var(--ink-soft); font-size: 1.05rem; max-width: 36rem; }
 
     .arena-placar {
-        display: flex; align-items: center; gap: 18px;
+        display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+        gap: 10px 18px;
         font-family: var(--font-display); font-weight: 800;
-        font-size: clamp(1.4rem, 3vw, 2.2rem);
+        font-size: clamp(1.1rem, 4.5vw, 2.2rem);
     }
     .arena-placar-lado { display: flex; align-items: center; gap: 10px; }
     .arena-placar-lado--horda { color: var(--horda-ink); }
@@ -151,7 +220,7 @@
 
     /* ---------- Seções gerais ---------- */
     .arena-secao { padding: 56px 0; }
-    .arena-secao-titulo { font-size: 1.8rem; color: var(--ink); margin-bottom: 28px; text-align: center; }
+    .arena-secao-titulo { font-size: clamp(1.4rem, 4.2vw, 1.8rem); color: var(--ink); margin-bottom: 28px; text-align: center; }
     .arena-chave-panorama-toggle {
         display: flex; align-items: center; justify-content: center; gap: 8px;
         font-size: 0.85rem; color: var(--ink-soft); cursor: pointer;
@@ -167,6 +236,28 @@
     .arena-chave-scroll {
         overflow-x: auto; padding: 24px 20px;
         background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    /* Dica de que dá pra arrastar + maior legibilidade dos cards de
+       partida em telas estreitas, onde o chaveamento inteiro não cabe
+       (ver comentário acima: scroll horizontal continua sendo o
+       fallback aqui, só ficou mais claro que existe algo pra arrastar e
+       mais fácil de ler). */
+    .arena-chave-scroll-dica {
+        display: none;
+        text-align: center; font-size: 0.78rem; color: var(--ink-soft2);
+        margin: -12px auto 16px;
+    }
+    @media (max-width: 760px) {
+        .arena-chave-scroll-dica { display: block; }
+        .arena-chave-scroll {
+            -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+        }
+        .arena-card-partida { padding: 12px 14px; gap: 9px; }
+        .arena-combatente-linha { padding: 7px 9px; gap: 9px; }
+        .arena-combatente-losango { width: 13px; height: 13px; }
+        .arena-combatente-nome { font-size: 1rem; }
+        .arena-combatente-classe { font-size: 0.82rem; }
     }
     /* Nomes das fases (Quartas, Semifinal, Grande final...) — mesma régua
        de flex-basis/gap/min-width das colunas de #arena-chave-conteudo
@@ -286,7 +377,11 @@
     .arena-selo-status--vice { background: rgba(217,178,106,0.3); color: var(--gold); }
 
     /* ---------- Inscrição pública ---------- */
-    .arena-inscricao-form { display: grid; gap: 14px; }
+    .arena-inscricao-form {
+        display: grid; gap: 14px;
+        background: var(--card); border: 1px solid var(--border);
+        padding: 22px;
+    }
     .arena-inscricao-campo { display: grid; gap: 6px; }
     .arena-inscricao-campo label { font-size: 0.82rem; font-weight: 700; color: var(--ink-soft); }
     .arena-inscricao-campo input {
@@ -317,6 +412,12 @@
 
     /* ---------- Regras / rodapé ---------- */
     .arena-footer { border-top: 1px solid var(--border); padding: 32px 0; text-align: center; color: var(--ink-soft2); font-size: 0.8rem; }
+    .arena-footer-links {
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+        gap: 6px 18px; margin-bottom: 14px;
+    }
+    .arena-footer-links a { color: var(--ink-soft); text-decoration: none; font-size: 0.82rem; font-weight: 600; }
+    .arena-footer-links a:hover { color: var(--gold); }
 
     .arena-carregando, .arena-vazio { text-align: center; color: var(--ink-soft); padding: 60px 20px; }
     .hidden { display: none !important; }
@@ -414,13 +515,9 @@
     <section class="arena-hero">
         <div class="arena-hero-metade arena-hero-metade--horda" aria-hidden="true"></div>
         <div class="arena-hero-metade arena-hero-metade--alianca" aria-hidden="true"></div>
+        <div class="arena-hero-embers" aria-hidden="true"></div>
         <img src="assets/arena/emblema-horda.svg" alt="" class="arena-emblema arena-emblema--esquerda">
         <img src="assets/arena/emblema-alianca.svg" alt="" class="arena-emblema arena-emblema--direita">
-
-        <!-- Emblema decorativo esquerdo (machados cruzados) — SVG entra aqui. -->
-        <div class="arena-emblema arena-emblema--esquerda" id="arena-emblema-horda" aria-hidden="true"></div>
-        <!-- Emblema decorativo direito (espadas cruzadas) — SVG entra aqui. -->
-        <div class="arena-emblema arena-emblema--direita" id="arena-emblema-alianca" aria-hidden="true"></div>
 
         <div class="container arena-hero-conteudo">
             <h1 id="arena-hero-titulo" class="arena-hero-titulo">ARENA</h1>
@@ -449,7 +546,7 @@
     <section class="arena-secao" id="inscricao">
         <div class="container" style="max-width: 560px;">
             <h2 class="arena-secao-titulo">Inscreva-se</h2>
-            <form id="arena-inscricao-form" class="arena-inscricao-form hidden">
+            <form id="arena-inscricao-form" class="arena-inscricao-form chanfro hidden">
                 <div class="arena-inscricao-campo">
                     <label for="arena-inscricao-personagem">Personagem</label>
                     <input type="text" id="arena-inscricao-personagem" autocomplete="off">
@@ -485,6 +582,7 @@
             <input type="checkbox" id="arena-chave-panorama-checkbox">
             Destacar a facção vencedora nas partidas encerradas
         </label>
+        <p class="arena-chave-scroll-dica">← Arraste para o lado para ver todas as rodadas →</p>
         <!-- Fora do .container de propósito: o chaveamento usa a largura
              cheia da tela (não trava em 1240px como o resto da página) pra
              caber mais rodadas lado a lado sem precisar de scroll. -->
@@ -529,6 +627,12 @@
     </section>
 
     <footer class="arena-footer">
+        <nav class="arena-footer-links">
+            <a href="./index.html">Página inicial da Órbita</a>
+            <a href="#inscricao">Inscreva-se</a>
+            <a href="#regras">Regras</a>
+            <a id="arena-footer-link-live" href="#" target="_blank" rel="noopener noreferrer" class="hidden">Assistir ao vivo</a>
+        </nav>
         <p>Evento organizado pela comunidade. Sem afiliação, patrocínio ou endosso da Blizzard Entertainment.</p>
     </footer>
 </div>
@@ -962,9 +1066,12 @@
         document.getElementById('arena-hero-subtitulo').textContent = subtitulo;
 
         const linkLive = document.getElementById('arena-link-live');
+        const linkLiveFooter = document.getElementById('arena-footer-link-live');
         if (campeonato.link_live) {
             linkLive.href = campeonato.link_live;
             linkLive.classList.remove('hidden');
+            linkLiveFooter.href = campeonato.link_live;
+            linkLiveFooter.classList.remove('hidden');
         }
 
         const participantesPorId = new Map(participantes.map(p => [p.id, p]));

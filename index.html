@@ -24,7 +24,7 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f2430' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%231f2430'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
     <script src="./supabase-client.js?v=1.0"></script>
 
@@ -43,6 +43,10 @@
             --orbita-border: #e2e5ea;
             --orbita-ink: #1f2430;
             --orbita-ink-soft: #6b7280;
+            /* Mesma fonte de destaque já usada em criadores.html — alinha a
+               identidade da home (porta de entrada do produto) com a da
+               página de vendas, em vez de duas eras visuais diferentes. */
+            --font-display: 'Unbounded', 'Arial Rounded MT Bold', system-ui, sans-serif;
         }
 
         * { box-sizing: border-box; }
@@ -72,9 +76,9 @@
             border-bottom: 1px solid var(--orbita-border);
         }
         .orbita-header-inner {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 14px 20px;
+            padding: 18px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -91,10 +95,10 @@
            em si é neutra (tom "ink"), sem usar a cor de destaque de nenhum
            concurso específico. */
         .orbita-logo-mark {
-            width: 26px;
-            height: 26px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            border: 2px solid var(--orbita-ink);
+            border: 2.5px solid var(--orbita-ink);
             position: relative;
             flex-shrink: 0;
         }
@@ -103,15 +107,16 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 6px;
-            height: 6px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             background: var(--orbita-ink);
             transform: translate(-50%, -50%);
         }
         .orbita-brand-name {
             margin: 0;
-            font-size: 1.15rem;
+            font-family: var(--font-display);
+            font-size: 1.3rem;
             font-weight: 700;
             letter-spacing: -0.01em;
             color: var(--orbita-ink);
@@ -124,22 +129,33 @@
         @media (max-width: 767px) {
             .orbita-tagline { display: none; }
         }
+        /* Virou um botão discreto (era só texto sublinhado) — dá mais
+           presença ao cabeçalho sem concorrer com a marca, e o leve
+           "degrau" no hover segue o mesmo padrão de botão do resto do
+           site (passo ao passar o mouse, não só sublinhado). */
         .orbita-header-link {
+            display: inline-flex;
+            align-items: center;
             font-size: 0.85rem;
             font-weight: 600;
-            color: var(--orbita-ink-soft);
+            color: var(--orbita-ink);
             text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid var(--orbita-border);
+            border-radius: 999px;
+            background: var(--orbita-surface);
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         }
         .orbita-header-link:hover {
-            color: var(--orbita-ink);
-            text-decoration: underline;
-            text-underline-offset: 2px;
+            transform: translateY(-1px);
+            border-color: var(--orbita-ink-soft);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
         }
 
         /* ---------- Corpo ---------- */
         .orbita-main {
             flex: 1;
-            max-width: 1000px;
+            max-width: 1200px;
             width: 100%;
             margin: 0 auto;
             padding: 32px 20px 48px;
@@ -172,76 +188,120 @@
            entender do que se trata a plataforma. */
         .orbita-intro-linha {
             display: flex;
-            align-items: stretch;
-            gap: 24px;
+            align-items: center;
+            gap: 32px;
             margin-bottom: 28px;
             flex-wrap: wrap;
         }
-        .orbita-intro {
-            margin: 0;
-            font-size: 0.95rem;
-            line-height: 1.7;
+        .orbita-hero-texto { flex: 1 1 320px; min-width: 0; }
+        .orbita-hero-eyebrow {
+            font-family: var(--font-display);
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
             color: var(--orbita-ink-soft);
-            text-align: justify;
-            flex: 1 1 300px;
-            padding: 20px;
+            margin: 0 0 8px;
         }
-        /* Só decorativo: a logo da Órbita ampliada, com um ponto satélite
-           girando ao redor dela — a mesma metáfora do nome "Órbita", só que
-           agora é literalmente a marca no centro. Sem fundo, sem link. */
-        .orbita-mini-orbit {
-            flex: 0 0 220px;
+        .orbita-hero-titulo {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: clamp(1.5rem, 3.6vw, 2.1rem);
+            letter-spacing: -0.01em;
+            color: var(--orbita-ink);
+            margin: 0 0 12px;
+            text-wrap: balance;
+        }
+        .orbita-intro {
+            margin: 0 0 20px;
+            font-size: 0.92rem;
+            line-height: 1.65;
+            color: var(--orbita-ink-soft);
+        }
+        /* Fato concreto logo na primeira tela, em vez de só o parágrafo
+           explicando a plataforma — mesma ideia da barra "Órbita em
+           números" de criadores.html, só que aqui compacta e dentro do
+           hero. Populado via JS; fica em "—" até a consulta voltar. */
+        .orbita-stats {
             display: flex;
-            align-items: center;
-            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
         }
+        .orbita-stat-valor {
+            display: block;
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--orbita-ink);
+        }
+        .orbita-stat-label {
+            font-size: 0.72rem;
+            color: var(--orbita-ink-soft);
+        }
+
+        /* ---------- Mosaico de fotos reais (hero) ----------
+           Substitui o antigo gráfico decorativo abstrato (órbita + ponto
+           girando, sem nenhuma foto de verdade) por uma amostra real de
+           fotos já enviadas aos concursos — prova visual imediata de que a
+           Órbita é uma plataforma de fotografia, não só texto explicando
+           isso. Populado via JS a partir de fotos aprovadas recentes; sem
+           fotos ainda (plataforma nova/sem concurso rodado), a seção
+           inteira não é renderizada. */
+        .orbita-mosaico {
+            flex: 0 0 260px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 8px;
+            width: 260px;
+            height: 184px;
+            /* Rede de segurança: com template-rows travado em 2 linhas,
+               qualquer item a mais que as 4 cabíveis (nunca deveria
+               acontecer, mas já aconteceu por engano) fica cortado aqui
+               dentro, em vez de vazar e sobrepor o bloco de concursos
+               logo abaixo. */
+            overflow: hidden;
+        }
+        .orbita-mosaico-wrap { position: relative; flex: 0 0 260px; }
         @media (max-width: 767px) {
-            .orbita-mini-orbit { display: none; }
+            .orbita-mosaico-wrap { display: none; }
         }
-        .orbita-mini-orbit-stage {
-            position: relative;
-            width: 128px;
-            height: 128px;
-        }
-        .orbita-mini-logo {
+        /* Selo solto, não vinculado a nenhuma foto específica (evita o
+           padrão de "legenda embaixo da imagem") — sobrepõe o canto do
+           mosaico como um todo, como um carimbo de autenticidade. */
+        .orbita-mosaico-selo {
             position: absolute;
-            top: 50%;
+            bottom: -10px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            width: 78px;
-            height: 78px;
-            border-radius: 50%;
-            border: 4px solid var(--orbita-ink);
-        }
-        .orbita-mini-logo::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
+            transform: translateX(-50%);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 999px;
             background: var(--orbita-ink);
-            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(31, 36, 48, 0.2);
         }
-        .orbita-mini-satelite-orbita {
-            position: absolute;
-            inset: 0;
-            animation: orbita-mini-girar 5s linear infinite;
-        }
-        .orbita-mini-satelite {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            width: 13px;
-            height: 13px;
-            margin-left: -6.5px;
-            border-radius: 50%;
-            background: var(--orbita-ink);
-        }
-        @keyframes orbita-mini-girar { to { transform: rotate(360deg); } }
-        @media (prefers-reduced-motion: reduce) {
-            .orbita-mini-satelite-orbita { animation: none; }
+        .orbita-mosaico-foto {
+            width: 100%;
+            height: 100%;
+            /* Sem isso, o "tamanho mínimo automático" padrão de item de
+               grid usa a proporção natural da própria imagem como piso —
+               com fotos de proporções bem diferentes (uma bem vertical,
+               outra bem horizontal), isso empurra uma linha do grid mais
+               alta que a outra mesmo com grid-template-rows: 1fr 1fr fixo
+               ali em cima. Zerando o mínimo, as duas linhas ficam sempre
+               iguais, e quem resolve o enquadramento é só o object-fit. */
+            min-width: 0;
+            min-height: 0;
+            object-fit: cover;
+            border-radius: 10px;
+            background: var(--orbita-surface-2);
         }
         .orbita-status-msg {
             font-size: 0.9rem;
@@ -334,6 +394,24 @@
             position: relative;
             z-index: 1;
         }
+        /* Com uma foto real de fundo no banner (ver orbita-card-banner--foto
+           abaixo), o logo do concurso vira um selo pequeno no canto em vez
+           de ocupar o centro inteiro — a foto é o protagonista do card. */
+        .orbita-card-banner--foto .orbita-card-logo {
+            position: absolute;
+            left: 10px;
+            bottom: 10px;
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--orbita-surface);
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+        }
+        .orbita-card-banner--foto {
+            background-size: cover;
+            background-position: center;
+            align-items: flex-end;
+            justify-content: flex-start;
+        }
         /* Anel orbital que aparece ao redor do ícone no hover — reforça o
            motivo "órbita" no card sem exigir nenhum asset novo, só um
            círculo tracejado na mesma cor de destaque já usada no banner. */
@@ -354,6 +432,21 @@
         .orbita-card:hover .orbita-card-banner::after {
             opacity: 0.8;
             transform: translate(-50%, -50%) scale(1);
+        }
+        /* Com foto real de fundo, o anel/ponto não orbita mais o centro do
+           banner inteiro (ali agora é a foto) — reposiciona pro centro do
+           selo da logo, no canto, bem menor. Sem logo nenhuma pra orbitar
+           (banner com foto mas sem logo cadastrada), o efeito inteiro some
+           (ver orbita-card-banner--sem-selo). */
+        .orbita-card-banner--foto::after {
+            top: 186px;
+            left: 30px;
+            width: 56px;
+            height: 56px;
+        }
+        .orbita-card-banner--sem-selo::after,
+        .orbita-card-banner--sem-selo::before {
+            display: none;
         }
         /* "Planeta" que percorre o anel no hover — um ponto preto girando
            ao redor do centro do banner na mesma distância do raio do anel
@@ -386,6 +479,22 @@
                do ciclo — na prática, o ponto entra em posições diferentes
                do anel a cada hover, em vez de sempre no mesmo lugar. */
             animation-delay: var(--orbit-delay, 0s);
+        }
+        .orbita-card-banner--foto::before {
+            top: 186px;
+            left: 30px;
+            width: 6px;
+            height: 6px;
+            margin-top: -3px;
+            margin-left: -3px;
+        }
+        .orbita-card-banner--foto:hover::before,
+        .orbita-card:hover .orbita-card-banner--foto::before {
+            animation-name: orbita-planeta-selo;
+        }
+        @keyframes orbita-planeta-selo {
+            from { transform: rotate(0deg) translateX(28px); }
+            to { transform: rotate(360deg) translateX(28px); }
         }
         @keyframes orbita-planeta {
             from { transform: rotate(0deg) translateX(68px); }
@@ -475,6 +584,28 @@
            plataforma; virou o link "Para criadores e marcas" (mais útil
            ali do que um texto sem ação) + o link da Arena, condicional,
            logo abaixo, só quando algum campeonato está marcado como ativo. */
+        .orbita-footer-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .orbita-footer-logo-mark {
+            width: 22px;
+            height: 22px;
+        }
+        .orbita-footer-logo-mark::after {
+            width: 5px;
+            height: 5px;
+        }
+        .orbita-footer-brand-name {
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--orbita-ink);
+        }
         .orbita-footer-destaque {
             display: block;
             margin: 0 0 6px;
@@ -500,6 +631,18 @@
             align-items: center;
             justify-content: center;
             gap: 6px 16px;
+        }
+        /* Separa visualmente o grupo "concursos" (acima) do institucional
+           (abaixo) — antes era uma lista só, sem nenhuma hierarquia entre
+           os dois tipos de link. */
+        .orbita-footer-links--institucional {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--orbita-border);
+        }
+        .orbita-footer-links--institucional a,
+        .orbita-footer-links--institucional button {
+            font-size: 0.74rem;
         }
         .orbita-footer-links a {
             display: inline-flex;
@@ -683,25 +826,43 @@
 
     <main class="orbita-main">
         <div class="orbita-intro-linha">
-            <p class="orbita-intro">
-                Órbita é a plataforma por trás de concursos culturais de fotografia:
-                participantes enviam suas fotos, os vencedores são escolhidos pelo
-                voto do público ou por um júri convidado (conforme o concurso), e
-                entram para o histórico de concursos. Quando há votação pública,
-                usamos o login do Google de forma segura — apenas para confirmar
-                sua identidade e garantir que cada pessoa vote uma única vez por
-                foto, sem acesso a nenhum outro dado da sua conta.
-            </p>
-
-            <!-- Objeto decorativo (a marca da Órbita com um ponto girando
-                 ao redor) — só visual, sem link nem texto. -->
-            <div class="orbita-mini-orbit" aria-hidden="true">
-                <div class="orbita-mini-orbit-stage">
-                    <span class="orbita-mini-logo"></span>
-                    <div class="orbita-mini-satelite-orbita">
-                        <span class="orbita-mini-satelite"></span>
+            <div class="orbita-hero-texto">
+                <p class="orbita-hero-eyebrow">Concursos culturais de fotografia</p>
+                <h2 class="orbita-hero-titulo">Sua foto pode ser a próxima vencedora</h2>
+                <p class="orbita-intro">
+                    Órbita é a plataforma por trás de concursos culturais de fotografia:
+                    participantes enviam suas fotos, os vencedores são escolhidos pelo
+                    voto do público ou por um júri convidado (conforme o concurso), e
+                    entram para o histórico de concursos. Quando há votação pública,
+                    usamos o login do Google de forma segura — apenas para confirmar
+                    sua identidade e garantir que cada pessoa vote uma única vez por
+                    foto, sem acesso a nenhum outro dado da sua conta.
+                </p>
+                <div id="orbita-stats" class="orbita-stats">
+                    <div>
+                        <span id="stat-concursos" class="orbita-stat-valor">—</span>
+                        <span class="orbita-stat-label">concursos realizados</span>
+                    </div>
+                    <div>
+                        <span id="stat-fotos" class="orbita-stat-valor">—</span>
+                        <span class="orbita-stat-label">fotos enviadas</span>
+                    </div>
+                    <div>
+                        <span id="stat-votos" class="orbita-stat-valor">—</span>
+                        <span class="orbita-stat-label">votos registrados</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Mosaico com fotos de verdade (as mais recentes aprovadas
+                 nos concursos ativos) — populado via JS; some por completo
+                 se ainda não houver nenhuma foto aprovada pra mostrar. -->
+            <div class="orbita-mosaico-wrap">
+                <div id="orbita-mosaico" class="orbita-mosaico hidden" aria-hidden="true"></div>
+                <span id="orbita-mosaico-selo" class="orbita-mosaico-selo hidden" aria-hidden="true">
+                    <svg class="icon-inline" style="margin:0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    Fotos reais dos concursos
+                </span>
             </div>
         </div>
 
@@ -730,15 +891,22 @@
     </main>
 
     <footer class="orbita-footer">
+        <div class="orbita-footer-brand">
+            <span class="orbita-logo-mark orbita-footer-logo-mark" aria-hidden="true"></span>
+            <span class="orbita-footer-brand-name">Órbita</span>
+        </div>
         <a href="./criadores.html" class="orbita-footer-destaque">Para criadores e marcas</a>
         <a href="#" id="link-arena-ativa" class="orbita-footer-destaque orbita-footer-arena hidden">⚔️ Arena WoW ⚔️</a>
         <nav class="orbita-footer-links">
+            <a href="./historico.html">Histórico de concursos</a>
+            <a href="./status.html">Acompanhar minha foto</a>
+            <a href="./jurado.html">Área do jurado</a>
+        </nav>
+        <nav class="orbita-footer-links orbita-footer-links--institucional">
             <button type="button" id="btn-abrir-contato">Contato</button>
             <a href="./privacy.html">Privacidade</a>
             <a href="./terms.html">Termos</a>
-            <a href="./historico.html">Histórico de concursos</a>
-            <a href="./status.html">Acompanhar minha foto</a>
-            <a href="./jurado.html">Área do jurado</a>        </nav>
+        </nav>
     </footer>
 
     <!-- Popup "Contato" — separa quem quer falar sobre a experiência no site
@@ -860,31 +1028,40 @@
             // no tom de destaque do próprio theme_config — o resto do card
             // (marca Órbita no cabeçalho/rodapé) permanece neutro, já que a
             // página lista vários concursos ao mesmo tempo.
-            function montarCardConcurso(concurso, participantesPorConcurso) {
+            function montarCardConcurso(concurso, participantesPorConcurso, fotoDestaquePorConcurso) {
                 const cores = (concurso.theme_config && concurso.theme_config.cores) || {};
                 const icones = (concurso.theme_config && concurso.theme_config.icones) || {};
                 const corPrimaria = cores.primaria || '#3C8156';
                 const nome = concurso.nome || concurso.descricao;
                 const dias = calcularDiasRestantes(concurso.data);
                 const qtdParticipantes = participantesPorConcurso.get(concurso.id)?.size ?? 0;
+                const fotoDestaque = fotoDestaquePorConcurso.get(concurso.id);
 
                 let textoPrazo;
                 if (dias > 0) textoPrazo = `${dias} dia${dias === 1 ? '' : 's'} restante${dias === 1 ? '' : 's'}`;
                 else if (dias === 0) textoPrazo = 'Último dia';
                 else textoPrazo = 'Prazo encerrado';
 
-                // O logo já vem no theme_config (nenhuma busca nova) —
-                // concursos sem logo próprio cadastrado caem no ícone
-                // genérico de câmera, igual antes.
+                // O logo já vem no theme_config (nenhuma busca nova). Com
+                // uma foto real já aprovada nesse concurso, ela vira o
+                // fundo do banner (prova visual de verdade) e o logo (se
+                // existir) encolhe pra um selo no canto — ver
+                // orbita-card-banner--foto no CSS. Sem foto ainda (concurso
+                // recém-criado), cai no comportamento antigo: logo
+                // centralizado ou ícone genérico de câmera.
+                const classeBanner = fotoDestaque
+                    ? ` orbita-card-banner--foto${icones.logo ? '' : ' orbita-card-banner--sem-selo'}`
+                    : '';
+                const estiloBanner = fotoDestaque ? ` style="background-image: url('${escapeHTML(fotoDestaque)}');"` : '';
                 const conteudoBanner = icones.logo
                     ? `<img src="${escapeHTML(icones.logo)}" alt="${escapeHTML(nome)}" class="orbita-card-logo">`
-                    : `<svg class="icon-banner" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
+                    : (fotoDestaque ? '' : `<svg class="icon-banner" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`);
 
                 const ultimoDia = dias === 0;
 
                 return `
                     <a href="./concurso.html?c=${encodeURIComponent(concurso.slug)}" onclick="return navegarParaConcurso(event, this)" class="orbita-card${ultimoDia ? ' orbita-card--ultimo-dia' : ''}" style="--accent: ${escapeHTML(corPrimaria)};">
-                        <div class="orbita-card-banner">${conteudoBanner}</div>
+                        <div class="orbita-card-banner${classeBanner}"${estiloBanner}>${conteudoBanner}</div>
                         <div class="orbita-card-body">
                             <h3 class="orbita-card-title">${escapeHTML(nome)}</h3>
                             <div class="orbita-card-footer">
@@ -942,22 +1119,70 @@
                     // "participantes" deve contar gente, não fotos. Uma única
                     // query pra todos os concursos da grade, evitando N+1.
                     const idsConcursos = data.map(c => c.id);
+                    // url_thumb/criado_em a mais em relação à consulta
+                    // original: alimentam o banner com foto real de cada
+                    // card e o mosaico de "fotos recentes" do hero — sem
+                    // precisar de uma segunda ida ao banco.
                     const { data: fotosAprovadas } = await supabase
                         .from('fotos_concurso')
-                        .select('concurso_id, nome_participante')
+                        .select('concurso_id, nome_participante, url_thumb, criado_em')
                         .eq('aprovada', true)
-                        .in('concurso_id', idsConcursos);
+                        .in('concurso_id', idsConcursos)
+                        .order('criado_em', { ascending: false });
 
                     const participantesPorConcurso = new Map();
+                    // Todas as fotos com thumbnail por concurso (não só a
+                    // mais recente) — dá pra sortear uma diferente a cada
+                    // carregamento da página, ver fotoDestaquePorConcurso
+                    // logo abaixo.
+                    const fotosComThumbPorConcurso = new Map();
                     for (const foto of fotosAprovadas ?? []) {
                         if (!participantesPorConcurso.has(foto.concurso_id)) {
                             participantesPorConcurso.set(foto.concurso_id, new Set());
                         }
                         participantesPorConcurso.get(foto.concurso_id).add(foto.nome_participante);
+
+                        if (foto.url_thumb) {
+                            if (!fotosComThumbPorConcurso.has(foto.concurso_id)) {
+                                fotosComThumbPorConcurso.set(foto.concurso_id, []);
+                            }
+                            fotosComThumbPorConcurso.get(foto.concurso_id).push(foto.url_thumb);
+                        }
                     }
 
-                    gridConcursos.innerHTML = data.map(c => montarCardConcurso(c, participantesPorConcurso)).join('') + CARD_EM_BREVE;
+                    // Uma foto aleatória por concurso, sorteada de novo a
+                    // cada carregamento da página — o banner do card varia
+                    // entre visitas, mas fica parado enquanto a pessoa está
+                    // olhando (sem nenhum carrossel ou troca automática).
+                    const fotoDestaquePorConcurso = new Map();
+                    for (const [concursoId, urls] of fotosComThumbPorConcurso) {
+                        const escolhida = urls[Math.floor(Math.random() * urls.length)];
+                        fotoDestaquePorConcurso.set(concursoId, escolhida);
+                    }
+
+                    gridConcursos.innerHTML = data.map(c => montarCardConcurso(c, participantesPorConcurso, fotoDestaquePorConcurso)).join('') + CARD_EM_BREVE;
                     gridConcursos.classList.remove('hidden');
+
+                    // Mosaico do hero: 4 fotos sorteadas (sem repetir) entre
+                    // todas as aprovadas nos concursos ativos — sorteio novo
+                    // a cada carregamento da página, igual ao banner dos
+                    // cards logo acima; nada se move depois de carregado.
+                    // Sem nenhuma foto aprovada ainda, o bloco inteiro
+                    // continua escondido.
+                    const fotosComThumb = (fotosAprovadas ?? []).filter(f => f.url_thumb);
+                    for (let i = fotosComThumb.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [fotosComThumb[i], fotosComThumb[j]] = [fotosComThumb[j], fotosComThumb[i]];
+                    }
+                    const sorteadas = fotosComThumb.slice(0, 4);
+                    if (sorteadas.length > 0) {
+                        const mosaico = document.getElementById('orbita-mosaico');
+                        mosaico.innerHTML = sorteadas
+                            .map(f => `<img src="${escapeHTML(f.url_thumb)}" alt="" class="orbita-mosaico-foto">`)
+                            .join('');
+                        mosaico.classList.remove('hidden');
+                        document.getElementById('orbita-mosaico-selo').classList.remove('hidden');
+                    }
                 } else {
                     semConcurso.classList.remove('hidden');
                 }
@@ -987,6 +1212,36 @@
                 }
             } catch (err) {
                 console.error(err);
+            }
+
+            // Fato concreto pra primeira tela (ver orbita-stats no HTML) —
+            // soma de TODOS os concursos que já tiveram participação real
+            // (não só os ativos agora), mesma lógica já usada em
+            // criadores.html: decidido pela evidência de ter ao menos 1
+            // foto aprovada, não pelo campo `ativo` (que só controla se o
+            // concurso aparece na grade acima).
+            try {
+                // concursos!inner(modo_teste) + o eq na coluna da tabela
+                // relacionada: exclui concurso de teste da soma (mesmo
+                // ajuste já aplicado em criadores.html).
+                const { data: fotosParaStats, error: erroStats } = await supabase
+                    .from('fotos_concurso')
+                    .select('concurso_id, votos, concursos!inner(modo_teste)')
+                    .eq('aprovada', true)
+                    .eq('concursos.modo_teste', false);
+
+                if (erroStats) throw erroStats;
+
+                const totalConcursos = new Set((fotosParaStats ?? []).map(f => f.concurso_id)).size;
+                const totalFotos = fotosParaStats?.length ?? 0;
+                const totalVotos = (fotosParaStats ?? []).reduce((soma, f) => soma + (f.votos || 0), 0);
+
+                document.getElementById('stat-concursos').textContent = totalConcursos.toLocaleString('pt-BR');
+                document.getElementById('stat-fotos').textContent = totalFotos.toLocaleString('pt-BR');
+                document.getElementById('stat-votos').textContent = totalVotos.toLocaleString('pt-BR');
+            } catch (err) {
+                console.error('Erro ao carregar números da Órbita:', err);
+                // Mantém o "—" em vez de mostrar um número errado.
             }
         })();
 
